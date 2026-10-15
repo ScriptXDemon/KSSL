@@ -61,7 +61,7 @@ INSERT INTO staging.technology_overview_article
   (overview_article_id, article_id, external_id, pillar_id, sequence_no, title, lens, status,
    published_label, card_summary, direction, category_id, created_at, updated_at)
 VALUES (3001, 3001, 'tech-001', 1, 1, 'Hybrid-electric propulsion breakthrough', 'Technology', 'published',
-        'Sep 2026', 'New hybrid drive cuts fuel use 20%.', 'watch', 'propulsion', now(), now());
+        'Sep 2026', 'New hybrid drive cuts fuel use 20%.', 'watch', NULL, now(), now());  -- category_id is a technology_category id (number)
 
 -- Wipe ALL data, staged and live (ui, serving, staging, staging_ui). Keeps the tables.
 -- DO $$

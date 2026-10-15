@@ -13,3 +13,7 @@ public/photo_sample.html
 !.env.example
 __pycache__/
 *.py[cod]
+
+# news job: downloaded article images + link-resolve cache
+media/
+.cache/
