@@ -1,0 +1,100 @@
+  /* Archivo / IBM Plex Mono / Tabler icons are <link>ed from index.html — a webfont
+     @import inside a bundled stylesheet has to be hoisted to the top of the bundle,
+     and this file is only one of twelve. */
+
+  :root{
+    --d-bg:#161618;
+    --d-bg-1:#1c1c1f;
+    --d-bg-2:#212125;
+    --d-bg-3:#2a2a2f;
+    --d-line:#323237;
+    --d-line-2:#46464d;
+    --d-txt:#f5f5f4;
+    --d-txt-2:#bdbdbb;
+    --d-txt-3:#908f8c;
+    --d-txt-4:#65656a;
+    --d-read:#d8d8d6;
+    --l-bg:#ffffff;
+    --l-bg-1:#f7f6f3;
+    --l-bg-2:#f0efea;
+    --l-bg-3:#e9e8e2;
+    --l-line:#e2e0d8;
+    --l-line-2:#cfcdc3;
+    --l-txt:#161614;
+    --l-txt-2:#3d3d39;
+    --l-txt-3:#6b6a63;
+    --l-txt-4:#9a988e;
+    --threat:#b5341f;
+  --threat-badge:#f0593c; --watch-badge:#e0a020; --fav-badge:#3fa86a;
+    --watch:#9a6a08;
+    --fav:#1f6e45;
+    --synthetic:#c0610f;
+    --synthetic-bg:#fbf0e2;
+    --mono:'IBM Plex Mono', ui-monospace, monospace;
+    --sans:'Archivo', system-ui, sans-serif;
+    /* BLOOD RED, AND ONLY FOR ONE THING.
+       A rival partner that is also KSSL's own partner. Asked for as "wherever overlap is
+       there highlight it with blood red colour", and it is deliberately NOT the threat
+       orange: a threat is a rival doing well, an overlap is a supplier, dealer or
+       programme sitting on both sides at once, and the two want to be told apart at a
+       glance. --overlap is the ink, --overlap-line the border, --overlap-bg the wash;
+       the ink clears 4.5:1 on this ground, which the previous #dc2626 did not. */
+    --overlap:#ff2d2d;
+    --overlap-line:rgba(154,10,16,.75);
+    --overlap-bg:rgba(154,10,16,.20);
+
+    /* ONE WIDTH FOR BOTH SEARCH BOXES. The global bar in the top bar and the card
+       filter in the feed header are two different searches (whole dataset vs the open
+       pillar's cards) and the operator asked for them to be the same size, so the size
+       is a variable rather than two numbers that drift apart on the next edit. */
+    --searchw:400px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--d-bg);color:var(--d-txt);font-family:var(--sans);-webkit-font-smoothing:antialiased;height:100vh;height:100dvh;width:100vw;max-width:100vw;overflow:hidden !important;position:fixed;top:0;left:0;right:0;bottom:0}
+  body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden !important}
+  #root{display:flex;flex-direction:column;height:100vh;height:100dvh;width:100%;max-width:100vw;overflow:hidden !important}
+  .eyebrow{font-family:var(--mono);font-size:clamp(10px, 0.8vw, 12px);font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--d-txt-3)}
+  .mono{font-family:var(--mono)}
+
+  /* Custom modern thin scrollbars */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    min-height: 0;
+  }
+  body {
+    font-size: 14px;
+  }
+  button, input, select, textarea, span, div, p, a, label, table, td, th {
+    font-size: max(12px, inherit);
+  }
+
+
+/* The live-source marker. Four "Source Publisher:" lines and a partner card printed a
+   a literal red-circle emoji for this, which renders in whatever colour the viewer's emoji font picks
+   and ignores the palette entirely. A styled element takes the page's own accent and
+   scales with the type around it. */
+.src-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 6px;
+  vertical-align: baseline;
+  flex-shrink: 0;
+}

@@ -1,0 +1,457 @@
+  /* ============ MAIN GRID ============ */
+  .shell{display:grid;grid-template-columns:clamp(206px, 15vw, 244px) 1fr;flex:1;overflow:hidden;overflow-x:hidden !important;max-width:100%;min-height:0;height:100%}
+  .shell.ov-nosel{grid-template-columns:clamp(206px, 15vw, 244px) 1fr}
+  .shell.ov-nosel .ctx.v-overview{display:none}
+  .ctx.v-overview.revealed{animation:panelSlideWide .42s cubic-bezier(.22,.61,.36,1)}
+
+  /* OVERVIEW LAYOUT — Fixed Header Line & Below Detail Panel */
+  .ov-wrap {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+  }
+  .ov-fixed-header {
+    flex-shrink: 0;
+    z-index: 10;
+    background: var(--d-bg-1);
+    border-bottom: 1px solid var(--d-line);
+    position: sticky;
+    top: 0;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ov-fixed-header::-webkit-scrollbar {
+    display: none;
+  }
+  .ov-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+  }
+  .ov-body .feed {
+    flex: 1;
+    overflow-y: auto;
+    min-width: 0;
+    margin-right: 0;
+    transition: margin-right 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .ov-body.has-sel .feed {
+    margin-right: clamp(320px, 30vw, 440px);
+  }
+  .ov-body .ctx.v-overview {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: clamp(320px, 30vw, 440px);
+    z-index: 100;
+    overflow: hidden;
+    border-left: 1px solid var(--d-line);
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35);
+    background: var(--l-bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* LEFT RAIL */
+  .rail{border-right:1px solid var(--d-line);background:var(--d-bg);overflow-y:auto;display:flex;flex-direction:column}
+  .rail-sec{border-bottom:1px solid var(--d-line);padding:16px 18px}
+  .rail-sec.svc-sec{padding:16px 0 10px}
+  .rail-sec .eyebrow{display:block;margin-bottom:13px}
+  .rail-sec.svc-sec .eyebrow{padding:0 18px}
+  .svc{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;color:var(--d-txt-2);font-size:13.5px;transition:color .12s,background .12s;border-left:2px solid transparent;white-space:nowrap}
+  .svc:hover{color:var(--d-txt);background:var(--d-bg-1)}
+  .svc.active{color:var(--d-txt);font-weight:600;background:var(--d-bg-2);border-left-color:#fff}
+  .svc .ix{font-family:var(--mono);font-size:12px;color:var(--d-txt-4);width:16px;flex-shrink:0}
+  .svc.active .ix{color:var(--d-txt-2)}
+  .svc .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* THE RAIL MARKER BELONGS TO THE ROW YOU ARE ON. It was painted on the overview row of
+     every pillar whether or not that row was open, so it read as a permanent decoration
+     rather than a position. It now appears only on the active row, which is the one thing
+     a marker in a nav rail is for. Kept at 6px so the row's grid does not shift. */
+  /* THE RAIL MARKER IS GONE, and so are its rules -- the span is no longer rendered
+     (Sidebar.jsx). A `.tdot` selector left behind here would be a rule that matches
+     nothing, read on the next visit as a marker that has stopped working. The active row
+     is named by its own highlight: `.svc.active` below, filled ground plus the left
+     border. */
+  .svc .ct{font-family:var(--mono);font-size:11.5px;color:var(--d-txt-3);background:var(--d-bg-3);padding:2px 7px;min-width:22px;text-align:center}
+  .svc.active .ct{color:var(--d-txt)}
+
+
+  /* CENTER FEED */
+  .feed{overflow-y:auto;background:var(--d-bg-1);padding:0}
+  .feed-grp{border-bottom:1px solid var(--d-line)}
+  .feed-grp-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 18px;position:sticky;top:0;background:var(--d-bg-1);z-index:2;border-bottom:1px solid var(--d-line);flex-wrap:nowrap;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .feed-grp-h::-webkit-scrollbar{display:none}
+  .feed-grp-h .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;letter-spacing:.1em;color:var(--d-txt);white-space:nowrap !important;flex-shrink:0}
+  .feed-grp-h .sub{font-size:11px;color:var(--d-txt-3);font-weight:400;letter-spacing:0;text-transform:none;font-family:var(--sans);white-space:nowrap !important;flex-shrink:0}
+
+  .alert{display:grid;grid-template-columns:32px 1fr auto;border-bottom:1px solid var(--d-line);padding:16px 24px 16px 14px;gap:16px;cursor:pointer;transition:background .1s, padding .22s ease-out;position:relative;background:var(--d-bg-1)}
+  .ov-body.has-sel .alert{padding:16px 36px 16px 14px}
+  .alert:last-child{border-bottom:none}
+  .alert:hover{background:var(--d-bg-2)}
+  .alert.sel{background:var(--d-bg-3)}
+  .alert.sel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#fff}
+  .alert .gut{display:flex;flex-direction:column;align-items:center;padding-top:3px}
+  /* THE DOT SAID NOTHING THE TAG DOES NOT. Every card already carries its direction as a
+     worded, coloured badge in the aside (.dirtag); the 6px dot in the gutter repeated it
+     in colour alone -- which is also the one form of it a colour-blind reader cannot use.
+     Removed rather than restyled; the rank keeps the gutter's alignment. */
+  .alert .sig{display:none}
+  .alert .rank{font-family:var(--mono);font-size:11px;color:var(--d-txt-4);margin-top:7px}
+
+  .alert .body{width:100%;max-width:100%;flex:1 1 auto;min-width:0;padding-right:8px}
+  .alert .body .ttl{font-size:15px;font-weight:600;letter-spacing:-.005em;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.4;word-break:break-word;overflow-wrap:anywhere}
+  .alert .body .meta{font-family:var(--mono);font-size:12px;color:var(--d-read);display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:7px;word-break:break-word;overflow-wrap:anywhere}
+  .alert .body .meta .sep{color:var(--d-txt-3)}
+  .alert .body .meta .val{color:var(--d-txt)}
+  .alert .body .sowhat{font-size:13.5px;color:var(--d-read);line-height:1.6;max-width:none;word-break:break-word;overflow-wrap:anywhere}
+  .alert .body .sowhat b{color:#ffffff;font-weight:600}
+  /* full-spectrum read — prose UI matching 'why it matters' */
+  .cd-lens-p{margin:0 0 11px 0}
+  .cd-lens-p:last-child{margin-bottom:0}
+  .cd-lens-lead{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--l-txt-3);font-weight:600}
+  .cd-fact{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.05);font-size:12px}
+  .cd-fact:last-child{border-bottom:none}
+  .cd-fact-k{color:#888;font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase}
+  .cd-fact-v{color:#1a1a1a;text-align:right;font-weight:500}
+  /* cross-reference: overview signal -> pipeline capability */
+  .cd-pipeline-link{margin-top:8px;padding:11px 13px;border:1px solid rgba(0,0,0,.1);border-radius:6px;cursor:pointer;transition:.14s;background:rgba(0,0,0,.015)}
+  .cd-pipeline-link:hover{border-color:rgba(0,0,0,.25);background:rgba(0,0,0,.04)}
+  .cd-pl-label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#999;margin-bottom:3px}
+  .cd-pl-title{display:block;font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4}
+  .cd-pl-go{display:inline-block;margin-top:6px;font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--accent,#c0392b)}
+  /* cross-reference: pipeline theme -> feeding signals */
+  .rel-sec{border-top:1px solid var(--d-line,#2a2a2a);padding-top:14px;margin-top:6px}
+  .rel-sig-list{margin-top:9px;display:flex;flex-direction:column;gap:7px}
+  .rel-sig{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--d-line,#2a2a2a);border-radius:6px;cursor:pointer;transition:.14s}
+  .rel-sig:hover{border-color:var(--d-txt-3,#666);background:rgba(255,255,255,.03)}
+  .rel-dot{flex-shrink:0;width:7px;height:7px;border-radius:50%}
+  .rel-sig-t{flex:1;font-size:12px;color:var(--d-txt-2,#ccc);line-height:1.4}
+  .rel-sig-go{flex-shrink:0;font-family:var(--mono);font-size:9px;letter-spacing:.04em;color:var(--d-txt-3,#888)}
+
+  .alert .aside{display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding-right:0}
+  .dirtag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;white-space:nowrap}
+  .dirtag.threat{color:var(--threat-badge);border:1px solid rgba(240,89,60,.55)}
+  .dirtag.watch{color:var(--watch-badge);border:1px solid rgba(224,160,32,.55)}
+  .dirtag.fav{color:var(--fav-badge);border:1px solid rgba(63,168,106,.55)}
+  /* Technology: an ADOPTABLE advance reads in the favourable green, whatever its dir */
+  .dirtag.k-adopt{color:var(--fav-badge);border:1px solid rgba(63,168,106,.55)}
+  .sevtag{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+  .sevtag.high{color:var(--threat-badge)}
+  .sevtag.medium{color:var(--watch-badge)}
+  .sevtag.low{color:var(--d-txt-4)}
+  /* not a fourth rating -- the absence of one. Italic and dim so it cannot be read as a
+     band on the same scale as high/medium/low. */
+  .sevtag.unassessed{color:var(--d-txt-4);opacity:.7;font-style:italic;text-transform:none;letter-spacing:0}
+  /* THE DATE IS READ, NOT DECORATION. At --d-txt-4 on --d-bg-1 it was the dimmest thing
+     on the row -- and it is the one value a reader checks against what they already know,
+     so it has to be legible before anything else on the card is. Full-strength ink. */
+  .ago{font-family:var(--mono);font-size:10px;color:var(--d-txt)}
+
+  .syn{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--synthetic);font-size:0;line-height:0;color:transparent;vertical-align:middle;flex-shrink:0;border:none;padding:0}
+  .syn::after{content:"";display:none}
+  .srcbadge{display:none !important}
+  /* source links — every claim traceable to its URL. Dark chrome by default. */
+  .srcchips{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center;vertical-align:middle;max-width:100%;box-sizing:border-box}
+  .srcchip{display:inline-block;max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.01em;text-decoration:none;line-height:1.5;
+    color:var(--d-txt-3);border:1px solid var(--d-line);border-radius:3px;padding:1px 5px;transition:.14s}
+  .srcchip::before{content:'\2197';margin-right:4px;opacity:.55}
+  .srcchip:hover{color:var(--fav-badge);border-color:var(--fav-badge)}
+  /* light reading surfaces */
+  .ctx .srcchip,.mu-dossier .srcchip,.tp-asmt .srcchip,.tech-det .srcchip,.geo-det .srcchip,.pat-canvas .srcchip,.trep-sources .srcchip{
+    color:var(--l-txt-3);border-color:var(--l-line-2);max-width:100%;box-sizing:border-box}
+  .ctx .srcchip:hover,.mu-dossier .srcchip:hover,.tp-asmt .srcchip:hover,.tech-det .srcchip:hover,.geo-det .srcchip:hover,.pat-canvas .srcchip:hover,.trep-sources .srcchip:hover{
+    color:var(--fav);border-color:var(--fav)}
+  .metric .srcchip{font-size:9px;padding:0 4px;max-width:150px}
+  .pg-drawer-head .srcchips{margin-left:8px;text-transform:none;letter-spacing:0}
+  .src-list{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+  .src-list .srcchip{max-width:100%}
+  .provdot{display:inline-block;width:4px;height:4px;border-radius:50%;margin-left:6px;vertical-align:1px}
+  .provdot.s{background:var(--fav)}
+  .provdot.x{background:var(--synthetic)}
+  .synmini{color:var(--synthetic);font-style:italic;font-size:11px}
+
+  /* RIGHT CONTEXT */
+  .ctx{border-left:1px solid var(--d-line);background:var(--l-bg);color:var(--l-txt);overflow:hidden;display:flex;flex-direction:column;height:100%;box-sizing:border-box}
+  .ctx-scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0;width:100%;box-sizing:border-box;padding-bottom:24px}
+  .ctx-h, .tech-d-h, .tp-asmt-h {
+    padding: 16px 84px 16px 18px;
+    /* The close ✕ and the stance/Tender pill stack in an absolutely-positioned column
+       (.ctx-h-actions, ~61px tall). A one-line title made the header shorter than that,
+       so the pill dropped below the divider onto the image band. Guarantee the header
+       is always tall enough to contain the actions column (FE-COMP-003). */
+    min-height: 72px;
+    border-bottom: 1px solid var(--l-line);
+    border-left: 3px solid transparent;
+    transition: border-color 0.15s;
+    position: relative;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .ctx-h-actions {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    z-index: 25;
+  }
+  /* universal close cross for white detail columns */
+  .col-close{position:static !important;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--l-line,#e0e0e0);border-radius:4px;background:transparent;color:#888;font-size:14px;line-height:1;transition:.14s;padding:0}
+  .col-close:hover{color:#1a1a1a;border-color:#bbb;background:rgba(0,0,0,.04)}
+  .tech-d-h{position:relative}
+  .mu-d-h{position:relative}
+  .relset{display:flex;flex-direction:column;gap:0}
+  .relrow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--l-bg-2);gap:14px}
+  .relrow:last-child{border-bottom:none}
+  .relrow .rl{font-size:12px;color:var(--l-txt-3)}
+  .relrow .rv{font-family:var(--mono);font-size:12px;color:var(--l-txt);font-weight:500}
+  .ctx-h.dir-threat{border-left-color:var(--threat)}
+  .ctx-h.dir-watch{border-left-color:var(--watch)}
+  .ctx-h.dir-fav{border-left-color:var(--fav)}
+  .ctx-h .dirpill, .tech-d-h .dirpill, .tp-asmt-h .dirpill, .dirpill {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+    display: inline-block;
+    margin: 0;
+  }
+  .dirpill.dir-threat, .dirpill.behind, .dirpill.urgent {
+    color: var(--threat-badge, #b5341f);
+    background: rgba(181, 52, 31, 0.08);
+    border: 1px solid rgba(181, 52, 31, 0.35);
+  }
+  .dirpill.dir-watch, .dirpill.parity, .dirpill.soon {
+    color: var(--watch, #9a6a08);
+    background: rgba(154, 106, 8, 0.08);
+    border: 1px solid rgba(154, 106, 8, 0.35);
+  }
+  .dirpill.dir-fav, .dirpill.ahead, .dirpill.normal {
+    color: var(--fav, #1f6e45);
+    background: rgba(31, 110, 69, 0.08);
+    border: 1px solid rgba(31, 110, 69, 0.35);
+  }
+  /* A tender's type label: neutral slate, deliberately NOT the red threat colour. */
+  .dirpill.dir-tender {
+    color: var(--l-txt-2, #5b6472);
+    background: rgba(100, 116, 139, 0.08);
+    border: 1px solid rgba(100, 116, 139, 0.35);
+  }
+  .ctx-h .eyebrow{display:block;margin-bottom:9px;color:var(--l-txt-3)}
+  .ctx-h .ct{font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.35;color:var(--l-txt)}
+  .ctx-sec{padding:15px 18px;border-bottom:1px solid var(--l-line);box-sizing:border-box;display:flex;flex-direction:column;width:100%;flex-shrink:0}
+  .ctx-sec .eyebrow{display:block;margin-bottom:12px;color:var(--l-txt-3)}
+  .cd-prose{font-size:13px;line-height:1.62;color:var(--l-txt-2);word-break:break-word;overflow-wrap:anywhere}
+  .cd-prose b{color:var(--l-txt);font-weight:600}
+  /* The "how KSSL is impacted" callout -- a tinted panel with a colour that matches the
+     kind (threat red / opportunity green / knowledge amber), so the reader reads the
+     verdict before the detail. The eyebrow takes the same colour. */
+  .cd-kssl{border-left:3px solid var(--watch);background:rgba(224,160,32,.07)}
+  .cd-kssl .eyebrow{color:var(--watch-badge);margin-bottom:8px}
+  .cd-kssl .cd-prose{color:var(--l-txt)}
+  .cd-kssl.kssl-threat{border-left-color:var(--threat);background:rgba(240,89,60,.07)}
+  .cd-kssl.kssl-threat .eyebrow{color:var(--threat-badge)}
+  .cd-kssl.kssl-opportunity,.cd-kssl.kssl-adoptable,
+  .cd-kssl.kssl-demand,.cd-kssl.kssl-tech-advance{border-left-color:var(--fav);background:rgba(63,168,106,.07)}
+  .cd-kssl.kssl-opportunity .eyebrow,.cd-kssl.kssl-adoptable .eyebrow,
+  .cd-kssl.kssl-demand .eyebrow,.cd-kssl.kssl-tech-advance .eyebrow{color:var(--fav-badge)}
+  /* The summary is the one block in this panel with internal structure: a paragraph,
+     then the specifics as a list. .cd-prose alone left the <p>/<ul> the writer emits
+     wearing the browser defaults -- 1em margins that fight .ctx-sec's own padding, and
+     a 40px list indent that pushed the facts out past the quotes below them. */
+  .cd-summary > p{margin:0 0 10px}
+  .cd-summary > p:last-child{margin-bottom:0}
+  .cd-summary ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  .cd-summary li{position:relative;padding-left:14px}
+  .cd-summary li::before{content:"";position:absolute;left:3px;top:.62em;
+    width:4px;height:4px;border-radius:50%;background:var(--l-txt-3)}
+  .cd-summary > p + ul{margin-top:11px}
+  /* the extraction layer's statements, each with the sentence that proves it.
+     A left rule instead of a bullet: these are quotations, not a list. */
+  .cd-stmts{display:flex;flex-direction:column;gap:9px}
+  .cd-stmt{font-size:12px;line-height:1.55;color:var(--l-txt-2);
+    padding-left:9px;border-left:2px solid var(--d-bd,rgba(128,128,128,.35));
+    word-break:break-word;overflow-wrap:anywhere}
+  .cd-stmt i{color:var(--l-txt-3);font-style:italic}
+  .cd-facts{display:flex;flex-direction:column;width:100%}
+  .cd-bullets{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  .cd-bullets li{position:relative;padding-left:14px;font-size:13px;line-height:1.62;color:var(--l-txt-2)}
+  .cd-bullets li::before{content:"";position:absolute;left:3px;top:.62em;width:4px;height:4px;border-radius:50%;background:var(--l-txt-3)}
+  /* The row is now a COLUMN of two lines: the label/value pair, then the field's gloss
+     across the full width. The gloss cannot live inside the 110px key column -- it would
+     stack five words deep and shove the value away from the label it belongs to. */
+  .cd-frow{display:flex;flex-direction:column;padding:8px 0;border-bottom:1px solid var(--l-bg-2);box-sizing:border-box;width:100%}
+  .cd-fline{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;width:100%}
+  .cd-frow:last-child{border-bottom:none}
+  .cd-fk{color:var(--l-txt-3);font-size:12px;width:110px;flex-shrink:0;word-break:break-word}
+  .cd-fv{font-family:var(--mono);color:var(--l-txt);font-size:11px;text-align:right;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere}
+
+  /* positioning compare bars */
+  .pos-row{margin-bottom:13px}
+  .pos-row:last-child{margin-bottom:2px}
+  .pos-lab{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px}
+  .pos-lab .nm{color:var(--l-txt-2);font-weight:500}
+  .pos-lab .nm.bf{color:var(--l-txt)}
+  .pos-lab .sc{font-family:var(--mono);font-size:10px;color:var(--l-txt-3)}
+  .pos-track{height:6px;background:var(--l-bg-3)}
+  .pos-track i{display:block;height:100%}
+  .pos-track i.bf{background:var(--l-txt)}
+  .pos-track i.comp{background:var(--threat)}
+  .pos-track i.comp.d-watch{background:var(--watch)}
+  .pos-track i.comp.d-fav{background:var(--fav)}
+  .pos-note{font-size:10.5px;color:var(--l-txt-3);font-family:var(--mono);margin-top:9px;line-height:1.5}
+
+  /* activity sparkline */
+  .spark-wrap{display:flex;align-items:flex-end;gap:3px;height:46px;margin:2px 0 8px}
+  .spark-bar{flex:1;background:var(--l-line-2);min-height:3px;transition:.2s}
+  .spark-bar.hot{background:var(--threat)}
+  .spark-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--l-txt-3)}
+  .spark-meta b{color:var(--l-txt);font-weight:600}
+  .kv{display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid var(--l-bg-3)}
+  .kv:last-child{border-bottom:none}
+  .kv .k{color:var(--l-txt-3)}
+  .kv .v{font-family:var(--mono);color:var(--l-txt);font-size:11px;text-align:right}
+  .scorebar{margin:5px 0 13px}
+  .scorebar .sl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--l-txt-3);margin-bottom:5px;letter-spacing:.05em;text-transform:uppercase}
+  .scorebar .sl b{color:var(--l-txt);font-weight:500}
+  .track{height:3px;background:var(--l-bg-3);overflow:hidden}
+  .track i{display:block;height:100%;background:var(--l-txt-2)}
+  .scoreset.dir-threat .track i{background:var(--threat)}
+  .scoreset.dir-watch .track i{background:var(--watch)}
+  .scoreset.dir-fav .track i{background:var(--fav)}
+
+  .cta{display:block;width:100%;text-align:left;font-size:12px;color:var(--l-txt-2);border:1px solid var(--l-line);background:var(--l-bg-1);padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:.12s;line-height:1.4}
+  .cta:hover{border-color:var(--l-line-2);color:var(--l-txt);background:var(--l-bg-2)}
+  .cta .ch{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--l-txt-4);display:block;margin-bottom:5px}
+  .cta .ch.act-defend{color:var(--threat)}
+  .cta .ch.act-capture{color:var(--fav)}
+  .cta .ch.act-monitor{color:var(--watch)}
+
+  .askbox{margin-top:auto;border-top:1px solid var(--l-line);padding:14px 18px;background:var(--l-bg-1);flex-shrink:0;position:relative;z-index:2;width:100%;box-sizing:border-box}
+  .askbox .eyebrow{display:block;margin-bottom:10px;color:var(--l-txt-3)}
+  .askwrap{display:flex;align-items:center;border:1px solid var(--l-line-2);background:var(--l-bg)}
+  .askwrap input{flex:1;background:transparent;border:none;outline:none;color:var(--l-txt);font-family:var(--mono);font-size:11px;padding:10px 12px}
+  .askwrap input::placeholder{color:var(--l-txt-4)}
+  .askwrap .go{padding:0 13px;color:var(--l-txt-3);cursor:pointer;font-size:14px;align-self:stretch;display:flex;align-items:center;border-left:1px solid var(--l-line)}
+  .askwrap .go:hover{color:var(--l-txt)}
+  .suggest{margin-top:9px;display:flex;flex-direction:column;gap:6px}
+  .suggest .s{font-family:var(--mono);font-size:10px;color:var(--l-txt-3);cursor:pointer;padding:2px 0}
+  .suggest .s:hover{color:var(--l-txt-2)}
+  .suggest .s::before{content:"› ";color:var(--l-txt-4)}
+
+  /* scrollbars — theme-neutral. The track used to be --l-bg (#fff) and the thumb
+     --l-line-2 (#cfcdc3), which read as a glaring white line on every dark surface;
+     the overflow-x bar under .tech-cats sat right below the tab row and looked like a
+     border. Transparent track takes the surface colour, translucent grey thumb is
+     visible on both themes. */
+  /* Styling ::-webkit-scrollbar at all turns off macOS overlay scrollbars, so whatever
+     is set here is on screen permanently. Keep the thumb faint at rest so it reads as
+     texture rather than a line, and raise it when the pane is actually being used. */
+  ::-webkit-scrollbar{width:7px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(128,128,132,.20);border-radius:4px}
+  *:hover::-webkit-scrollbar-thumb{background:rgba(128,128,132,.45)}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(128,128,132,.75)}
+  ::-webkit-scrollbar-corner{background:transparent}
+
+  .empty-note{padding:40px 22px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--l-txt-4);letter-spacing:.05em}
+  /* Feed pager. The feed carries hundreds of signals; the group defs only ever laid
+     out the first bucket, so the rest is walked a page at a time. Same mono/uppercase
+     vocabulary as .fbtn in the filter row above it, so it reads as the same control set. */
+  .pager{display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 22px 34px;border-top:1px solid var(--d-line)}
+  .pager-range{font-family:var(--mono);font-size:11px;color:var(--l-txt-4);letter-spacing:.05em}
+  .pager-ctl{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:center}
+  .pgbtn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--d-txt-3);border:1px solid var(--d-line);background:transparent;padding:6px 11px;cursor:pointer;transition:.12s;min-width:34px}
+  .pgbtn:hover:not(:disabled){border-color:var(--d-line-2);color:var(--d-txt)}
+  .pgbtn:disabled{opacity:.35;cursor:default}
+  .pgbtn.on{color:var(--d-txt);border-color:var(--d-txt-4);background:var(--d-bg-3)}
+  .pgap{font-family:var(--mono);font-size:11px;color:var(--d-txt-4);padding:0 2px}
+
+  /* ===== VIEW SWITCHING ===== */
+  .view{display:none}
+  .view.active{display:contents}
+
+  /* KSSL product tie-in: plain inline text (no boxed emerald callout -- it read as an
+     alert). Shown only when a card actually names a KSSL product (gated in SignalCard). */
+  .koel-prod-highlight-row {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .koel-prod-highlight-row .kph-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--d-txt-3, #94a3b8);
+    flex-shrink: 0;
+  }
+  .koel-prod-highlight-row .kph-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--d-txt-2, #cbd5e1);
+  }
+  .cd-match {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #16a34a !important;
+    border-radius: 6px !important;
+    padding: 12px 14px !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  }
+  .cd-match .cm-n {
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+  }
+  .cd-match .cm-line {
+    color: #334155 !important;
+    font-size: 12.5px !important;
+  }
+  .cd-match .cm-line .cm-mk {
+    font-family: var(--mono);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .cd-match .cm-line .cm-mk.up {
+    color: #16a34a !important;
+  }
+  .cd-match .cm-line .cm-mk.down {
+    color: #dc2626 !important;
+  }
+
+
+/* A fact read from the article itself, as opposed to a property of the row.
+
+   This used to be a small quote glyph at the end of the row, and it is off at the
+   operator's request. The STATE it marked is not: a sourced row keeps the article's own
+   sentence in its tooltip, and now says so with its own left edge instead of a
+   character. Same affordance, same hover reveal, nothing sitting between the label and
+   its value. */
+.cd-frow.sourced{cursor:help}  /* left-edge line removed at operator's request; tooltip proof stays */
+
+/* the gloss under an "At a glance" label: what the FIELD means, never what the row says */
+.cd-fk-def{display:block;font-size:10px;line-height:1.35;color:var(--l-txt-3);opacity:.7;
+  margin-top:3px;font-style:italic}
+  /* a detail header with no stance (Technology competitor advance): neutral stripe */
+  .ctx-h.dir-none{border-left-color:var(--d-line-2)}

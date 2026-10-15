@@ -1,0 +1,216 @@
+/* Market overview — the tender-intelligence page on the Market pillar.
+
+   Ported from the sibling JSW EV deployment so the two read identically. It runs on the
+   same --d-* tokens this app already defines (theme.css / partnerships.css), so nothing
+   here introduces a colour of its own. The .ov* namespace does not collide with the
+   existing .ov-wrap/.ov-body/.ov-fixed-header/.ov-nosel in shell.css or .ovl/.ov-spec
+   in geo.css — those are different prefixes, checked before porting. */
+
+.ov-report{grid-column:2;height:100%;overflow-y:auto;background:var(--d-bg);color:var(--d-txt)}
+/* Wraps, like the Tender Pipeline bar it is a sibling of. It used to be
+   flex-wrap:nowrap !important with the scrollbar hidden, so on a narrow window the
+   controls ran off the edge with no affordance -- and because every child had
+   flex-shrink:0 EXCEPT the letter-spaced "Filter" eyebrow, the row overflowed and
+   .sortnote's margin-left:auto pushed the count note out of reach entirely. */
+.ov-report .tp-fbar{position:static;z-index:auto;display:flex;align-items:center;gap:12px;padding:12px 22px;background:var(--d-bg-1);border-bottom:1px solid var(--d-line);flex-wrap:wrap;row-gap:8px}
+.ov-report .tp-fbar .eyebrow{flex-shrink:0}
+.ov-report .tp-fbar::-webkit-scrollbar{display:none}
+/* ONE filter design on the Market pillar. This bar used to carry two rounded native
+   selects in a sans face, a green mono "clear" chip, and a transparent 10px square that
+   read as an unchecked checkbox -- beside a Tender Pipeline whose filters are square
+   32px controls with a mono label and the value in white (.tp-dd-input, tender.css).
+   The report's controls now wear that exact shape: label, value, a clear cross inside
+   the control when something is picked. The <select> stays native (it is the keyboard-
+   and screen-reader-correct control here); only its chrome is the shared one. */
+.ov-report .tp-fbar .ovf-sel{display:flex;align-items:center;gap:8px;height:32px;min-width:170px;padding:0 6px 0 11px;border:1px solid var(--d-line-2);background:var(--d-bg);cursor:pointer;flex-shrink:0;transition:border-color .12s}
+.ov-report .tp-fbar .ovf-sel:hover,.ov-report .tp-fbar .ovf-sel:focus-within{border-color:var(--d-txt-4)}
+.ov-report .tp-fbar .ovf-sel .ddlbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--d-txt-4);white-space:nowrap;flex-shrink:0}
+.ov-report .tp-fbar select{flex:1;min-width:0;max-width:220px;background:transparent;border:none;outline:none;color:var(--d-txt);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;padding:0;text-overflow:ellipsis}
+.ov-report .tp-fbar select option{background:var(--d-bg-2);color:var(--d-txt)}
+.ov-report .tp-fbar .ddclear{background:none;border:none;color:var(--d-txt-4);font-size:14px;line-height:1;padding:0 4px;cursor:pointer;flex-shrink:0}
+.ov-report .tp-fbar .ddclear:hover{color:var(--d-txt)}
+.ov-report .tp-fbar .sortnote{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--d-txt-4);white-space:nowrap;padding-left:8px;flex-shrink:0}
+
+/* ---- tabs ---- */
+.ovtabs{display:flex;align-items:stretch;background:var(--d-bg);border-bottom:1px solid var(--d-line);position:sticky;top:0;z-index:6;overflow-x:auto;scrollbar-width:none}
+.ovtabs::-webkit-scrollbar{display:none}
+.ovtab{display:flex;align-items:center;gap:9px;padding:14px 20px;background:transparent;border:none;border-right:1px solid var(--d-line);border-bottom:1px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap;font-family:var(--sans);transition:background .12s,color .12s}
+.ovtab:hover{background:var(--d-bg-1)}
+.ovtab.on{background:var(--d-bg-1);border-bottom-color:var(--d-bg-1)}
+.ovtab-ix{font-family:var(--mono);font-size:10px;color:var(--d-txt-4);letter-spacing:.06em}
+.ovtab-nm{font-size:13.5px;color:var(--d-txt-3);letter-spacing:-.005em}
+.ovtab:hover .ovtab-nm{color:var(--d-txt-2)}
+.ovtab.on .ovtab-nm{color:var(--d-txt);font-weight:600}
+.ovtab.on .ovtab-ix{color:var(--d-txt-2)}
+.ovtab-ct{font-family:var(--mono);font-size:10.5px;color:var(--d-txt-4);background:var(--d-bg-2);padding:2px 7px;min-width:22px;text-align:center}
+.ovtab.on .ovtab-ct{color:var(--d-txt-2);background:var(--d-bg-3)}
+
+/* ---- cards ---- */
+/* 420, not 400: the pie is 150px of svg + 22px gap + a 190px legend + 44px of card
+   padding = 406px, so at the old floor the legend was squeezed every time. */
+/* min(420px,100%): the 420 floor must never exceed the pane, or a narrow window gets a
+   column wider than its container and the report scrolls sideways. */
+.ovc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))}
+.ovc{padding:18px 22px 22px;border-right:1px solid var(--d-line);border-bottom:1px solid var(--d-line);background:var(--d-bg-1);min-width:0}
+.ovc:last-child{border-right:none}
+.ovc-h{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;margin-bottom:16px}
+.ovc-h .eyebrow{color:var(--d-txt-2)}
+.ovc-note{font-size:11px;color:var(--d-txt-4);line-height:1.4}
+.ovc-empty{font-family:var(--mono);font-size:11px;color:var(--d-txt-4);line-height:1.6;padding:6px 0}
+/* the dial and its legend side by side; the legend is the readable half, so it takes
+   the space and the dial stays a fixed, modest size */
+.ovp{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+
+/* ---- donut ---- */
+.ovp-svg{width:150px;height:150px;flex-shrink:0;overflow:visible}
+.ovp-svg circle{transition:stroke-dasharray .25s ease,opacity .12s}
+.ovp-legend{display:flex;flex-direction:column;gap:6px;flex:1;min-width:190px}
+.ovp-svg circle.pick{cursor:pointer}
+.ovp-svg:hover circle.pick{opacity:.5}
+.ovp-svg circle.pick:hover{opacity:1}
+.ovp-key{display:grid;grid-template-columns:9px 1fr auto auto;align-items:center;gap:10px;width:100%;text-align:left;padding:5px 8px;margin:0 -8px;background:none;border:none;font-family:inherit}
+.ovp-key.pick{cursor:pointer;border-radius:3px;transition:background .12s}
+.ovp-key.pick:hover,.ovp-key.pick:focus-visible{background:var(--d-bg-2);outline:none}
+.ovp-go{font-family:var(--mono);font-size:11px;color:var(--d-txt-4);opacity:0;transition:opacity .12s,transform .12s}
+.ovp-key.pick:hover .ovp-go,.ovp-key.pick:focus-visible .ovp-go{opacity:1;transform:translate(2px)}
+.ovp-dot{width:9px;height:9px;border-radius:50%;align-self:center}
+.ovp-lab{font-size:12.5px;color:var(--d-txt-2);line-height:1.35;overflow-wrap:anywhere}
+.ovp-val{font-family:var(--mono);font-size:12.5px;color:var(--d-txt);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ovp-val em{font-style:normal;color:var(--d-txt-4);font-size:10.5px}
+
+/* ---- closing-window bars ---- */
+.ovb{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;align-items:end;width:100%}
+/* The label row is a fixed 2.8em. It was `auto`, so "No date published" wrapping to
+   three lines made that one column taller, and .ovb's align-items:end then pushed its
+   bar and number up out of line with its neighbours. */
+.ovb-col{display:grid;grid-template-rows:auto 118px 2.8em auto;gap:6px;justify-items:center;min-width:0}
+.ovb-n{font-family:var(--mono);font-size:12.5px;color:var(--d-txt);font-variant-numeric:tabular-nums}
+.ovb-track{width:100%;height:118px;display:flex;align-items:flex-end;background:linear-gradient(var(--d-bg-2),var(--d-bg-2)) bottom/100% 1px no-repeat}
+.ovb-track i{display:block;width:100%;background:var(--fav-badge);border-radius:2px 2px 0 0;transition:height .25s ease}
+.ovb-col.nodate .ovb-track i{background:var(--d-txt-4)}
+.ovb-col.nodate .ovb-n,.ovb-col.nodate .ovb-lab{color:var(--d-txt-4)}
+.ovb-lab{font-size:10.5px;color:var(--d-txt-3);text-align:center;line-height:1.3;overflow-wrap:anywhere}
+.ovb-pct{font-family:var(--mono);font-size:10px;color:var(--d-txt-4);font-variant-numeric:tabular-nums}
+
+/* ---- table ---- */
+.ovt{padding:18px 22px 24px;background:var(--d-bg-1);border-bottom:1px solid var(--d-line)}
+.ovt-scroll{overflow-x:auto;border:1px solid var(--d-line)}
+.ovt table{border-collapse:collapse;width:100%;min-width:900px}
+.ovt th{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--d-txt-3);text-align:left;padding:10px 12px;border-bottom:1px solid var(--d-line-2);background:var(--d-bg-2);position:sticky;top:0;z-index:1;white-space:nowrap}
+.ovt td{font-size:12px;color:var(--d-txt-2);padding:11px 12px;border-bottom:1px solid var(--d-line);vertical-align:top;line-height:1.45}
+.ovt tr:last-child td{border-bottom:none}
+.ovt tbody tr:hover{background:var(--d-bg-2)}
+.ovt th.num,.ovt td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* generic cell links first: `.ovt a` and `.ovt-t a` have identical specificity
+   (0,1,1), so source order is the only thing deciding which one applies. The
+   title rule has to come SECOND or every headline renders as a source chip. */
+.ovt a{font-family:var(--mono);font-size:11px;color:var(--d-txt-3);text-decoration:none;white-space:nowrap}
+.ovt a:hover{color:var(--fav-badge);text-decoration:underline}
+.ovt-t{min-width:280px;max-width:420px}
+/* white-space:normal is load-bearing. `.ovt a` above sets nowrap for the source chips,
+   and this selector has the SAME specificity, so the title link inherited the nowrap
+   and a long headline ("Next Generation Ammunition & Munitions Equipment (NGAME) for
+   MMHE RFP/Solicitation") ran straight through the Where and Category cells beside
+   it. A title wraps inside its own cell; overflow-wrap covers the unbroken slash-
+   joined tokens tender titles carry. */
+.ovt-t a,.ovt-t button,.ovt-t>span{display:block;text-align:left;background:none;border:none;padding:0;cursor:pointer;font-family:var(--sans);font-size:12.5px;font-weight:600;color:#fff;line-height:1.35;text-decoration:none;white-space:normal;overflow-wrap:anywhere}
+.ovt-t a:hover,.ovt-t button:hover{text-decoration:underline}
+.ovt-buyer{display:block;margin-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--d-txt-4)}
+.ovt-sub{display:block;margin-top:3px;font-family:var(--mono);font-size:10.5px;color:var(--d-txt-4)}
+.ovt-none{color:var(--d-txt-4)}
+.ovt-more{margin-top:12px;width:100%;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--d-txt-3);background:var(--d-bg-2);border:1px solid var(--d-line-2);padding:11px;cursor:pointer;transition:.12s}
+.ovt-more:hover{color:var(--d-txt);border-color:var(--d-txt-4);background:var(--d-bg-3)}
+.ovt-host{font-family:var(--mono);font-size:11px}
+
+/* ---- category filter ----
+   The swatch sits INSIDE the control, left of the label, so the colour reads as a
+   property of the current choice rather than a separate legend to correlate. It is
+   rendered only once a category is picked -- at "All" the transparent square with its
+   faint inset border read as an unchecked checkbox sitting between the two selects.
+   Per-option colour is applied where the browser honours it and is ignored where it
+   does not; nothing depends on it, the option text says the category either way. */
+.ovf-sw{width:10px;height:10px;border-radius:2px;flex-shrink:0;box-shadow:inset 0 0 0 1px rgb(255 255 255 / .18)}
+
+/* ===== TOP OPPORTUNITY / TENDER INTELLIGENCE TABLES (Cummins Style) ===== */
+.ti-simple {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--d-bg);
+  color: var(--d-txt);
+}
+.ti-simple .ovt {
+  display: block;
+  flex-shrink: 0;
+  min-height: auto;
+  padding: 20px 24px 28px;
+  border-bottom: 1px solid var(--d-line);
+}
+.ti-simple .ovt-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  border: 1px solid var(--d-line);
+  margin-top: 12px;
+}
+.ti-simple .ovt table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+.ti-row-link {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.ti-row-link:hover {
+  background: var(--d-bg-2) !important;
+}
+.ti-row-link:focus-visible {
+  outline: 1px solid var(--d-line-2);
+  outline-offset: -1px;
+}
+.ti-title {
+  display: block;
+  color: var(--d-txt);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.ti-fit {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.ti-fit.strong, .ti-fit.good {
+  color: var(--fav);
+}
+.ti-fit.partial {
+  color: var(--watch);
+}
+.ti-fit.poor {
+  color: var(--threat);
+}
+.ti-simple .ti-title,
+.ti-simple .ovt-buyer {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 520px;
+}
+.ti-simple .ovt-buyer {
+  font-weight: 400;
+  color: var(--d-txt-3);
+  font-size: 11px;
+  margin-top: 2px;
+}
+.ti-simple td {
+  vertical-align: middle;
+}
+.ti-simple .ti-stage .ti-title {
+  max-width: 300px;
+  font-weight: 400;
+  color: var(--d-txt-2);
+}
+

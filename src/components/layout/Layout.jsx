@@ -1,0 +1,299 @@
+import { useEffect, useMemo, useState } from "react";
+import ErrorBoundary from "../ErrorBoundary";
+import TopBar from "../topBar/TopBar";
+import Sidebar from "../sidebar/Sidebar";
+import SubHead from "../subHead/SubHead";
+import MetricsStrip from "../metricsStrip/MetricsStrip";
+import MalloryChat from "../malloryChat/MalloryChat";
+import Overview from "../../pages/overview/Overview";
+import Positioning from "../../pages/competitive/Positioning";
+import GapAnalysis from "../../pages/competitive/GapAnalysis";
+import Partnerships from "../../pages/competitive/Partnerships";
+import Geo from "../../pages/competitive/Geo";
+import Patents from "../../pages/competitive/Patents";
+import Tenders from "../../pages/market/Tenders";
+import MarketOverview from "../../pages/market/MarketOverview";
+import TopOpportunity from "../../pages/market/TopOpportunity";
+import GlobalRequirement from "../../pages/market/GlobalRequirement";
+import Profile from "../../pages/competitive/Profile";
+import Products from "../../pages/competitive/Products";
+import Innovation from "../../pages/technology/Innovation";
+import ThreatAnalysis from "../../pages/competitive/ThreatAnalysis";
+import Projects from "../../pages/competitive/Projects";
+import Finances from "../../pages/competitive/Finances";
+import { useAppState, isOverview } from "../../state/AppState";
+import { useData } from "../../state/DataProvider";
+import { metricsFor, tilePredicate, filterMatch, readFeedSeq, writeFeedSeq, TILE_LABELS, bucketTenders } from "../../lib/overview";
+import { marketMetrics } from "../../lib/marketOverview";
+
+const PILLAR_OF_VIEW = {
+  overview: "competitive",
+  "m-overview": "market",
+  "t-overview": "technology",
+};
+
+/* sessionStorage, guarded: a private window throws on the property itself */
+const pageStore = () => {
+  try {
+    return typeof window !== "undefined" ? window.sessionStorage : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+export default function Layout() {
+  const { pillar, view, chatCtx, setChatCtx, jumpTo } = useAppState();
+  const { data, viewMeta } = useData();
+
+  /* Overview state lives here because two pieces of chrome above the feed depend on
+     it: the subhead's filter row and the shell's third column, which collapses when
+     nothing is selected. */
+  const overviewPillar = isOverview(view) ? PILLAR_OF_VIEW[view] || pillar : pillar;
+  const cfg = data.overviewConfig[overviewPillar] || data.overviewConfig.competitive;
+
+  /* The sequence is remembered per pillar for the session (sessionStorage, beside the
+     remembered page). It was React state only, so a reload put the reader back on
+     "Priority" -- and because the remembered page is keyed by the sequence, the page
+     that survived the reload was page 1 of a sequence they had not chosen. */
+  const [seqMode, setSeqModeState] = useState(() => readFeedSeq(pageStore(), overviewPillar));
+  const setSeqMode = (mode) => {
+    setSeqModeState(mode);
+    writeFeedSeq(pageStore(), overviewPillar, mode);
+  };
+  const [dirFilter, setDirFilter] = useState("all");
+  const [tile, setTile] = useState(null);
+  const [hasSelection, setHasSelection] = useState(false);
+
+  // switching pillar resets the feed controls, as the original rebuild did -- and
+  // picks up that pillar's own remembered sequence
+  useEffect(() => {
+    setDirFilter("all");
+    setTile(null);
+    setHasSelection(false);
+    setSeqModeState(readFeedSeq(pageStore(), overviewPillar));
+  }, [overviewPillar, view]);
+
+  // the assistant's context line follows the view when nothing is selected in it
+  useEffect(() => {
+    const meta = viewMeta[view] || viewMeta.overview;
+    setChatCtx((prev) => ({
+      pillar: pillar.charAt(0).toUpperCase() + pillar.slice(1),
+      view: meta.title,
+      selection: prev.view === meta.title ? prev.selection : null,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, pillar]);
+
+  /* The Market overview is a tender page, not a signal feed. It keeps the metric strip
+     — with its OWN four measured tiles, not the served signal-feed labels — but none of
+     the feed chrome: the count line, the direction filters and the tile-to-feed filter
+     all describe cards it does not render. `onFeed` is what gates that chrome;
+     `isOverview` still gates the strip and the collapsed third column. */
+  const onMarketReport = view === "m-report" || view === "tender" || view === "awarded-tenders" || view === "closed-tenders" || view === "global-requirement" || view === "m-overview";
+  const onFeed = isOverview(view) && !onMarketReport;
+
+  const metrics = useMemo(
+    () =>
+      onMarketReport
+        ? marketMetrics(data.tenders)
+        : metricsFor(cfg, overviewPillar, data),
+    [cfg, overviewPillar, data, onMarketReport],
+  );
+
+  const meta = viewMeta[isOverview(view) ? "overview" : view] || viewMeta.overview;
+  const onOverview = isOverview(view);
+  /* The report is not an overview — it has no feed and no selectable card — but it does
+     want the two things `isOverview` used to hand it while it lived in that slot: the
+     metric strip above, and the shell's third column collapsed so it can use the width.
+     Gating those on `isOverview` alone left it rendering into a two-column grid with a
+     third column reserved for a drawer that never opens. */
+  const wideNoDrawer = onOverview || onMarketReport || view === "innovation";
+  const showMetricsStrip = onOverview || onMarketReport;
+  /* Each pillar's overview carries its own heading ("Market Intelligence"), which lives
+     on the served config; viewMeta only has the competitive one. */
+  /* onMarketReport gates LAYOUT (metric strip, collapsed third column) and covers
+     m-report, tender, awarded-tenders and closed-tenders. It must not also pick the
+     title, or all four render as "Market Report". Every heading now comes from
+     viewMeta; only a pillar overview overrides it, from its served config. */
+  const headTitle = onOverview ? cfg.title || meta.title : meta.title;
+
+  /* The count line reflects whichever filter is active — the original rewrote it in
+     applyFilter(), with the tile label or the direction word. */
+  const countLine = (() => {
+    /* The tender bucket line belongs to the Market Report only; the three tender views
+       carry their own cnt in viewMeta and were having it overwritten. */
+    if (view === "m-report") {
+      const { open, awarded, closed } = bucketTenders(data.tenders || []);
+      return `${open.length} open · ${awarded.length} awarded · ${closed.length} closed · demand shape, spec and requirement`;
+    }
+    if (view === "m-overview") {
+      const topOpp = data.topOpportunities || {};
+      const tLen = (topOpp.topTenders || []).length;
+      const pLen = (topOpp.projectsBeforeTender || []).length;
+      return `${tLen} top tenders · ${pLen} pre-tender targets · revenue & strategic fit ranked`;
+    }
+    if (view === "global-requirement") {
+      const reqs = data.globalRequirements || [];
+      return `${reqs.length} requirements on record · worldwide defence demand & capability specs`;
+    }
+    if (!onFeed) return meta.cnt;
+    const total = (cfg.cards || []).length;
+    const pred = tile ? tilePredicate(tile) : null;
+    const shown = (cfg.cards || []).filter(
+      (c) => filterMatch(c, dirFilter, cfg.filters) && (!pred || pred(c)),
+    ).length;
+    if (tile) return `${shown} of ${total} signals · ${TILE_LABELS[tile] || ""}`;
+    if (dirFilter !== "all") {
+      const label = (cfg.filters || []).find((f) => f.f === dirFilter)?.l || dirFilter;
+      return `${shown} of ${total} signals · ${label}`;
+    }
+    /* cfg.cnt's phrasing survives, its baked number does not: the count is the
+       served card set's, so an empty dataset says 0 instead of a stale total.
+
+       ITS ORDERING CLAIM IS ALSO A CLAIM. "sorted threats first" is served copy;
+       serving_fill.py assigns dir='threat' only on the competitive pillar, so on
+       technology (and on the market feed's demand cards) it describes an ordering
+       of a set with no threats in it -- a promise about rows that are not there.
+       The clause is dropped when no served card carries the direction, and comes
+       back on its own the day one does. */
+    const tail = String(cfg.cnt || "signals").replace(/^\s*[\d,]+\s*/, "");
+    const hasThreat = (cfg.cards || []).some((c) => c.dir === "threat");
+    return `${total} ${hasThreat ? tail : tail.replace(/\s*(·\s*)?sorted threats first/i, "")}`;
+  })();
+
+  const body = () => {
+    switch (view) {
+      case "m-report":
+        return <MarketOverview />;
+      case "m-overview":
+        return <TopOpportunity />;
+      case "overview":
+      case "t-overview":
+        return (
+          <Overview
+            dirFilter={dirFilter}
+            filters={cfg.filters}
+            onFilter={(f) => {
+              setDirFilter(f);
+              setTile(null);
+            }}
+            onSelectionChange={setHasSelection}
+            onSeq={setSeqMode}
+            pillarKey={overviewPillar}
+            seqMode={seqMode}
+            tile={tile}
+          />
+        );
+      case "profile":
+        return <Profile />;
+      case "threat-analysis":
+        return <ThreatAnalysis />;
+      case "products":
+        return <Products />;
+      case "positioning":
+        return <Positioning />;
+      /* ARCHIVED — off the rail, still routed. getInitialAppState validates the pillar
+         but never the view, so a saved route or a pasted link pointing here would
+         otherwise fall through to `default: null` and render a blank pane forever. */
+      case "gap-competitive":
+        return <GapAnalysis />;
+      case "partnerships":
+        return <Partnerships />;
+      case "projects":
+        return <Projects />;
+      case "finances":
+        return <Finances />;
+      case "geo":
+        return <Geo />;
+      case "patents-comp":
+        return <Patents />;
+      case "tender":
+      /* Also archived: the Market overview carries Awarded and Closed as tabs now, but
+         the routes stay for the same reason gap-competitive's does. */
+      case "awarded-tenders":
+      case "closed-tenders":
+        return <Tenders mode={view} />;
+      case "global-requirement":
+        return <GlobalRequirement />;
+      case "innovation":
+        return <Innovation />;
+      default:
+        /* parseRoute repairs an unknown view before it reaches here, so this is the
+           safety net for a view the switch above has lost. It says so rather than
+           rendering the rail beside an empty pane. */
+        return (
+          <div className="empty-note" style={{ padding: "48px 24px" }}>
+            {`no view named "${view}" - pick one from the rail`}
+          </div>
+        );
+    }
+  };
+
+  return (
+    <>
+      <TopBar />
+      <SubHead count={countLine} title={headTitle} />
+      {showMetricsStrip ? (
+        <MetricsStrip
+          active={tile}
+          /* The market tiles are a readout, not doors — the page below them has its own
+             tabs and filter. Rendering them as buttons that do nothing is worse than
+             rendering them as numbers. */
+          inert={onMarketReport}
+          metrics={metrics}
+          /* The 'all' tiles are the reset door: they clear both the tile and the
+             direction filter rather than filtering to everything. Redirect tile clicks if requested. */
+          onPick={(m, act) => {
+            const label = (m && m.l ? m.l : typeof m === "string" ? m : "").toLowerCase().trim();
+            /* These matched labels the API does not serve. The served strings are
+               "Companies tracked" and "Analytical lenses" -- never "tracked competitors"
+               or "rival skus" -- so both tiles fell through to the act==="all" branch
+               below and reset a filter that was already clear. Two of five tiles worked;
+               the other three advertised themselves as doors and opened nothing. */
+            if (label.includes("analytical lenses") || label.includes("rival skus")) {
+              jumpTo("competitive", "positioning");
+              return;
+            }
+            if (label.includes("companies tracked") || label.includes("competitor brands") || label.includes("tracked competitors")) {
+              jumpTo("competitive", "partnerships");
+              return;
+            }
+            if (label.includes("domains tracked")) {
+              jumpTo("technology", "innovation");
+              return;
+            }
+            /* The two Market tiles counting rows that are NOT in the signal feed.
+               Concluded tenders are never promoted into it, and "markets" is a count
+               of countries; both live on the Market Report. "Already concluded" used
+               to open every card (its served act was a predicate that keeps
+               everything) and "Markets tracked" reset a filter that was already
+               clear -- two doors that opened onto nothing they named. */
+            if (act === "concluded") {
+              jumpTo("market", "m-report", { section: "awarded" });
+              return;
+            }
+            if (act === "markets") {
+              jumpTo("market", "m-report", { section: "active" });
+              return;
+            }
+            if (act === "all") {
+              setTile(null);
+              setDirFilter("all");
+              return;
+            }
+            setTile(act);
+          }}
+        />
+      ) : null}
+      <div className={`shell${wideNoDrawer && !hasSelection ? " ov-nosel" : ""}`}>
+        <Sidebar />
+        {/* One boundary per view case (keyed so a crash in one view resets when the
+            user navigates away) — a bad panel must never unmount the whole app. */}
+        <ErrorBoundary key={view} label={view}>
+          {body()}
+        </ErrorBoundary>
+      </div>
+      <MalloryChat />
+    </>
+  );
+}

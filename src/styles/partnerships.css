@@ -1,0 +1,442 @@
+  /* ===== PARTNERSHIPS VIEW — RELATIONSHIP GRAPH ===== */
+  
+  .pg-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;pointer-events:none;transition:opacity .3s}
+  .pg-empty-ic{font-size:26px;color:var(--d-txt-4);opacity:.5}
+  .pg-empty-t{font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--d-txt-2);text-transform:uppercase}
+  .pg-empty-s{font-size:11.5px;color:var(--d-txt-3);max-width:240px;line-height:1.5}
+  .v-partnerships.has-sel .pg-empty{opacity:0;visibility:hidden}
+  .pg-canvas.pg-reanim,.pg-drawer.pg-reanim{animation:panelSlideWide .42s cubic-bezier(.22,.61,.36,1)}
+  /* slide-in reveal once a competitor is selected */
+  .v-partnerships.has-sel .pg-canvas{animation:panelSlideWide .42s cubic-bezier(.22,.61,.36,1)}
+  .v-partnerships.has-sel .pg-drawer{animation:panelSlideWide .42s cubic-bezier(.22,.61,.36,1)}
+  .v-partnerships.no-sel .pg-canvas,.v-partnerships.no-sel .pg-drawer{opacity:0;pointer-events:none}
+  /* Flat ground. The radial gradient put a lit pool behind the centre node, which is
+     the same glow the node fills were asked to drop, and it lifted the middle of the
+     canvas so the dark fills lost contrast exactly where the graph is busiest. */
+  .pg-canvas{background:#0b0b0d;display:flex;flex-direction:column;overflow:hidden;position:relative}
+  /* competitor list items */
+  .pg-comp{padding:14px 20px;border-bottom:1px solid var(--d-line);border-left:2px solid transparent;cursor:pointer;transition:background .12s}
+  .pg-comp:hover{background:var(--d-bg-1)}
+  .pg-comp.active{background:var(--d-bg-2);border-left-color:#fff}
+  .pg-comp .cn{font-size:14.5px;color:var(--d-txt);font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .pg-comp .cn .wdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .pg-comp .cn .wdot.threat{background:var(--threat)}
+  .pg-comp .cn .wdot.watch{background:var(--watch)}
+  .pg-comp .cn .wdot.fav{background:var(--fav)}
+  .pg-comp .cn .pg-hq{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;background:var(--d-bg-3);color:var(--d-txt-3);padding:2px 6px;margin-left:7px;border:1px solid var(--d-line-2);border-radius:3px}
+  .pg-comp .cmeta{font-family:var(--mono);font-size:11px;color:var(--d-txt-3);display:flex;gap:8px;flex-wrap:wrap}
+  .pg-comp .cmeta .sep{color:var(--d-txt-4)}
+  /* threat headline banner */
+  .pg-threat{padding:13px 20px;border-bottom:1px solid var(--d-line);background:var(--d-bg-1);border-left:3px solid var(--threat)}
+  .pg-threat-l{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--d-txt-3);display:block;margin-bottom:6px}
+  .pg-threat-t{font-size:13.5px;color:var(--d-txt);line-height:1.5}
+  .pg-threat-t b{color:#fff;font-weight:600}
+  .pg-threat.dir-watch{border-left-color:var(--watch)}
+  .pg-threat.dir-fav{border-left-color:var(--fav)}
+  .pg-head{padding:13px 20px;border-bottom:1px solid var(--d-line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .pg-head .eyebrow{color:var(--d-txt-3)}
+  .pg-legend{display:flex;gap:14px 26px;flex-wrap:wrap;justify-content:center;align-items:center;font-family:var(--mono);font-size:12px;color:var(--d-txt-2);max-width:760px;margin:0 auto;line-height:1.6}
+  .pg-legend .lg{display:flex;align-items:center;gap:6px}
+  .pg-legend .ln{width:18px;height:3px;display:inline-block;border-radius:1px}
+  .pg-legend .nd{width:10px;height:10px;display:inline-block;border-radius:50%}
+  .pg-legend .nd.bf{background:#fff}
+  .pg-legend .nd.comp{background:var(--d-txt-3)}
+  .pg-legend .nd.ptr{background:transparent;border:1.5px solid var(--d-txt-3)}
+  #pg-svg{flex:1;width:100%;min-height:0}
+  .pg-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:10px;color:var(--d-txt-4);pointer-events:none}
+
+  /* svg node/edge styling & Highcharts network graph dimming */
+  .pg-edge{stroke:#3a4556;opacity:.7;transition:opacity .25s cubic-bezier(.2,.8,.2,1),stroke-width .2s ease}
+  .pg-edge.rel-jv{stroke:#3a4556}
+  .pg-edge.rel-tech{stroke:#3a4556}
+  .pg-edge.rel-supply{stroke:#3a4556}
+  .pg-edge.rel-mou{stroke:#3a4556}
+  .pg-edge.rel-acq{stroke:#3a4556}
+  .pg-edge.shared{stroke:var(--overlap) !important;stroke-width:2.5px !important;opacity:1 !important}
+  .pg-edge.hl{opacity:.95 !important;stroke-width:2.4px !important}
+  .pg-edge.dim{opacity:.05 !important}
+
+  .pg-node{cursor:pointer;transition:opacity .25s cubic-bezier(.2,.8,.2,1),filter .25s ease}
+  .pg-node:hover .net-circle{stroke-opacity:.9;stroke-width:2px}
+  .pg-node.dim{opacity:.12 !important;filter:grayscale(35%) blur(.3px)}
+  .pg-node.connected{opacity:.95 !important}
+  .pg-node circle{transition:r .18s,stroke-width .18s,stroke .18s}
+  .pg-node .lbl{font-family:var(--sans);font-size:12px;font-weight:600;fill:#ffffff;text-anchor:middle;pointer-events:none;paint-order:stroke fill;stroke:#05070e;stroke-width:2.2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.95))}
+  .pg-node .lbl.la-s{text-anchor:start}
+  .pg-node .lbl.la-e{text-anchor:end}
+  .pg-node .lbl.la-m{text-anchor:middle}
+  .pg-node .lbl.nrow{font-size:9.5px;fill:#cbd5e1;font-weight:500}
+  .pg-node .lbl.center{fill:#fff;font-weight:800;font-size:14px;stroke-width:2.8px}
+  .pg-node.comp circle{fill:var(--d-bg-3);stroke:var(--d-txt-2);stroke-width:2}
+  .pg-node.comp.threat circle{stroke:var(--threat);fill:#2a1a17}
+  .pg-node.comp.fav circle{stroke:var(--fav);fill:#15231b}
+
+  /* partner nodes coloured by relationship type */
+  .pg-node.ptr.rel-jv circle{fill:#1d3a2b;stroke:#3fa86a;stroke-width:2}
+  .pg-node.ptr.rel-tech circle{fill:#3a2f15;stroke:#e0a020;stroke-width:2}
+  .pg-node.ptr.rel-supply circle{fill:#1d3147;stroke:#5b9bd5;stroke-width:2}
+  .pg-node.ptr.rel-mou circle{fill:#2a2a30;stroke:#b8b8c0;stroke-width:1.5}
+  .pg-node.ptr.rel-acq circle{fill:#3a2347;stroke:#b266c9;stroke-width:2}
+  /* The ten types the enrichment writes (enrich_serving.PART_TYPES). Without a rule
+     here a node keeps the inline cluster fill and the drawer's 8px dot renders with no
+     background at all -- invisible, not merely uncoloured. Grouped by family so the
+     colour still means something: green = jointly owned, amber = knowledge moving,
+     blue = things moving, grey = intent. */
+  .pg-node.ptr.rel-technology circle{fill:#3a2f15;stroke:#e0a020;stroke-width:2}
+  .pg-node.ptr.rel-licensing circle{fill:#3a2f15;stroke:#c98f2a;stroke-width:2}
+  .pg-node.ptr.rel-rnd circle{fill:#33301a;stroke:#c2b23a;stroke-width:2}
+  .pg-node.ptr.rel-manufacturing circle{fill:#1d3147;stroke:#4a86c0;stroke-width:2}
+  .pg-node.ptr.rel-distribution circle{fill:#1b3340;stroke:#4fa3b8;stroke-width:2}
+  .pg-node.ptr.rel-integration circle{fill:#23303f;stroke:#7fa8c9;stroke-width:2}
+  .pg-node.ptr.rel-strategic circle{fill:#2a2a30;stroke:#b8b8c0;stroke-width:1.5}
+  .pg-node.ptr.rel-other circle{fill:#2a2a30;stroke:#9aa0aa;stroke-width:1.5}
+  /* AN OVERLAP OUTRANKS THE TIE TYPE, so it must outrank the rel-* colour above.
+     This rule is why the previous attempt failed. graphSvg already emitted the right
+     red on the circle -- as fill="#e8483a" -- and the node still drew blue, because
+     fill= and stroke= on an SVG element are PRESENTATION ATTRIBUTES, not inline
+     style. They sit at the very bottom of the cascade and lose to any selector at
+     all, so `.pg-node.ptr.rel-supply circle{fill:#1d3147}` fifteen lines up won on
+     every shared partner whose tie is a supply agreement -- which is Saab, the one
+     overlap on the Anduril graph that the strip underneath was captioning "red
+     above". The colour has to come from a rule, and the rule has to say !important:
+     the rel-* selectors have identical specificity and only source order separates
+     them, which is too fragile a thing to hang the most important mark on the page
+     on. The attributes stay on the element as the fallback for the print report,
+     which renders this SVG without the stylesheet. */
+  /* THESE ARE THE RULES THAT ACTUALLY PAINT THE GRAPH NODE, and they carry !important,
+     so a plain `.pg-node.overlap circle` written later in the file loses to them. Both
+     move to --overlap together; changing one of the two would have left the halo and the
+     circle in different reds. */
+  .pg-node.ptr.overlap circle.net-circle{fill:var(--overlap) !important;stroke:#ffb3aa !important;stroke-width:2.5px !important;stroke-opacity:.95 !important}
+  .pg-node.ptr.overlap circle.halo{stroke:var(--overlap) !important;stroke-width:2.2px !important;opacity:.9 !important}
+
+  /* A relationship the source says is over is drawn, but drawn as over. */
+  .pg-node.ptr.st-ended circle{stroke-dasharray:2 3;opacity:.6}
+
+  /* Status and source-confidence tags. Small, and they sit beside the type rather
+     than inside it -- "Historical Joint Venture (Ended 2013)" written INTO the type
+     label is exactly what these replace. */
+  .tie-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:2px;
+           font-family:var(--mono);font-size:9px;letter-spacing:.04em;
+           text-transform:uppercase;vertical-align:1px;white-space:nowrap}
+  .tie-tag.ended{background:#3a2020;color:#e08a7c;border:1px solid #5a2f2a}
+  .tie-tag.announced{background:#2a2a30;color:#b8b8c0;border:1px solid #3d3d45}
+  /* in talks: dimmer than announced -- nothing is signed */
+  .tie-tag.exploring{background:#25252b;color:#9a9aa6;border:1px dashed #44444e}
+  /* Not an error and not current: read from an article old enough that "active" is a
+     claim about the past. Warmer than `ended`, quieter than a live tie. */
+  .tie-tag.stale{background:#332815;color:#d9b45e;border:1px solid #4a3a1e}
+  .tie-tag.asof{background:#23282f;color:#8e9aa6;border:1px solid #333a43}
+  .tie-tag.conf-official{background:#16302a;color:#77bf9a;border:1px solid #24483d}
+  .tie-tag.conf-corroborated{background:#1b2b3a;color:#7fb0d8;border:1px solid #2a4256}
+  .tie-tag.conf-single_source{background:#332815;color:#d9b45e;border:1px solid #4a3a1e}
+  .pg-node.ptr.foreign circle{stroke-dasharray:none}
+  .pg-node.ptr.govt circle{stroke-dasharray:3 2}
+
+  /* Selection glow */
+  /* Selection reads as a ring, not a light source. */
+  .pg-node.sel circle.core-bubble{stroke:#e6e8ec !important;stroke-width:2.5px !important}
+  .pg-node.sel circle.halo{stroke:#8b95a5 !important;stroke-width:2.2px !important;opacity:.85 !important}
+
+  /* High contrast, crisp readable labels matching graph wanted.jpeg */
+  .lbl-ptr-title{fill:#ffffff;font-weight:700;font-size:13px;font-family:var(--sans);letter-spacing:.01em;paint-order:stroke fill;stroke:#05070e;stroke-width:2.4px;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.95))}
+  .lbl-ptr-sub{fill:#cbd5e1;font-size:10.5px;font-weight:600;font-family:var(--sans);letter-spacing:.04em;text-transform:uppercase;paint-order:stroke fill;stroke:#05070e;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.95))}
+  .center-title{font-size:15.5px !important;font-weight:800 !important;letter-spacing:.02em;fill:#ffffff !important;stroke-width:2.8px !important}
+  .center-sub{fill:#5fe3f5 !important;font-weight:700 !important;font-size:11px !important;letter-spacing:.08em !important}
+  .pg-node.pt-leaf .lbl-ptr-title{font-size:12px;font-weight:600}
+  .pg-node.pt-leaf .lbl-ptr-sub{font-size:9.5px;font-weight:500;fill:#94a3b8}
+
+  /* Canvas toolbar & zoom controls */
+  .pg-canvas-toolbar{position:absolute;top:10px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;z-index:15}
+  .pg-view-toggles{display:flex;gap:6px;pointer-events:auto}
+  .pg-tb-pill{background:rgba(15,23,42,0.7);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);transition:all .2s ease;font-family:var(--mono)}
+  .pg-tb-pill:hover{color:#f1f5f9;border-color:rgba(255,255,255,0.25)}
+  .pg-tb-pill.active{background:rgba(120,132,148,0.16);border-color:#7b8494;color:#d3d7de}
+  .pg-zoom-box{display:flex;gap:4px;pointer-events:auto}
+  .pg-tb-btn{width:26px;height:26px;background:rgba(15,23,42,0.7);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);transition:all .2s ease;font-family:inherit}
+  .pg-tb-btn:hover{background:rgba(30,41,59,0.9);border-color:rgba(255,255,255,0.3);color:#ffffff}
+
+  /* legend */
+  .pg-legend{display:flex;gap:14px 26px;flex-wrap:wrap;justify-content:center;align-items:center;font-family:var(--mono);font-size:12px;color:var(--d-txt-2);max-width:760px;margin:0 auto;line-height:1.6}
+  .pg-legend .lg{display:flex;align-items:center;gap:6px}
+  .pg-legend .ln{width:18px;height:3px;display:inline-block;border-radius:1px}
+
+  /* report panel (light) */
+  .pg-report{border-left:1px solid var(--d-line);background:var(--l-bg);color:var(--l-txt);overflow-y:auto;display:flex;flex-direction:column}
+  .pg-r-h{padding:16px 18px;border-bottom:1px solid var(--l-line);background:var(--l-bg-2)}
+  .pg-r-h .eyebrow{color:var(--l-txt-3);display:block;margin-bottom:8px}
+  .pg-r-h .ct{font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--l-txt);line-height:1.25}
+  .pg-r-sub{font-size:11.5px;color:var(--l-txt-3);margin-top:6px;line-height:1.5}
+  .pg-r-sec{padding:15px 18px;border-bottom:1px solid var(--l-line)}
+  .pg-r-sec .eyebrow{color:var(--l-txt-3);display:block;margin-bottom:14px}
+  .pg-rellist{display:flex;flex-direction:column;gap:14px}
+  .pg-rel{display:flex;gap:10px;padding:10px 10px;border:1px solid var(--l-line-2);border-radius:6px;background:var(--l-bg-1);font-size:12px;line-height:1.45;margin-bottom:12px}
+  .pg-rel:last-child{margin-bottom:0}
+  .pg-rel .rmark{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+  .pg-rel .rmark.rel-jv{background:#1f6e45}
+  .pg-rel .rmark.rel-tech{background:#9a6a08}
+  .pg-rel .rmark.rel-supply{background:#3a6ea5}
+  .pg-rel .rmark.rel-mou{background:#8a8a93}
+  .pg-rel .rmark.rel-acq{background:#7a3a8f}
+  .pg-rel .rmark.rel-technology{background:#9a6a08}
+  .pg-rel .rmark.rel-licensing{background:#8a6316}
+  .pg-rel .rmark.rel-rnd{background:#8a7f1e}
+  .pg-rel .rmark.rel-manufacturing{background:#3a6ea5}
+  .pg-rel .rmark.rel-distribution{background:#2f6b7d}
+  .pg-rel .rmark.rel-integration{background:#55708c}
+  .pg-rel .rmark.rel-strategic{background:#8a8a93}
+  .pg-rel .rmark.rel-other{background:#71767f}
+  .pg-rellist .pg-rel{cursor:pointer;transition:all .12s;padding:10px 10px;margin:0 0 12px 0}
+  .pg-rellist .pg-rel:hover{background:var(--l-bg-2);border-color:var(--l-line)}
+  .pg-rel .rnote{font-family:var(--mono);font-size:10px;color:var(--d-txt-3);line-height:1.4}
+  .pg-updates{background:var(--l-bg-1);color:var(--l-txt);padding:12px 18px;font-size:12px;line-height:1.55;border-bottom:1px solid var(--l-line)}
+  .pg-updates .pu-l{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fav);margin-bottom:6px}
+  .pg-pcard{border:1px solid var(--l-line-2);background:var(--l-bg-1)}
+  .pg-prow{display:flex;gap:12px;padding:9px 12px;border-bottom:1px solid var(--l-line);font-size:12px;line-height:1.45}
+  .pg-prow:last-child{border-bottom:none}
+  .pg-prow .pg-pk{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--l-txt-4);min-width:78px;flex-shrink:0;padding-top:1px}
+  .pg-prow .pg-pv{color:var(--l-txt);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .pg-prow .pg-pv .rmark{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .pg-rel .rtxt{color:var(--d-txt-2)}
+  .pg-rel .rtxt b{color:var(--d-txt);font-weight:600}
+  .pg-rel .rtype{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--d-txt-3);display:block;margin-top:2px}
+  .pg-insight{background:#161618;color:#e8e8e6;padding:13px 15px;margin:15px 18px 0;font-size:12.5px;line-height:1.55}
+  .pg-insight .tl{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fav);margin-bottom:6px}
+  .pg-ctag{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;background:var(--l-bg-2);color:var(--d-txt-2);padding:1px 7px;border:1px solid var(--d-line)}
+  .pg-ctag.sm{font-size:8.5px;padding:0 5px}
+    /* ===== COUPLED PARTNERSHIP INSTRUMENT ===== */
+  .pg-canvas{display:flex;flex-direction:column;padding:20px 26px;min-height:0;overflow:hidden}
+  .pg-instrument-head{margin-bottom:6px;flex-shrink:0}
+  .pg-i-title{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--d-txt-3);font-weight:600;margin-bottom:9px}
+  .pg-i-thesis{font-size:14px;line-height:1.55;color:var(--d-txt);max-width:760px}
+  .pg-i-thesis b{color:#c0892b;font-weight:700}
+  .pg-graph-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;margin:6px 0;position:relative}
+  .pg-graph-wrap svg{width:100%;height:100%;max-height:560px}
+  .pg-graph-foot{display:none}
+
+  /* ===== COLOR SCHEMA BOX (Bottom-left compact legend) ===== */
+  .pg-legend-box{position:absolute;bottom:10px;left:10px;display:flex;flex-direction:column;gap:3px;
+    background:rgba(12,16,22,0.92);border:1px solid rgba(255,255,255,0.14);border-radius:7px;
+    padding:5px 8px;z-index:25;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-shadow:0 4px 18px rgba(0,0,0,0.55);max-width:170px;pointer-events:none;user-select:none;cursor:default}
+  .pg-legend-title{display:none}
+  .pg-legend-box .lg{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;
+    color:#cbd5e1;line-height:1.25;padding:2px 4px;border-radius:4px;pointer-events:none;cursor:default}
+  .pg-legend-box .nd{width:7.5px;height:7.5px;border-radius:50%;flex-shrink:0;display:inline-block}
+  .pg-legend-box .lg-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* node selection: highlight, do not bury */
+  .pg-node.sel circle{stroke:#e8b04a;stroke-width:3}
+  .pg-edge.hl{opacity:1 !important;stroke-width:3 !important}
+  .pg-node.trace circle{stroke:#c0654a;stroke-width:3.5}
+  .pg-edge.trace{opacity:1 !important;stroke:#c0654a !important;stroke-width:3 !important}
+  /* ===== SHARED PARTNER — the same company also sits in KOEL's own network.
+     Declared after .pg-edge.rel-* (same specificity) so red wins the stroke,
+     and before .trace so tracing still overrides it. ===== */
+  .pg-edge.shared{stroke:var(--overlap);opacity:1}
+  .pg-node.shared circle{stroke:var(--overlap);stroke-width:2.5}
+  .pg-node.shared .lbl{fill:var(--overlap)}
+  /* ===== SHARED-CHANNEL PANEL — fills the slack below the graph ===== */
+  .pg-overlap{flex-shrink:0;border-top:1px solid var(--d-line);margin-top:8px;padding:10px 2px 4px;
+    max-height:344px;overflow-y:auto}
+  .pg-ov-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .pg-ov-t{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--overlap);flex-shrink:0}
+  .pg-ov-t.clean{color:var(--d-txt-3)}
+  .pg-ov-s{font-size:12px;color:var(--d-txt-2);line-height:1.5}
+  .pg-ov-s b{color:var(--d-txt);font-weight:600}
+  .pg-ov-ties{display:flex;flex-direction:column;gap:4px;margin-bottom:2px}
+  /* columns are explicit: the count must sit right of the name, and auto-placement
+     puts an item with an explicit grid-row into column 1 otherwise */
+  .pg-ov-tie{display:grid;grid-template-columns:1fr auto;gap:2px 10px;cursor:pointer;
+    background:var(--d-bg-1);border:1px solid var(--d-line);border-left:2px solid var(--overlap);
+    padding:5px 10px;transition:background .12s;min-width:0}
+  .pg-ov-tie:hover{background:var(--d-bg-2)}
+  .pg-ov-nm{grid-column:1;grid-row:1;font-size:12px;color:var(--d-txt);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .pg-ov-use{grid-column:1;grid-row:2;font-family:var(--mono);font-size:9.5px;color:var(--d-txt-3);line-height:1.45;word-break:break-word;min-width:0}
+  .pg-ov-cnt{grid-column:2;grid-row:1 / span 2;align-self:center;font-family:var(--mono);font-size:9.5px;
+    color:#e8998d;text-align:right;white-space:nowrap;flex-shrink:0;padding-left:4px}
+  .pg-ov-defs{display:grid;grid-template-columns:1fr 1fr;gap:7px 16px}
+  .pg-ov-def{border-left:1px solid var(--d-line-2);padding-left:9px}
+  .pg-ov-dt{font-size:11.5px;color:var(--d-txt);font-weight:600;margin-bottom:1px}
+  .pg-ov-dx{font-size:11px;color:var(--d-txt-3);line-height:1.45}
+  .pg-ov-kind{font-size:11px;color:var(--d-txt-2);margin:8px 0 6px;padding-top:7px;border-top:1px dotted var(--d-line)}
+  .pg-ov-kind b{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--d-txt-3)}
+  .pg-ov-lead{color:var(--d-txt-3)}
+  .pg-ov-tog{margin-left:auto;background:none;border:1px solid var(--d-line-2);color:var(--d-txt-3);
+    font-family:var(--mono);font-size:9px;letter-spacing:.05em;padding:3px 8px;cursor:pointer;flex-shrink:0}
+  .pg-ov-tog:hover{color:var(--d-txt);border-color:var(--d-txt-3)}
+  .pg-overlap.collapsed .pg-ov-kind,.pg-overlap.collapsed .pg-ov-defs{display:none}
+  @media (max-width:1240px){.pg-ov-defs{grid-template-columns:1fr}}
+  .pg-comp .cshare{font-family:var(--mono);font-size:9px;color:var(--overlap);white-space:nowrap}
+  /* ===== INTELLIGENCE DRAWER ===== */
+  .pg-drawer{display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--l-line);background:var(--l-bg);
+    --d-bg:#ffffff; --d-bg-1:#f7f6f3; --d-bg-2:#f0efea; --d-bg-3:#e9e8e2;
+    --d-txt:#161614; --d-txt-2:#3d3d39; --d-txt-3:#6b6a63; --d-txt-4:#9a988e;
+    --d-line:#e2e0d8}
+  .pg-drawer-tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--d-bg-2)}
+  .pg-drawer-head{flex-shrink:0;padding:14px 20px 12px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--d-txt-3);border-bottom:1px solid var(--d-bg-2)}
+  .pgd-tab{flex:1;padding:13px 8px;font-size:12px;font-weight:600;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--d-txt-3);cursor:pointer;font-family:inherit}
+  .pgd-tab.active{color:var(--d-txt);border-bottom-color:#c0892b}
+  .pg-drawer-body{flex:1;min-height:0;overflow-y:auto;padding:18px 20px;color:#161614}
+  /* back-to-competitor breadcrumb when viewing a tie */
+  .pg-tie-back{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--d-txt-3);cursor:pointer;margin-bottom:12px;padding:5px 10px;border:1px solid var(--d-bg-2);border-radius:6px}
+  .pg-tie-back:hover{background:var(--d-bg-2);color:var(--d-txt)}
+  /* tie-level read card */
+  .tie-hero{margin-bottom:16px}
+  .tie-hero .th-name{font-size:17px;font-weight:700;line-height:1.25;margin-bottom:4px;color:#161614}
+  .tie-hero .th-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--d-txt-3)}
+  .tie-rel-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:2px 9px;border-radius:11px;background:var(--d-bg-2)}
+  .tie-block{margin-bottom:14px}
+  .tie-block .tb-l{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;display:block;margin-bottom:6px}
+  .tie-block.fact .tb-l{color:var(--d-txt-3)}
+  .tie-block.reveal .tb-l{color:#3a6ea5}
+  .tie-block.conseq .tb-l{color:#9c2b2b}
+  .tie-block .tb-x{font-size:12.5px;line-height:1.55;color:var(--d-txt)}
+  .tie-block.conseq{background:rgba(156,43,43,0.14);border:1px solid rgba(156,43,43,0.3);border-radius:8px;padding:11px 13px}
+  .tie-block.conseq .tb-x{color:#7a1e12}
+  /* shared-partner read on a single tie — the drawer is a light panel */
+  /* BLOOD RED, and loud enough to find. A 10% wash behind a #c0392b label was the
+     quietest block on the page -- the one thing the reader is scanning for looked like
+     every other tie. The left edge is what carries it now: 3px of --overlap, so an
+     overlapping tie is findable down a column of twenty without reading any of them. */
+  .tie-block.shared{background:var(--overlap-bg);border:1px solid var(--overlap-line);
+    /* ONE border-left, not two. The rule already carried `border-left:3px solid #c0392b`
+       AFTER the line I added, so the later declaration won and the edge stayed the old
+       maroon -- my change was in the file and cancelled in the cascade. Only the BUILT
+       stylesheet showed it. */
+    border-left:3px solid var(--overlap);border-radius:8px;padding:11px 13px}
+  .tie-block.shared .tb-l{color:var(--overlap)}
+  .tie-block.shared .tb-x{color:var(--d-txt)}
+  .tie-block.shared .tb-x b{color:var(--overlap)}
+  .tie-block.shared ul{margin:7px 0 0;padding-left:17px}
+  .tie-block.shared li{font-size:12px;line-height:1.5;margin-bottom:4px;color:var(--d-txt-2)}
+  .tie-block.shared li b{color:var(--d-txt)}
+  /* the other rows merged into one company node */
+  .tie-block.sib{background:var(--d-bg-1);border:1px solid var(--d-line);border-radius:8px;padding:10px 12px}
+  .tie-block.sib .tb-l{color:var(--d-txt-3)}
+  .tie-block.sib .tb-x{font-size:11.5px;color:var(--d-txt-3);line-height:1.45}
+  .sib-list{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+  .sib-row{display:grid;grid-template-columns:auto auto 1fr;gap:7px;align-items:baseline;cursor:pointer;
+    padding:5px 7px;background:var(--d-bg);border:1px solid var(--d-line)}
+  .sib-row:hover{background:var(--d-bg-2)}
+  .sib-t{font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--d-txt-2);white-space:nowrap}
+  .sib-n{font-size:11.5px;color:var(--d-txt);line-height:1.4;overflow:hidden;text-overflow:ellipsis}
+  .sib-none{color:var(--d-txt-4);font-style:italic}
+  .tie-facts-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12px;margin-bottom:6px}
+  .tie-facts-grid .tk{color:var(--d-txt-3)}
+  .tie-facts-grid .tv{color:var(--d-txt);font-weight:500}
+  /* clickable vulnerability (drives graph trace) */
+  .syn-vuln-h{position:relative}
+  .syn-vuln.traceable .syn-vuln-h::after{content:'◎ trace';position:absolute;right:12px;top:11px;font-size:9px;color:var(--d-txt-3);opacity:.7}
+  .syn-vuln.traceactive{border-left-color:#c0654a;box-shadow:0 0 0 1px #c0654a33}
+  /* ===== SYNTHESIS / INTELLIGENCE LAYER ===== */
+  .syn-wrap{margin:14px 0 4px}
+  .syn-thesis{background:linear-gradient(180deg,var(--d-bg-2),transparent);border:1px solid var(--d-bg-2);border-left:3px solid #b0892b;border-radius:8px;padding:12px 14px;margin-bottom:14px}
+  .syn-thesis .stl{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:#b0892b;font-weight:700;display:block;margin-bottom:5px}
+  .syn-thesis .stx{font-size:12.5px;line-height:1.55;color:var(--d-txt)}
+  .syn-stats{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+  .syn-stat{background:var(--d-bg-2);border-radius:6px;padding:7px 10px;flex:1;min-width:64px}
+  .syn-stat .sv{font-size:17px;font-weight:700;line-height:1.1;color:var(--d-txt)}
+  .syn-stat .sl{font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:var(--d-txt-3);margin-top:2px}
+  .syn-stat.core .sv{color:#9c2b2b}.syn-stat.frgn .sv{color:#8a5a0a}
+  .syn-sec-l{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:5px;margin:0 0 9px}
+  .syn-sec-l.vuln{color:#9c2b2b}.syn-sec-l.strat{color:#2f5f8f}.syn-sec-l.pred{color:#8a5a0a}.syn-sec-l.move{color:#1f6e45}
+  .syn-vuln{border:1px solid var(--d-bg-2);border-left:3px solid #9c2b2b;border-radius:7px;margin-bottom:9px;overflow:hidden}
+  .syn-vuln-h{padding:10px 12px;cursor:pointer;display:flex;align-items:flex-start;gap:8px}
+  .syn-vuln-h:hover{background:var(--d-bg-2)}
+  .syn-vuln-n{font-size:11px;font-weight:700;color:#9c2b2b;flex-shrink:0;margin-top:1px}
+  .syn-vuln-t{font-size:12.5px;font-weight:600;line-height:1.4;color:var(--d-txt)}
+  .syn-vuln-from{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+  .syn-chip{font-size:8.5px;background:var(--d-bg-2);color:var(--d-txt-3);padding:1px 6px;border-radius:4px;white-space:nowrap}
+  .syn-vuln-b{display:none;padding:0 12px 12px 12px}
+  .syn-vuln-b.open{display:block}
+  .syn-vuln-intel{font-size:11.5px;line-height:1.5;color:var(--d-txt-2);margin-bottom:8px}
+  .syn-exploit{background:rgba(156,43,43,0.14);border:1px solid rgba(156,43,43,0.3);border-radius:6px;padding:8px 10px}
+  .syn-exploit .el{font-size:9px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:#e07a6a}
+  .syn-exploit .ex{font-size:11.5px;line-height:1.45;color:#7a1e12;margin-top:2px}
+  .syn-strat{border:1px solid var(--d-bg-2);border-left:3px solid #2f5f8f;border-radius:7px;padding:11px 13px;margin-bottom:14px}
+  .syn-strat .st{font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:6px;color:var(--d-txt)}
+  .syn-strat .sp{font-size:11px;line-height:1.5;color:var(--d-txt-2);margin-bottom:5px}
+  .syn-strat .sp b{color:#2f5f8f;font-weight:700}
+  .syn-pm{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:8px}
+  .syn-pm-item{font-size:11.5px;line-height:1.45;color:var(--d-txt-2);padding:5px 0;border-bottom:1px solid var(--d-bg-2);display:flex;gap:6px}
+  .syn-pm-item:last-child{border-bottom:none}
+  .syn-pm-item .pmk{flex-shrink:0;font-weight:700}
+  .syn-pred .pmk{color:#8a5a0a}.syn-move .pmk{color:#1f6e45}
+  .syn-factual-only{background:var(--d-bg-2);border-radius:7px;padding:11px 13px;margin:12px 0;font-size:11.5px;line-height:1.5;color:var(--d-txt-3)}
+  .syn-toggle{display:flex;gap:0;margin:0 0 14px;border:1px solid var(--d-bg-2);border-radius:7px;overflow:hidden}
+  .syn-toggle button{flex:1;padding:8px 4px;font-size:11px;font-weight:600;background:transparent;border:none;color:var(--d-txt-3);cursor:pointer;font-family:inherit}
+  .syn-toggle button.active{background:#b0892b;color:#fff}
+  .field-btn{width:100%;margin:4px 0 0;padding:10px;font-size:11.5px;font-weight:600;background:transparent;border:1px solid #2f5f8f;border-radius:7px;color:#2f5f8f;cursor:pointer;font-family:inherit}
+  .field-btn:hover{background:#2f5f8f;color:#fff}
+  .pg-assess{background:var(--d-bg-2);border:1px solid var(--d-line);padding:13px 15px;margin:15px 18px;font-size:12.5px;color:var(--d-txt-2);line-height:1.55}
+  .pg-assess .tl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--d-txt-3);display:block;margin-bottom:6px}
+  .pg-assess b{font-weight:600}
+  .compdet .kv .v{font-family:var(--mono);color:var(--l-txt);font-size:11px;text-align:right}
+
+
+/* The overlap INTERPRETATION, moved out of the canvas into the right-hand drawer.
+   Same cards as before (.pg-ov-kind / .pg-ov-defs), but the drawer is a single
+   narrow column, so the two-up grid above it must not apply here. */
+.pg-ov-side:empty{display:none}
+.pg-ov-side{flex-shrink:0;border-top:1px solid var(--d-line);padding:2px 14px 12px}
+.pg-ov-side .pg-ov-defs{grid-template-columns:1fr}
+
+
+/* THE GRAPH NODE'S CLASS IS `overlap`, NOT `shared`.
+   partners.js emits `pg-node ptr ${p.isOverlap ? "overlap" : "direct"}`, so every
+   `.pg-node.shared` rule above has been selecting nothing since that string was written:
+   the shared node was drawn only by the inline stroke attribute, and the label never
+   turned red at all. Both class names are honoured here rather than renaming one, because
+   `.shared` is what the tests and the edge line already key on. */
+.pg-node.overlap circle{stroke:var(--overlap);stroke-width:2.5}
+.pg-node.overlap .lbl{fill:var(--overlap);font-weight:700}
+.ov-badge.ov-shared{box-shadow:0 0 0 1px var(--overlap-line)}
+
+/* Partnerships branch explorer (company -> partner types -> partners), in the original
+   graph's palette: type colours come inline from PG_TYPE_META, edges are the old slate. */
+#pg-svg .pgx-spoke{stroke-width:1.6px;opacity:.75}
+#pg-svg .pgx-spoke.pgx-focus{stroke-width:2.4px;opacity:1}
+#pg-svg .pgx-spoke.pgx-dim{opacity:.3}
+#pg-svg .pgx-branch{stroke-width:1.5px;opacity:.8}
+#pg-svg .pgx-branch.shared{stroke-width:2.5px;opacity:1}
+.pg-node.pg-type.pgx-dim{opacity:.35}
+.pg-node.pg-type:hover .net-circle,.pg-node.center-root:hover .net-circle{stroke-width:3px}
+.pg-node.pg-type:hover .pg-flag{filter:brightness(1.18)}
+.pg-flag{transition:filter .2s ease}
+.pg-cat-symbol{pointer-events:none;transition:filter .2s ease}
+.pg-node.pg-type:hover .pg-cat-symbol{filter:brightness(1.18)}
+.pg-node.pg-type.pgx-focus .halo{opacity:.8}
+.pg-node.pt-leaf .pt-leaf-lbl{pointer-events:auto;cursor:pointer}
+.pg-node.pt-leaf:hover .net-circle{stroke-width:3px}
+.pg-node.pt-leaf.sel .net-circle{stroke:#e6e8ec !important;stroke-width:2.5px}
+.pg-node.center-root .pgx-ring{animation:pgxPulse 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+#pg-svg .pgx-pop{animation:pgxPop .38s cubic-bezier(.2,.8,.2,1.15) both;transform-box:fill-box;transform-origin:center}
+@keyframes pgxPop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
+@keyframes pgxPulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+/* the step bar above the graph and the status line under it */
+.pgx-steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pgx-step{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;border:1px solid rgba(95,227,245,.25);background:rgba(11,22,32,.6);color:#9fb3c2;font-size:12px;font-weight:600;cursor:pointer}
+.pgx-step .dot{width:8px;height:8px;border-radius:50%;background:#c7d0da}
+.pgx-step.on{border-color:#5fe3f5;color:#ffffff;box-shadow:0 0 10px rgba(95,227,245,.35)}
+.pgx-step.on .dot{background:#5fe3f5}
+.pgx-step:disabled{opacity:.4;cursor:default}
+.pgx-arrow{color:#5b6b7a;font-size:12px}
+.pgx-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;border:1px solid rgba(95,227,245,.25);border-radius:10px;background:rgba(11,22,32,.6);color:#e6f7fb;font-size:12.5px}
+.pgx-status .dot{width:8px;height:8px;border-radius:50%;background:#5fe3f5;box-shadow:0 0 6px #5fe3f5}
+.pgx-status .hint{color:#9fb3c2;border-left:1px solid rgba(95,227,245,.2);padding-left:10px}
+.pgx-status .ov{display:inline-flex;align-items:center;gap:6px;color:#ffb3b3}
+.pgx-status .ov i{width:8px;height:8px;border-radius:50%;background:#ff4d4d;display:inline-block}
+/* plain black stage behind the explorer; gloss and shadows never take clicks */
+.v-partnerships .pg-graph-wrap{background:#000000}
+/* the Group-by filter sits right after the + / - / reset buttons, in the same style */
+/* same face and colour as the page's own text (the partner-count line), not the mono chrome */
+.pg-zoom-box .pg-group-sel{order:9;margin-left:6px;height:26px;padding:0 8px;background:rgba(15,23,42,0.7);border:1px solid rgba(255,255,255,0.12);color:var(--d-txt-3);border-radius:4px;font-family:var(--sans, inherit);font-size:12.5px;font-weight:500;cursor:pointer;backdrop-filter:blur(8px);outline:none}
+.pg-zoom-box .pg-group-sel:hover{border-color:rgba(255,255,255,0.3);color:#ffffff}
+.pg-zoom-box .pg-group-sel option{background:#0f172a;color:#e2e8f0}
+/* KSSL's region graph needs no competitor picked: keep the canvas up in Regions mode */
+.v-partnerships.no-sel.has-graph .pg-canvas{opacity:1;pointer-events:auto}
+/* Regions' middle level: partner-type discs inside a country */
+.pg-node.pg-subtype{cursor:pointer}
+.pg-node.pg-subtype.pgx-dim{opacity:.35}
+.pg-node.pg-subtype:hover .net-circle{stroke-width:3px}
+.pg-node.pg-subtype:hover .pg-cat-symbol{filter:brightness(1.18)}

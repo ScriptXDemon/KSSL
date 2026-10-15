@@ -1,0 +1,52 @@
+/* ============ DEVICE SCALE ============
+   The app is fixed-px, so nothing adapted to the viewport and it read oversized
+   ("zoomed") on smaller / high-DPI screens. These breakpoints step the densest chrome
+   and the feed down so it reads consistently across devices. This is a real font/space
+   scale -- content reflows normally, so there is NO transform/zoom and NO empty gap
+   (the earlier CSS `zoom` left a band on the right; it is not used).
+   Imported LAST in index.css, so each override wins by source order at equal specificity.
+   Tune the numbers here in one place. */
+
+@media (max-width: 1550px) {
+  .topbar { height: 50px; }
+  .wordmark { font-size: 20px; }
+  .pill { font-size: 14px; padding: 0 18px; }
+  .subhead { height: 42px; }
+  .subhead h1 { font-size: 15px; }
+  .metric { padding: 9px 16px 10px; }
+  .metric .mv { font-size: 19px; }
+  .svc { padding: 9px 13px; font-size: 13px; }
+  .alert { padding: 13px 20px 13px 13px; gap: 13px; }
+  .ov-body.has-sel .alert { padding: 13px 30px 13px 13px; }
+  .alert .body .ttl { font-size: 14.5px; }
+  .alert .body .sowhat { font-size: 13px; }
+}
+
+@media (max-width: 1300px) {
+  .topbar { height: 46px; }
+  .wordmark { font-size: 18px; }
+  .pill { font-size: 13px; padding: 0 14px; }
+  .subhead { height: 40px; }
+  .subhead h1 { font-size: 14px; }
+  .metric { padding: 8px 13px 9px; }
+  .metric .mv { font-size: 17px; }
+  .metric .ml { font-size: 8.5px; }
+  .svc { padding: 8px 12px; font-size: 12.5px; }
+  .shell { grid-template-columns: clamp(184px, 14vw, 210px) 1fr; }
+  .alert { padding: 12px 16px 12px 12px; gap: 12px; }
+  .ov-body.has-sel .alert { padding: 12px 24px 12px 12px; }
+  .alert .body .ttl { font-size: 14px; margin-bottom: 5px; }
+  .alert .body .sowhat { font-size: 12.5px; line-height: 1.55; }
+  .alert .body .meta { font-size: 11.5px; }
+  .feed-grp-h { padding: 9px 14px; gap: 8px; }
+  .filters { gap: 5px; }
+  .fbtn { padding: 4px 6px; font-size: 10px; }
+}
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 168px 1fr; }
+  .metric { padding: 7px 11px 8px; }
+  .metric .mv { font-size: 16px; }
+  .subhead { padding: 0 12px; }
+  .alert { padding: 11px 12px 11px 11px; grid-template-columns: 26px 1fr auto; }
+}

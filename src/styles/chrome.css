@@ -1,0 +1,524 @@
+  /* ============ TOP BAR ============ */
+  /* NO `overflow:hidden` HERE, AND THAT IS THE POINT OF THIS COMMENT.
+     It was added to stop the ::after scan sweep -- which animates to
+     translateX(100vw+140px) -- from extending this bar's scrollWidth past the viewport.
+     It also clipped the global search popover, which hangs BELOW this 54px bar, so the
+     result list rendered with z-index 1000 and was invisible: typing in the search box
+     looked like a search box that did nothing. Reported as "global search bar doesnt
+     work", twice.
+
+     It was removed once already, at the SECOND `.topbar` rule further down -- and that
+     rule declares only `position`, so removing it from there changed nothing at all
+     while reading exactly like a fix. Two rules, same selector, and `overflow` was only
+     ever declared here. Check the built stylesheet, not the diff.
+
+     What replaces it: #root is already `overflow:hidden` at 100vh, so the sweep is still
+     clipped at the viewport. Only the bar stopped clipping its own children. */
+  .topbar{display:flex;align-items:stretch;height:54px;border-bottom:1px solid var(--d-line);background:var(--d-bg);flex-shrink:0}
+  .brand{display:flex;align-items:center;gap:14px;padding:0 20px;border-right:1px solid var(--d-line);cursor:pointer;transition:opacity .12s}
+  .brand:hover{opacity:.85}
+  .wordmark{font-family:var(--sans);font-weight:800;font-size:22px;letter-spacing:-.02em;line-height:1;color:#fff}
+  .wordmark .wm-prod{font-weight:500;color:var(--d-txt-2)}
+
+  .topnav{display:flex;align-items:stretch;flex:1}
+  .pill{display:flex;align-items:center;padding:0 22px;font-size:15px;font-weight:500;color:var(--d-txt-3);border-right:1px solid var(--d-line);cursor:pointer;letter-spacing:.01em;position:relative;transition:color .12s,background .12s}
+  .pill:hover{color:var(--d-txt-2);background:var(--d-bg-1)}
+  .pill.active{color:var(--d-txt);background:var(--d-bg-1)}
+  .pill.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--d-txt)}
+  /* ONE DOT, ON THE PILLAR YOU ARE IN. All three carried a dot at once -- a dim one on the
+     two you are not in and a white one on the one you are -- so the mark read as part of
+     each label rather than as "you are here", and the active pillar already says so twice
+     (brighter text, and the 2px underline below). The dot keeps its box so the labels do
+     not shift by 14px when you switch pillars; only the active one is painted. */
+  .pill .dot{width:5px;height:5px;border-radius:50%;background:transparent;margin-right:9px}
+  .pill.active .dot{background:var(--d-txt)}
+
+  .topright{display:flex;align-items:center;gap:0;margin-left:auto}
+  .statusbox{display:flex;flex-direction:column;justify-content:center;padding:0 18px;border-left:1px solid var(--d-line);height:100%}
+  .statusbox .k{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--d-txt-3);text-transform:uppercase}
+  .statusbox .v{font-family:var(--mono);font-size:12px;color:var(--d-txt);font-weight:500;display:flex;align-items:center;gap:6px}
+  .statusbox.client{justify-content:center}
+  .statusbox.client .v{font-family:var(--sans);font-size:14px;font-weight:600;letter-spacing:-.01em}
+  .live{width:6px;height:6px;border-radius:50%;background:var(--fav);box-shadow:0 0 0 0 rgba(46,125,82,.5);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,125,82,.45)}70%{box-shadow:0 0 0 5px rgba(46,125,82,0)}100%{box-shadow:0 0 0 0 rgba(46,125,82,0)}}
+
+  /* ===== LIVENESS CUES ===== */
+  /* enhanced live dot: pulse ring + gentle brightness breathe */
+  .live{animation:pulse 2.4s infinite, breathe 2.4s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.65}50%{opacity:1}}
+  /* ambient scan line sweeping the top bar subtly */
+  /* `overflow:hidden` used to live here, to keep the ::after scan-line below from
+     spilling past the right edge as it travels. It also clipped the global search's
+     result popover, which hangs BELOW this 54px bar: the list rendered, carried
+     z-index 1000, and was invisible -- typing in the search box looked like a search
+     box that did nothing. #root is already `overflow:hidden` at 100vh, so the scan
+     line is still clipped at the viewport; only the bar stopped clipping its own
+     children.
+     ...but the viewport clip only hides the line, it does not stop the line counting:
+     a 120px box translated to 100vw+140px still widened every ancestor's scrollWidth,
+     so the layout audit read the whole app shell as 1,605-1,847px wide at 1600px,
+     depending on where in its 7s cycle it measured (CI red on staging since fcb23da).
+     So the line no longer moves as a box. The pseudo-element spans the bar exactly
+     (inset:0) and only its 120px gradient travels, as background-position, which
+     paints inside that box and cannot overflow anything. Same look, no overflow. */
+  .topbar{position:relative}
+  .topbar::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.025),transparent) no-repeat;background-size:120px 100%;animation:scan 7s linear infinite;pointer-events:none}
+  @keyframes scan{0%{background-position:-140px 0}100%{background-position:calc(100vw + 140px) 0}}
+  /* feed 'new signal' faint tick: a thin bar that breathes on the subhead live count */
+  .subhead .live-tick{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--fav);margin-right:7px;vertical-align:1px;animation:pulse 2.4s infinite}
+  /* metric value count-up: start slightly dim, settle */
+  .mv.counting{color:var(--d-txt-3)}
+  /* (removed) the freshest feed item used to grow a green breathing left-edge accent;
+     it read as a blinking line on every pillar's first signal, so it is gone. */
+  /* a soft "updated" sweep when a panel value refreshes */
+  @keyframes valueFlash{0%{background:rgba(46,125,82,.14)}100%{background:transparent}}
+  .flash{animation:valueFlash 1.1s ease-out}
+
+  /* ============ SUBHEAD ============ */
+  .subhead{display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 20px;border-bottom:1px solid var(--d-line);background:var(--d-bg-1);flex-shrink:0;gap:12px;overflow-x:auto;scrollbar-width:none}
+  .subhead::-webkit-scrollbar{display:none}
+  /* The count line is the one thing here that may yield. Everything was flex-shrink:0
+     in a bar whose scrollbar is hidden, so on a narrow window the three action buttons
+     were pushed past the right edge and could not be reached. The title and the buttons
+     keep their width; the mono count line shrinks and elides, and its full text stays
+     on the tooltip. */
+  .subhead .left{display:flex;align-items:center;gap:12px;white-space:nowrap;flex-shrink:1;min-width:0}
+  .subhead h1{font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--d-txt);white-space:nowrap;flex-shrink:0}
+  .subhead .cnt{font-family:var(--mono);font-size:11px;color:var(--d-txt-3);white-space:nowrap;flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .subhead-toast {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fav-badge);
+    background: rgba(63, 168, 106, 0.15);
+    border: 1px solid rgba(63, 168, 106, 0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: 10px;
+    animation: fadeIn .2s ease-in;
+    white-space: nowrap !important;
+    flex-shrink: 0;
+  }
+  .subhead-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    flex-shrink: 0;
+  }
+  .subhead-btn {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--d-txt-2);
+    background: var(--d-bg);
+    border: 1px solid var(--d-line);
+    border-radius: 5px;
+    padding: 4px 9px;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap !important;
+    flex-shrink: 0;
+  }
+  .subhead-btn:hover {
+    color: var(--d-txt);
+    border-color: var(--d-line-2);
+    background: var(--d-bg-2);
+  }
+  .subhead-btn.primary {
+    background: var(--d-bg-3);
+    color: #fff;
+    border-color: var(--d-txt-4);
+  }
+  .subhead-btn.primary:hover {
+    background: #383840;
+    border-color: #666;
+  }
+
+  .subhead-toast.warn {
+    color: var(--d-txt-2);
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+
+  /* ============ REPORT SHEET (Copy / Export fallback) ============
+     Opens when the clipboard or a file download is unavailable: the text is shown
+     selected so the reader can copy it by hand, with a line saying why. */
+  .sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .sheet {
+    width: min(760px, 100%);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--d-bg-1);
+    border: 1px solid var(--d-line-2);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .sheet-h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .sheet-note {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--d-txt-2);
+    border-left: 2px solid rgba(245, 158, 11, 0.6);
+    padding: 4px 10px;
+  }
+  .sheet-text {
+    flex: 1;
+    min-height: 260px;
+    resize: vertical;
+    background: var(--d-bg);
+    border: 1px solid var(--d-line);
+    border-radius: 4px;
+    color: var(--d-txt);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.5;
+    padding: 10px;
+    outline: none;
+  }
+
+  /* ============ PRINT ============
+     The app is a fixed-height, scroll-inside-panels shell; printing the DOM printed one
+     viewport of it. What prints is the view's published report (SubHead's PrintSheet),
+     which is the same content Copy Summary renders. Nothing else is shown on paper. */
+  .print-sheet { display: none; }
+  @media print {
+    html, body {
+      position: static !important;
+      height: auto !important;
+      width: auto !important;
+      overflow: visible !important;
+      background: #fff !important;
+      color: #000 !important;
+    }
+    #root {
+      display: block !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    #root > *:not(.subhead), .subhead > *:not(.print-sheet) {
+      display: none !important;
+    }
+    .subhead {
+      display: block !important;
+      height: auto !important;
+      padding: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      overflow: visible !important;
+    }
+    .print-sheet {
+      display: block;
+      color: #000;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 11pt;
+      line-height: 1.45;
+    }
+    .print-sheet .ps-brand {
+      font-family: "Courier New", monospace;
+      font-size: 9pt;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: #444;
+    }
+    .print-sheet h1 { font-size: 18pt; margin: 4pt 0 2pt; }
+    .print-sheet h2 {
+      font-size: 10pt;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin: 14pt 0 4pt;
+      padding-bottom: 2pt;
+      border-bottom: 1px solid #000;
+    }
+    .print-sheet .ps-meta, .print-sheet .ps-sub {
+      font-family: "Courier New", monospace;
+      font-size: 9pt;
+      color: #333;
+    }
+    .print-sheet .ps-row {
+      display: grid;
+      grid-template-columns: 34% 1fr;
+      gap: 8pt;
+      padding: 2pt 0;
+      border-bottom: 1px dotted #bbb;
+      break-inside: avoid;
+    }
+    .print-sheet .ps-k { color: #444; }
+    .print-sheet .ps-line { padding: 2pt 0; }
+  }
+  /* The feed's filter row. Each CONTROL stays on one line (a pill never breaks
+     mid-word); the ROW wraps. Both rows used to be `flex-wrap:nowrap !important`, and
+     FeedFilters.jsx repeated the same nowrap as an inline style on top -- three layers
+     saying the row may never wrap, in a header that hides its own scrollbar. The
+     controls now live in the cascade only, so a width rule here is the rule. */
+  .filters{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;min-width:0;flex-shrink:1}
+  .dir-filters{display:inline-flex;gap:4px;align-items:center;flex-wrap:nowrap;flex-shrink:0}
+  /* Flexes gracefully up to --searchw on wide displays and shrinks on narrower displays so all controls stay in one line */
+  .feed-search-box{display:flex;align-items:center;background:var(--d-bg-1);border:1px solid var(--d-line-2);border-radius:4px;padding:4px 10px;flex:0 1 var(--searchw);width:var(--searchw);max-width:100%;min-width:120px}
+  .feed-search-icon{font-size:11px;color:var(--d-txt-4);margin-right:4px}
+  .feed-search-box input{background:transparent;border:none;outline:none;color:var(--d-txt);font-size:11px;font-family:var(--mono);flex:1 1 auto;min-width:0}
+  .feed-search-clear{background:none;border:none;color:var(--d-txt-4);cursor:pointer;font-size:12px;padding:0 2px}
+  .feed-search-clear:hover{color:var(--d-txt)}
+  .fbtn{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--d-txt-3);border:1px solid var(--d-line);padding:4px 7px;cursor:pointer;background:transparent;transition:.12s;white-space:nowrap;flex-shrink:0}
+  /* Each direction filter carries how many cards it would show. A facet selecting zero
+     is not clickable -- on the market and technology pillars every card is 'watch', so
+     two of the four filters could never have returned anything. */
+  .fbtn .fcount{opacity:.55;font-size:9.5px}
+  .fbtn.empty{opacity:.4;cursor:not-allowed}
+  .fbtn.empty:hover{background:transparent}
+  .fbtn:hover{border-color:var(--d-line-2);color:var(--d-txt-2)}
+  .fbtn.on{color:var(--d-txt);border-color:var(--d-txt-4);background:var(--d-bg-3)}
+  /* THREAT AND WATCH WEAR THE SAME COLOURS AS THE ROWS THEY SELECT. These are the exact
+     values .dirtag uses in shell.css -- the same ink, the same 55%-alpha border -- so the
+     control and the badge on the cards it filters to are visibly one thing. Selecting a
+     filter fills it rather than changing its hue, so "which one is on" stays a matter of
+     weight and ground, not of telling two reds apart. `All` is deliberately untouched:
+     it selects no direction, so it carries no direction's colour. */
+  .fbtn[data-dirf="threat"]{color:var(--threat-badge);border-color:rgba(240,89,60,.55)}
+  .fbtn[data-dirf="threat"]:hover{border-color:rgba(240,89,60,.9)}
+  .fbtn[data-dirf="threat"].on{color:var(--threat-badge);border-color:var(--threat);background:rgba(240,89,60,.15)}
+  .fbtn[data-dirf="watch"]{color:var(--watch-badge);border-color:rgba(224,160,32,.55)}
+  .fbtn[data-dirf="watch"]:hover{border-color:rgba(224,160,32,.9)}
+  .fbtn[data-dirf="watch"].on{color:var(--watch-badge);border-color:var(--watch);background:rgba(224,160,32,.15)}
+  .fbtn[data-dirf="fav"]{color:var(--fav-badge);border-color:rgba(63,168,106,.55)}
+  .fbtn[data-dirf="fav"]:hover{border-color:rgba(63,168,106,.9)}
+  .fbtn[data-dirf="fav"].on{color:var(--fav-badge);border-color:var(--fav);background:rgba(63,168,106,.15)}
+  /* New pillar filter pills reuse the three dir hues on their meaning: Latest Tenders
+     and Adoptable Advances read as go/green, Perceived Opportunities as watch/amber,
+     Competitor Advancements as a rival/red. (market: tenders/opps · technology: rival/adopt) */
+  .fbtn[data-dirf="tenders"],.fbtn[data-dirf="adopt"]{color:var(--fav-badge);border-color:rgba(63,168,106,.55)}
+  .fbtn[data-dirf="tenders"]:hover,.fbtn[data-dirf="adopt"]:hover{border-color:rgba(63,168,106,.9)}
+  .fbtn[data-dirf="tenders"].on,.fbtn[data-dirf="adopt"].on{color:var(--fav-badge);border-color:var(--fav);background:rgba(63,168,106,.15)}
+  .fbtn[data-dirf="opps"]{color:var(--watch-badge);border-color:rgba(224,160,32,.55)}
+  .fbtn[data-dirf="opps"]:hover{border-color:rgba(224,160,32,.9)}
+  .fbtn[data-dirf="opps"].on{color:var(--watch-badge);border-color:var(--watch);background:rgba(224,160,32,.15)}
+  .fbtn[data-dirf="rival"]{color:var(--threat-badge);border-color:rgba(240,89,60,.55)}
+  .fbtn[data-dirf="rival"]:hover{border-color:rgba(240,89,60,.9)}
+  .fbtn[data-dirf="rival"].on{color:var(--threat-badge);border-color:var(--threat);background:rgba(240,89,60,.15)}
+  .seq-ctl{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+  .seq-sep{width:1px;height:18px;background:var(--d-line);margin:0 4px;flex-shrink:0}
+  .seq-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--d-txt-4);white-space:nowrap;flex-shrink:0}
+  .seq-select{font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--d-txt-2);background:transparent;border:1px solid var(--d-line);padding:4px 6px;cursor:pointer;transition:.12s;outline:none;white-space:nowrap;flex-shrink:0}
+  .seq-select:hover{border-color:var(--d-line-2);color:var(--d-txt)}
+  .seq-select option{background:#1a1a1a;color:#e8e8e8}
+  .fbtn .sw{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:1px}
+
+  /* ============ METRICS STRIP (dark) ============ */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));border-bottom:1px solid var(--d-line);background:var(--d-bg);flex-shrink:0}
+  /* min-width:0 so a tile can never be wider than its grid track: a long sub line or an
+     unbroken value would otherwise widen the tile and push its neighbours off the
+     right edge. The sub line wraps inside the tile instead. */
+  .metric{padding:11px 20px 12px;border-right:1px solid var(--d-line);display:flex;flex-direction:column;gap:5px;cursor:pointer;position:relative;transition:background .12s;min-width:0}
+  .metric:last-child{border-right:none}
+  .metric::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent;transition:background .12s}
+  .metric:hover{background:var(--d-bg-2)}
+  .metric:hover::after{background:var(--d-txt-3)}
+  /* a readout tile, not a door — see MetricsStrip's `inert` */
+  .metric.inert{cursor:default}
+  .metric.inert:hover{background:transparent}
+  .metric.inert:hover::after{background:transparent}
+  .metric.on{background:var(--d-bg-3)}
+  .metric.on::after{background:#fff}
+  .metric .ml{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--d-txt-3);display:flex;align-items:center;gap:6px}
+  .metric .ml .d{width:6px;height:6px;border-radius:50%}
+  .metric .mv{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--d-txt);line-height:1;letter-spacing:-.01em;display:flex;align-items:baseline}
+  .metric .mv .unit{font-size:11px;color:var(--d-txt-3);margin-left:5px;letter-spacing:.02em}
+  .metric .mv .delta{font-size:10px;color:var(--d-txt-3);margin-left:8px;letter-spacing:0}
+  .metric .mv .delta.up{color:var(--threat)}
+  .metric .mv .delta.down{color:var(--fav)}
+  .metric .msub{font-size:10.5px;color:var(--d-txt-3);font-family:var(--sans);display:flex;align-items:center;gap:5px;margin-top:1px;flex-wrap:wrap;min-width:0;line-height:1.35}
+  .metric .msub .arr{font-family:var(--mono);color:var(--d-txt-4);transition:color .12s,transform .12s;display:inline-block}
+  .metric:hover .msub{color:var(--d-txt-2)}
+  .metric:hover .msub .arr{color:var(--d-txt);transform:translateX(2px)}
+
+  /* ============ GLOBAL SEARCH ============ */
+  .topbar-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0 16px;
+    width: var(--searchw);
+    max-width: 100%;
+    min-width: 0;
+  }
+  .topbar-search-input-box {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    background: var(--d-bg-1);
+    border: 1px solid var(--d-line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    gap: 6px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .topbar-search-input-box:focus-within {
+    border-color: var(--d-txt-3);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+  }
+  .topbar-search-icon {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+  .topbar-search-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--d-txt);
+    font-size: 12px;
+    font-family: var(--sans);
+  }
+  .topbar-search-input::placeholder {
+    color: var(--d-txt-4);
+  }
+  .topbar-search-clear {
+    background: transparent;
+    border: none;
+    color: var(--d-txt-4);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 2px;
+  }
+  .topbar-search-clear:hover {
+    color: var(--d-txt);
+  }
+  .topbar-search-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    min-width: 420px;
+    background: var(--d-bg-2);
+    border: 1px solid var(--d-line-2);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .topbar-search-empty {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--d-txt-3);
+    text-align: center;
+  }
+  .topbar-search-section {
+    padding: 4px 0;
+  }
+  .topbar-search-section + .topbar-search-section {
+    border-top: 1px solid var(--d-line);
+  }
+  .topbar-search-section-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--d-txt-3);
+    padding: 6px 14px 4px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  /* how many matched, against how many are listed -- the popover shows a few of each */
+  .topbar-search-more {
+    color: var(--d-txt-4);
+    letter-spacing: .06em;
+    text-transform: none;
+  }
+  .topbar-search-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background .12s;
+    min-width: 0;
+  }
+  .topbar-search-item:hover {
+    background: var(--d-bg-3);
+  }
+  .topbar-search-item-badge {
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+  .topbar-search-item-badge.competitors { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+  .topbar-search-item-badge.products { background: rgba(168, 85, 247, 0.2); color: #c4b5fd; }
+  .topbar-search-item-badge.tenders { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+  .topbar-search-item-badge.signals { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+  .topbar-search-item-badge.innovations { background: rgba(236, 72, 153, 0.18); color: #f9a8d4; }
+  /* the miss names what it searched, so an empty list is a verdict and not a blank */
+  .topbar-search-scope {
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--d-txt-4);
+  }
+  .topbar-search-foot {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--d-txt-4);
+    padding: 8px 14px 4px;
+    border-top: 1px solid var(--d-line);
+  }
+  .topbar-search-item-title {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--d-txt);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* min-width:0 is what makes the ellipsis work at all -- a flex item's default
+       min-width is auto, so it refuses to shrink below its text and the row's other
+       cell wins instead. Without it a competitor whose sector reads "Autonomous
+       Weapons, Ground Combat Vehicles, Counter-Drone Systems" pushed its own NAME out
+       of the row: the hit rendered as a two-line sector with nothing to click by. */
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* the sector/issuer is context, never the label -- it yields to the name */
+  .topbar-search-item-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--d-txt-4);
+    flex: 0 1 auto;
+    max-width: 42%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+  }
+
+
+
+
+/* The overview's own account of itself: how many of how many, and why. Not helper text --
+   the count line the operator took off the header was flavour ("multi-lens", "sorted
+   threats first"); this is the difference between a shortlist and a corpus of thirty. */
+.ov-shortnote{font-family:var(--mono);font-size:11px;color:var(--d-txt-3);
+  padding:7px 16px 0;line-height:1.45}

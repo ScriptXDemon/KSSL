@@ -1,0 +1,917 @@
+/* Company Profile. The left rail reuses .mu-list / .mu-search / .pg-comp from the
+   Positioning and Partnerships views so the three read as one product; only the right
+   pane is new. */
+
+.v-profile{grid-template-columns:clamp(260px, 20vw, 340px) 1fr;height:100%;min-height:0;overflow:hidden}
+.cp-body{grid-column:2;overflow-y:auto;background:var(--d-bg);padding-bottom:40px;height:100%;min-height:0}
+
+.cp-head{padding:20px 24px 18px;border-bottom:1px solid var(--d-line);background:var(--d-bg-1)}
+.cp-name{font-size:20px;font-weight:700;color:var(--d-txt);letter-spacing:-.01em}
+.cp-ident{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;font-family:var(--mono);font-size:12px;color:var(--d-txt-3)}
+.cp-ident > span:not(:last-child)::after{content:"·";margin-left:10px;color:var(--d-txt-4)}
+.cp-threat{text-transform:uppercase;letter-spacing:.1em;font-size:12px;padding:3px 8px;border:1px solid var(--d-line-2);border-radius:3px;color:var(--d-txt-2)}
+.cp-threat.high{color:var(--threat-badge);border-color:var(--threat)}
+.cp-threat.medium{color:var(--watch-badge);border-color:var(--watch)}
+.cp-threat.low{color:var(--fav-badge);border-color:var(--fav)}
+
+.cp-sec{padding:22px 24px 24px;border-bottom:1px solid var(--d-line)}
+.cp-sec-h{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:16px}
+.cp-sec-h .eyebrow{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--d-txt);line-height:1.4;margin:0;padding:0}
+.cp-note{display:none}
+.cp-prose{font-size:13.5px;color:var(--d-read);line-height:1.65;width:100%;max-width:100%}
+
+
+.cp-chips{display:flex;flex-wrap:wrap;gap:7px}
+.cp-chip{font-size:12px;color:var(--d-txt-2);background:var(--d-bg-2);border:1px solid var(--d-line);padding:5px 10px;border-radius:3px}
+
+.cp-row{padding:11px 0;border-bottom:1px solid var(--d-line);display:flex;flex-direction:column;gap:5px}
+.cp-row:last-child{border-bottom:none}
+.cp-row-h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.cp-row-t{font-size:13px;font-weight:600;color:var(--d-txt);line-height:1.4}
+.cp-row-x{font-size:12px;color:var(--d-txt-2);line-height:1.55;max-width:82ch}
+.cp-tag{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--d-txt-3);background:var(--d-bg-2);border:1px solid var(--d-line);padding:2px 7px;white-space:nowrap}
+.cp-tag.dir-threat{color:var(--threat-badge)}
+.cp-tag.dir-watch{color:var(--watch-badge)}
+.cp-tag.dir-fav{color:var(--fav-badge)}
+
+.cp-thin{color:var(--d-txt-4)}
+.cp-empty{padding:26px 24px;font-family:var(--mono);font-size:12px;color:var(--d-txt-4);line-height:1.6}
+
+/* What the corpus does NOT hold. Deliberately styled as an absence, not a section
+   waiting to fill: no card, no border, muted throughout. */
+.cp-gap{padding:18px 24px 24px}
+.cp-gap .eyebrow{display:block;margin-bottom:11px;color:var(--d-txt-4)}
+.cp-gap-row{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:5px 0;align-items:baseline}
+.cp-gap-k{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--d-txt-4)}
+.cp-gap-v{font-size:12px;color:var(--d-txt-4);line-height:1.5}
+
+/* Harvested profile rows. Each is a link to the page it was read from, and the ❝ reveals
+   the exact sentence on hover — the same affordance the signal drawer uses, because it
+   means the same thing: this value has evidence behind it. */
+.cp-src-list{display:flex;flex-direction:column;gap:1px}
+.cp-src-row{display:grid;grid-template-columns:1fr auto auto;align-items:baseline;gap:12px;
+  padding:7px 9px;margin:0 -9px;border-radius:3px;text-decoration:none;transition:background .12s}
+.cp-src-row:hover{background:var(--d-bg-2)}
+.cp-src-v{font-size:12.5px;color:var(--d-txt);line-height:1.35;overflow-wrap:anywhere}
+.cp-src-d{font-family:var(--mono);font-size:12px;color:var(--d-txt-3);white-space:nowrap}
+.cp-src-q{font-family:var(--mono);font-size:12px;color:var(--d-txt-4);opacity:.5;
+  flex-shrink:0;transition:opacity .12s,color .12s}
+.cp-src-row:hover .cp-src-q{opacity:1;color:var(--fav-badge)}
+
+/* ============ COMPANY METADATA GRID ============ */
+.cp-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.cp-meta-card {
+  background: var(--d-bg-1);
+  border: 1px solid var(--d-line);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cp-meta-lbl {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--d-txt-3);
+  font-weight: 500;
+}
+.cp-meta-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-txt);
+  line-height: 1.35;
+}
+
+/* ============ LEADERSHIP CARDS ============ */
+.cp-leadership-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+.cp-lead-card {
+  background: var(--d-bg-1);
+  border: 1px solid var(--d-line);
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color .15s, background .15s;
+}
+.cp-lead-card:hover {
+  background: var(--d-bg-2);
+  border-color: var(--d-line-2);
+}
+.cp-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--d-bg-3);
+  border: 1px solid var(--d-line-2);
+  color: var(--d-txt);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cp-lead-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.cp-lead-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-txt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cp-lead-role {
+  font-size: 11px;
+  color: var(--d-txt-3);
+  line-height: 1.3;
+}
+
+/* ============ LIVE NEWS WINDOW ============ */
+.cp-news-window {
+  background: var(--d-bg-1);
+  border: 1px solid var(--d-line);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+.cp-news-header {
+  background: var(--d-bg-3);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--d-line);
+}
+.cp-news-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--d-txt);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cp-news-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--threat-badge);
+  /* no glow, no pulse: a dot that lights up and breathes is decoration, and the
+     threat colour already carries the meaning. */
+}
+.cp-news-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cp-news-item {
+  padding: 10px 12px;
+  background: var(--d-bg);
+  border: 1px solid var(--d-line);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color .15s;
+}
+.cp-news-item:hover {
+  border-color: var(--d-line-2);
+}
+.cp-news-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cp-news-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-txt);
+  line-height: 1.35;
+}
+
+/* ============ FACILITIES GRID ============ */
+.cp-facilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.cp-facility-card {
+  background: var(--d-bg-1);
+  border: 1px solid var(--d-line);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cp-facility-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-txt);
+}
+.cp-facility-type {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--d-txt-3);
+}
+
+/* ============ LATEST NEWS DASHBOARD (sc/image.png) ============ */
+.ln-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--d-bg);
+  color: var(--d-txt);
+  padding: 4px 0 20px;
+}
+
+.ln-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--d-line);
+  padding-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ln-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ln-red-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f0593c;
+}
+.ln-heading {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #fff;
+  text-transform: uppercase;
+}
+.ln-sub {
+  font-size: 12px;
+  color: var(--d-txt-3);
+}
+
+.ln-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ln-pill {
+  background: var(--d-bg-2);
+  border: 1px solid var(--d-line);
+  color: var(--d-txt-2);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .12s;
+}
+.ln-pill:hover {
+  background: var(--d-bg-3);
+  color: var(--d-txt);
+}
+.ln-pill.on {
+  background: #b5341f;
+  border-color: #f0593c;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* THE NEWS GRID -- ONE SHAPE, ONE HEIGHT PER ROW.
+   The old rule was `4fr 3fr 3fr` with `align-items: start`: three fixed columns whose
+   contents had no reason to be the same length, and an explicit instruction not to make
+   them so. That is what "one is stretched" was -- the featured card at 40% width ending
+   level with nothing, because the column beside it held six cards and the one beyond it
+   held two widgets.
+
+   Now every card is a cell of the same track, so the column count follows the width
+   instead of being asserted, and a row's cards are all the height of the tallest in it.
+   `dense` matters: the hero occupies two columns of two rows, and without it the cells
+   left beside it would be skipped rather than filled, which is a hole at every column
+   count. 230px is the narrowest a card can be and still hold a three-line headline. */
+.ln-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));   /* always three cards a row (owner request); one column on a phone, below */
+  grid-auto-flow: row dense;
+  gap: 14px;
+}
+
+/* THE NEWEST STORY IS BIGGER BY A WHOLE CARD, not by a different design: two columns
+   wide and two rows tall, so it reads as the lead without any of its parts -- image
+   band, headline, source line -- being drawn to a different rule than the rest. */
+.ln-top-story {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* One column below 760px, where two 230px tracks no longer fit either. The hero must
+   drop its spans here or it claims a column that does not exist. */
+@media (max-width: 760px) {
+  .ln-grid {
+    grid-template-columns: 1fr;
+  }
+  .ln-top-story {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+.ln-card {
+  background: var(--d-bg-1);
+  border: 1px solid var(--d-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* LEAD CARD */
+.ln-top-story {
+  display: flex;
+  flex-direction: column;
+}
+/* The image takes the slack. The hero is two card-rows tall whatever its headline runs
+   to, so a fixed 220px band left dead space under the text on a short headline and
+   crushed nothing on a long one; `flex: 1` spends the difference on the picture, which
+   is the part of a lead story worth the space. */
+.ln-story-img-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 200px;
+  overflow: hidden;
+  background: var(--d-bg-3);
+}
+.ln-story-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ln-top-badge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  background: #b5341f;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+.ln-story-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ln-story-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #f0593c;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ln-story-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--d-txt);
+  line-height: 1.35;
+}
+.ln-story-desc {
+  font-size: 12px;
+  color: var(--d-txt-3);
+  line-height: 1.55;
+}
+.ln-story-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--d-line);
+}
+
+/* THE CARD, AND IT IS THE ONLY CARD.
+   Reported first as "cards are not proper" and again as one card stretched beside a
+   ragged rest. Four things were making them ragged, and the first three were fixed in
+   place; the fourth needed the shape itself to change:
+
+     1. the card was the outer box AND the link, so a threaded card -- one carrying its
+        story trail -- drew its border around the trail too while an unthreaded one did
+        not. The wrapper .ln-feed-item is now the object; .ln-feed-card is one part of it.
+     2. the headline ran to any number of lines, so a 4-line headline and a 1-line one
+        produced cards of visibly different heights side by side. Clamped to three.
+     3. the source line floated directly under whatever the title happened to end on,
+        instead of sitting on the card's bottom edge. margin-top:auto pins it.
+     4. THE CARD WAS A ROW INSIDE A COLUMN. A 105x82 thumb beside its text is a list
+        item, and it was being asked to work at whatever width a 28% column happened to
+        be -- which left the headline a strip too narrow to set. A grid cell is a card,
+        so the image is a full-width band across the top and the text sits under it.
+        Every card is now the same object at the same width, and the only thing that
+        varies is how much of the three-line clamp a headline uses.
+
+   The item fills its cell (`height: 100%`) so cards in a row square off against each
+   other rather than each stopping wherever its own text ran out. */
+.ln-feed-item {
+  background: var(--d-bg-1);
+  border: 1px solid var(--d-line);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color .15s;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.ln-feed-item:hover {
+  border-color: var(--d-line-2);
+}
+.ln-feed-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.ln-feed-src {
+  font-size: 11px;
+  color: var(--d-txt-3);
+  margin-top: auto;
+  padding-top: 6px;
+}
+/* WHERE THE LINK GOES, WHEN IT IS NOT THE STORY. A caveat, not an alarm: the headline
+   and the date are real, only the url is the page the story was found on. So it takes
+   the same muted ink as the rest of the source line and earns its notice by being
+   said at all -- colouring it like an error would read as a broken card. */
+.ln-src-warn {
+  font-style: italic;
+  color: var(--d-txt-3);
+}
+/* the running story behind this card: separate links, so outside the card's own.
+   `margin-top: auto` pins it to the bottom of the item, so a card that carries a trail
+   and one that does not still line their source lines up. */
+.ln-trail {
+  margin: auto 13px 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--d-line);
+}
+.ln-trail-h {
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--d-txt-3);
+  margin-bottom: 4px;
+}
+.ln-trail-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 11px;
+  color: var(--d-txt-2);
+  padding: 3px 0;
+}
+.ln-trail-row:hover .ln-trail-title { text-decoration: underline; }
+.ln-trail-date { color: var(--d-txt-3); white-space: nowrap; font-family: var(--mono); }
+/* One line each. A card is a grid cell now, not a 28% column, so an unclamped trail of
+   three headlines could add six lines to one card and set the height of every card in
+   its row. The trail is a pointer to the earlier article, and its date and first few
+   words are enough to be that. */
+.ln-trail-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ln-trail-more { font-size: 10px; color: var(--d-txt-3); margin-top: 2px; }
+
+/* the full-record list under the feed; the whole row is the link to the publisher */
+.ln-all-row:hover { background: var(--d-bg-3) !important; }
+/* THE IMAGE BAND. One height for every card in the grid, so the headline of one card
+   starts on the same line as the headline beside it -- which is most of what makes a
+   grid of cards read as deliberate. `contain` is the house rule (Thumb.jsx): the whole
+   picture inside the band, letterboxed against the tile's own surface, never a centre
+   crop. Fixed and non-shrinking, because a flex column will otherwise squeeze the image
+   to make room for a long headline and the bands stop lining up. */
+.ln-feed-thumb {
+  width: 100%;
+  height: 185px;
+  object-fit: contain;
+  flex: 0 0 185px;
+  background: var(--d-bg-3);
+  border-bottom: 1px solid var(--d-line);
+}
+/* the no-image placeholder wears the same class, and geo.css gives it a border and a
+   radius that would draw a second box inside the card. Two classes, so this wins. */
+.ln-feed-item .thumb-none {
+  border: 0;
+  border-bottom: 1px solid var(--d-line);
+  border-radius: 0;
+  box-sizing: border-box;
+}
+/* The padding moved here from .ln-feed-card, because the image band is now full-bleed
+   across the top of the card and padding on the card would inset it. */
+.ln-feed-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  padding: 11px 13px 12px;
+}
+.ln-feed-meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: #f0593c;
+  font-weight: 600;
+}
+/* Three lines, then an ellipsis. A publisher headline runs anywhere from four words to
+   thirty, and unclamped it set the card's height -- which is what made a column of
+   cards look unaligned. The full headline is still on the page: it is the link text,
+   and the whole record below prints every one of them untruncated. */
+.ln-feed-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-txt);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ln-feed-card:hover .ln-feed-title { text-decoration: underline; }
+/* the top story's headline and standfirst, held to the same discipline */
+.ln-story-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ln-story-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ln-top-story:hover .ln-story-title { text-decoration: underline; }
+/* The hero fills its two-row cell, and the IMAGE takes the slack rather than the text
+   block -- so `flex: 0 0 auto` here, against `flex: 1` on the image wrap above. It used
+   to be the other way round, when the image was a fixed 220px band and the content had
+   to absorb whatever height was left; that left a short standfirst floating in a tall
+   empty box, which is the "stretched" card as it actually looked. */
+.ln-top-story { height: 100%; }
+.ln-story-content { flex: 0 0 auto; }
+.ln-story-foot { margin-top: auto; }
+
+/* RIGHT: ANALYTICS COLUMN */
+/* THE WAY BACK TO THE WHOLE RECORD. Full width under the grid, so it belongs to the
+   news section rather than to whichever column it happened to end. */
+.ln-readall {
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px;
+  background: var(--d-bg-2);
+  border: 1px solid var(--d-line);
+  border-radius: 6px;
+  color: var(--d-txt-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+.ln-readall:hover {
+  background: var(--d-bg-3);
+  color: var(--d-txt);
+}
+
+/* ANALYTICS, BELOW THE NEWS.
+   These were a third column of the news grid, which made two widgets responsible for a
+   third of the width the articles had to lay out in -- and gave the grid a column whose
+   height had nothing to do with any article. They are about the company, not about one
+   story, so they read across the bottom instead. */
+.ln-widget-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+  gap: 14px;
+  margin-top: 14px;
+}
+.ln-widget {
+  background: var(--d-bg-1);
+  border: 1px solid var(--d-line);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ln-widget-h {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--d-txt-2);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Trending is monochrome. The items are <a>s, so left to the browser the titles came
+   out link-blue / visited-purple and underlined, and the source tag was accent-red --
+   which read as noise. Force everything to the panel's own ink; hover is the only
+   affordance. */
+.ln-trend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--d-line);
+  color: inherit;
+  text-decoration: none;
+}
+.ln-trend-item:last-child {
+  border-bottom: none;
+}
+.ln-trend-item:hover .ln-trend-txt {
+  text-decoration: underline;
+}
+.ln-trend-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--d-txt-4);
+  width: 14px;
+}
+.ln-trend-txt {
+  flex: 1;
+  color: var(--d-txt);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ln-trend-cat {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--d-txt-3);
+}
+
+
+/* ============ HONEST-DATA PROFILE ADDITIONS ============ */
+.cp-collapse-btn{background:var(--d-bg-2);border:1px solid var(--d-line);color:var(--d-txt-2);
+  width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1;
+  display:flex;align-items:center;justify-content:center;padding:0}
+.cp-collapse-btn:hover{background:var(--d-bg-3);color:var(--d-txt)}
+.mu-rail-collapsed{grid-column:1;background:var(--d-bg-1);border-right:1px solid var(--d-line);
+  display:flex;justify-content:center;padding-top:16px}
+.cp-back-btn{background:var(--d-bg-2);border:1px solid var(--d-line);color:var(--d-txt);
+  padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:16px}
+.cp-back-btn:hover{background:var(--d-bg-3)}
+.cp-article-meta{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cp-article-title{font-size:20px;font-weight:700;color:var(--d-txt);line-height:1.35;margin:0}
+.cp-fact-row{display:grid;grid-template-columns:160px 1fr;gap:12px;padding:9px 0;
+  border-bottom:1px solid var(--d-line);font-size:13px}
+.cp-fact-row:last-child{border-bottom:none}
+.cp-fact-k{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--d-txt-3)}
+.cp-fact-v{color:var(--d-txt);font-weight:500}
+.cp-chip-btn{cursor:pointer;transition:border-color .12s,background .12s}
+.cp-chip-btn:hover{background:var(--d-bg-3);border-color:var(--fav);color:var(--d-txt)}
+.cp-lead-src{font-size:10.5px;color:var(--fav-badge);text-decoration:none;font-family:var(--mono)}
+.cp-lead-src:hover{text-decoration:underline}
+
+/* ============ PRODUCT SPECS TAB ============ */
+.prod-specs-tab{background:var(--d-bg-1);border:1px solid var(--d-line);border-radius:8px;padding:22px}
+.prod-specs-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+  border-bottom:1px solid var(--d-line);padding-bottom:16px}
+.prod-spec-table{border:1px solid var(--d-line);border-radius:6px;overflow:hidden}
+.prod-spec-row{display:grid;grid-template-columns:220px 1fr;gap:16px;padding:11px 16px;
+  border-bottom:1px solid var(--d-line);font-size:13px;align-items:center}
+.prod-spec-row:nth-child(odd){background:var(--d-bg)}
+.prod-spec-row:last-child{border-bottom:none}
+.prod-spec-k{font-family:var(--mono);font-size:12px;color:var(--d-txt-3);font-weight:600}
+.prod-spec-v{color:var(--d-txt);font-weight:600}
+
+/* ============ COMPANY DETAILS — ROW TABLE (old format) ============ */
+.cp-meta-table{display:flex;flex-direction:column;background:var(--d-bg-1);
+  border:1px solid var(--d-line);border-radius:6px;overflow:hidden;margin-bottom:18px}
+.cp-meta-trow{display:grid;grid-template-columns:200px 1fr;gap:12px;padding:11px 16px;
+  border-bottom:1px solid var(--d-line);font-size:13px;align-items:center}
+.cp-meta-trow:last-child{border-bottom:none}
+.cp-meta-tk{font-family:var(--mono);font-size:12px;color:var(--d-txt-3);font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.cp-meta-tv{color:var(--d-txt);font-weight:600}
+
+/* Global-locations value: chips for short place names, a note line for prose entries.
+   Grounded display of the served list -- no data invented, only laid out. */
+.cp-loc-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cp-loc-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  border: 1px solid var(--d-line-2);
+  border-radius: 999px;
+  background: var(--d-bg-3);
+  color: var(--d-txt);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cp-loc-note { color: var(--d-txt); font-weight: 600; font-size: 13px; line-height: 1.45; width: 100%; }
+/* Wider-reach summary line under the country chips ("Sold to 100+ countries").
+   Muted and full-width so it reads as a footnote to the chips, one shape for all. */
+.cp-loc-reach { width: 100%; margin-top: 2px; color: var(--d-txt-3); font-weight: 500; font-size: 12px; line-height: 1.5; }
+.cp-loc-reach::before { content: "↳ "; opacity: .7; }
+
+/* Products page: portfolio product cards (3 per row, clean vertical hierarchy: name at top, image below, bottom-corner view specs) */
+.product-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+@media (max-width: 1040px) {
+  .product-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 24px;
+  }
+}
+@media (max-width: 640px) {
+  .product-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+}
+
+.product-card {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+.product-card:hover,
+.product-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--fav-badge) !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  outline: none;
+}
+.product-card:hover .product-card-view-specs {
+  background: rgba(56, 189, 248, 0.18) !important;
+  border-color: var(--fav-badge) !important;
+}
+.product-card img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+
+/* ============ LEADERSHIP -> PERSON PAGE ============ */
+.cp-lead-card-link { cursor: pointer; }
+.cp-person { max-width: 980px; }
+.cp-person-back {
+  background: var(--d-bg-2); border: 1px solid var(--d-line); color: var(--d-txt-2);
+  border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.cp-person-back:hover { color: var(--d-txt); border-color: var(--d-line-2); }
+.cp-person-head { display: flex; align-items: center; gap: 22px; margin: 28px 0 30px; }
+.cp-person-avatar { width: 84px; height: 84px; font-size: 26px; }
+.cp-person-name { font-size: 40px; font-weight: 800; line-height: 1.1; margin: 0; color: var(--d-txt); letter-spacing: -.01em; }
+.cp-person-now { margin-top: 8px; font-size: 16px; color: var(--d-txt-2); font-weight: 600; }
+.cp-person-at { color: var(--d-txt-3); font-weight: 500; }
+.cp-person-sec { border-top: 1px solid var(--d-line); padding: 22px 0 8px; }
+.cp-person-h {
+  font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--d-txt-3); margin: 0 0 14px;
+}
+.cp-person-list { display: flex; flex-direction: column; gap: 10px; }
+.cp-person-row {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  background: var(--d-bg-1); border: 1px solid var(--d-line); border-radius: 6px;
+}
+.cp-person-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fav-badge); flex-shrink: 0; }
+.cp-person-row-main { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.cp-person-role { font-size: 14.5px; font-weight: 600; color: var(--d-txt); }
+.cp-person-org { font-size: 13px; color: var(--d-txt-3); }
+.cp-person-when { font-family: var(--mono); font-size: 12px; color: var(--d-txt-2); white-space: nowrap; }
+.cp-person-src { margin-top: 18px; font-size: 11.5px; color: var(--d-txt-4); }
+.cp-person-src a { color: var(--d-txt-3); }
+
+/* ============ STOCK CARD -> PRICE HISTORY PAGE ============ */
+.cp-stock-card { cursor: pointer; }
+.cp-stock-card:focus-visible { outline: none; }
+.cp-stock-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin: 28px 0 18px; }
+.cp-stock-price { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.cp-stock-now { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--d-txt); }
+.cp-up { color: #34d399; font-weight: 600; font-size: 13px; }
+.cp-down { color: #f87171; font-weight: 600; font-size: 13px; }
+.cp-stock-tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.cp-stock-tab { background: var(--d-bg-2); border: 1px solid var(--d-line); color: var(--d-txt-2); border-radius: 6px; padding: 5px 14px; font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; }
+.cp-stock-tab.on { background: var(--d-txt); color: var(--d-bg); border-color: var(--d-txt); }
+.cp-stock-hl { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--d-txt-3); }
+.cp-stock-chart-wrap { background: var(--d-bg-1); border: 1px solid var(--d-line); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.cp-stock-chart { width: 100%; height: 300px; display: block; }
+.cp-stock-axis { font-family: var(--mono); font-size: 11px; fill: var(--d-txt-3); }
+.cp-stock-note { font-size: 12.5px; color: var(--d-txt-3); margin: -4px 0 14px; line-height: 1.5; }
+.cp-stock-move { background: var(--d-bg-1); border: 1px solid var(--d-line); border-left: 3px solid #34d399; border-radius: 6px; padding: 14px 18px; scroll-margin-top: 80px; }
+.cp-stock-move.drop { border-left-color: #f87171; }
+.cp-stock-move-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+.cp-stock-badge { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.cp-stock-badge.rise { color: #34d399; background: rgba(52, 211, 153, .12); }
+.cp-stock-badge.drop { color: #f87171; background: rgba(248, 113, 113, .12); }
+.cp-stock-move-date { font-size: 13.5px; font-weight: 600; color: var(--d-txt); }
+.cp-stock-move-px { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--d-txt-2); }
+.cp-stock-news { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cp-stock-news li { display: flex; flex-direction: column; gap: 1px; font-size: 13px; }
+.cp-stock-news a { color: var(--d-txt); text-decoration: none; }
+.cp-stock-news a:hover { text-decoration: underline; }
+.cp-stock-src { font-size: 11.5px; color: var(--d-txt-3); }
+
+/* ============ NEWS ROW TAGS: sector + product category ============ */
+/* a fixed-width, left-aligned column: every row's tags start at the same x, and the sector
+   tag has one width so the category tags line up too */
+.ln-tags { display: flex; gap: 6px; justify-content: flex-start; align-self: center; white-space: nowrap; }
+.ln-tags .ln-tag[class*="sec-"] { width: 92px; text-align: center; box-sizing: border-box; }
+/* site font and site text colours: the tags read like the rest of the page, not like chips */
+.ln-tag { font-family: var(--sans, inherit); font-size: 11.5px; font-weight: 500; letter-spacing: 0; padding: 2px 9px; border-radius: 4px; border: 1px solid var(--d-line-2); line-height: 1.5; color: var(--d-txt-2); background: transparent; }
+.ln-tag[class*="sec-"] { color: var(--d-txt-2); background: transparent; border-color: var(--d-line-2); }
+/* sector tags are neutral (owner request): same greys as the category tag */
+.ln-tag.cat { color: var(--d-txt-3); }
+
+/* ============ NEWS LIST: search + date filter beside the heading ============ */
+.cp-sec-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cp-news-search { position: relative; display: flex; align-items: center; }
+.cp-news-search .si { position: absolute; left: 9px; font-size: 18px; line-height: 1; color: var(--d-txt-3); pointer-events: none; }
+.cp-news-search input {
+  width: 220px; height: 32px; padding: 0 28px 0 32px; box-sizing: border-box;
+  background: var(--d-bg-2); border: 1px solid var(--d-line); border-radius: 6px;
+  color: var(--d-txt); font-size: 12.5px; outline: none;
+}
+.cp-news-search input:focus { border-color: var(--d-line-2); }
+.cp-news-clear { position: absolute; right: 6px; background: none; border: none; color: var(--d-txt-3); font-size: 15px; cursor: pointer; line-height: 1; }
+.cp-news-range, .cp-news-dates input {
+  height: 32px; padding: 0 10px; box-sizing: border-box; background: var(--d-bg-2);
+  border: 1px solid var(--d-line); border-radius: 6px; color: var(--d-txt);
+  font-family: var(--mono); font-size: 12px; outline: none; cursor: pointer; color-scheme: dark;
+}
+.cp-news-dates { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--d-txt-3); }
+
+/* Trending Now is gone, so the Stock card is alone in its row: keep it the size it was
+   beside Trending (half the row) instead of stretching across it. */
+.ln-widget-row > .ln-widget:only-child { max-width: calc(50% - 8px); }
+/* "Company Stocks" heading above the stock card: a section break after the news cards */
+.ln-stock-h { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--d-line); margin-bottom: 0; }
+.ln-stock-h + .ln-widget-row { margin-top: 12px; }
+
+/* ============ NEWS CARDS (reference design) ============ */
+.ln-feed-band { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; padding: 16px 20px; box-sizing: border-box; background: linear-gradient(180deg, var(--d-bg-2), var(--d-bg-3)); }
+.ln-band-cat { font-family: var(--sans, inherit); font-size: 24px; font-weight: 600; color: var(--d-txt); line-height: 1.1; }
+.ln-band-date { font-family: var(--mono); font-size: 12px; color: var(--d-txt-3); }
+.ln-feed-info { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.ln-feed-excerpt { font-size: 13px; color: var(--d-txt-2); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ln-feed-foot { margin-top: auto; display: flex; justify-content: flex-end; padding-top: 8px; }
+.ln-feed-chip { font-family: var(--mono); font-size: 11px; color: var(--d-txt-2); border: 1px solid var(--d-line-2); border-radius: 4px; padding: 2px 8px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+/* leadership photo in place of the initials */
+.cp-avatar-photo { padding: 0; overflow: hidden; background: var(--d-bg-3); }
+.cp-avatar-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+
+/* A news card is one big link. Without this the browser's default link style underlined
+   (in blue) every line of text inside it; only the title underlines, and only on hover. */
+a.ln-feed-card, a.ln-feed-card:visited { text-decoration: none; color: inherit; }
+a.ln-feed-card * { text-decoration: none; }
+a.ln-feed-card:hover .ln-feed-title { text-decoration: underline; }
+
+/* staging card: red "Sector · date", a bold white headline, the publisher in grey */
+.ln-feed-info .ln-feed-title { font-size: 15px; font-weight: 700; line-height: 1.4; }
+.ln-feed-info .ln-feed-meta { font-size: 11.5px; }
+.ln-feed-info .ln-feed-src { font-size: 12.5px; }
