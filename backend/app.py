@@ -22,6 +22,10 @@ from starlette.middleware.cors import CORSMiddleware
 
 
 DSN = os.environ.get("KSSL_DSN", "").strip()
+# Review flow (db/migrations/001_staging.sql): the live backend reads ui / serving; the review
+# backend (KSSL_VIEW=review) reads the staged copies, under the same "ui" / "serving" keys.
+REVIEW = os.environ.get("KSSL_VIEW", "").strip().lower() == "review"
+SOURCE_SCHEMA = {"ui": "staging_ui", "serving": "staging"} if REVIEW else {"ui": "ui", "serving": "serving"}
 
 app = FastAPI(title="KSSL PostgreSQL Dataset API", docs_url=None, redoc_url=None)
 app.add_middleware(
@@ -63,8 +67,9 @@ def first_nonempty(row: dict[str, Any], *names: str) -> Any:
 def rows_by_id(rows: list[dict[str, Any]], *names: str) -> dict[str, dict[str, Any]]:
     result: dict[str, dict[str, Any]] = {}
     for index, row in enumerate(rows):
-        key = first_nonempty(row, *names) or f"row-{index + 1}"
-        result[str(key)] = row
+        key = first_nonempty(row, *names)
+        if key is not None:
+            result[str(key)] = row
     return result
 
 
@@ -81,28 +86,24 @@ def load_all_tables() -> dict[str, dict[str, list[dict[str, Any]]]]:
     database: dict[str, dict[str, list[dict[str, Any]]]] = {"ui": {}, "serving": {}}
     with connect() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT table_schema, table_name
-                FROM information_schema.tables
-                WHERE table_schema IN ('ui', 'serving')
-                  AND table_type = 'BASE TABLE'
-                ORDER BY table_schema, table_name
-                """
-            )
-            tables = cur.fetchall()
-            for table in tables:
-                schema = table["table_schema"]
-                name = table["table_name"]
+            for schema, source in SOURCE_SCHEMA.items():
                 cur.execute(
-                    'SELECT * FROM "{}"."{}"'.format(
-                        schema.replace('"', '""'), name.replace('"', '""')
-                    )
+                    """
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = %s AND table_type = 'BASE TABLE'
+                      AND table_name NOT IN ('fact_source', 'review_decision')
+                    ORDER BY table_name
+                    """,
+                    (source,),
                 )
-                database[schema][name] = [
-                    {key: json_value(value) for key, value in dict(row).items()}
-                    for row in cur.fetchall()
-                ]
+                for name in [r["table_name"] for r in cur.fetchall()]:
+                    cur.execute(
+                        'SELECT * FROM "{}"."{}"'.format(source, name.replace('"', '""'))
+                    )
+                    database[schema][name] = [
+                        {key: json_value(value) for key, value in dict(row).items()}
+                        for row in cur.fetchall()
+                    ]
     return database
 
 
@@ -176,7 +177,7 @@ def build_signals(database, details):
         lane = "technology" if lane.startswith("tech") else "market" if lane.startswith("market") else "competitive"
         card = {
             "id": signal_id,
-            "dir": text(row.get("classification")) or "watch",
+            "dir": text(row.get("classification")),
             "rank": text(row.get("sequence_no")),
             "title": text(row.get("title")),
             "company": text(row.get("company_id")),
@@ -289,7 +290,9 @@ def build_geo(database):
     geo = defaultdict(lambda: defaultdict(list))
     geo_comps = []
     for row in table(database, "serving", "competitive_geo_company_presence"):
-        company_id = text(first_nonempty(row, "competitor_id", "client_id")) or "KSSL"
+        company_id = text(first_nonempty(row, "competitor_id", "client_id"))
+        if not company_id:
+            continue
         loc = locations.get(text(row.get("location_id")), {})
         country = text(first_nonempty(loc, "country_name", "map_label"))
         if not country:
@@ -307,7 +310,7 @@ def build_geo(database):
                 "src": text(row.get("relationship_text")),
             })
         if company_id not in {c.get("id") for c in geo_comps}:
-            geo_comps.append({"id": company_id, "name": text(row.get("company_name")) or company_id, "isBf": row.get("company_role") == "client"})
+            geo_comps.append({"id": company_id, "name": text(row.get("company_name")), "isBf": row.get("company_role") == "client"})
     countries = sorted({country for by_country in geo.values() for country in by_country})
     return {k: {country: rows for country, rows in v.items()} for k, v in geo.items()}, geo_comps, countries
 
@@ -435,7 +438,7 @@ def build_matchups(database):
         if not mid:
             continue
         category = text(row.get("category_code"))
-        category_key = slug(category) or "uncategorised"
+        category_key = slug(category)
         categories[category_key] = category
         adv = advantages.get(mid, {"client": [], "competitor": []})
         matchups[mid] = {

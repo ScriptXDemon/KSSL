@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { fetchPulse, fetchStockHistory } from "./src/lib/pulseFetch.js";
-import { tickerFor } from "./src/lib/tickers.js";
+import { fetchTrending } from "./src/lib/pulseFetch.js";
 
 const apiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8600";
 
@@ -37,42 +36,15 @@ async function apiMiddleware(req, res, next) {
       return res.end("img fetch failed");
     }
   }
-  if (req.url && req.url.startsWith("/api/pulse/history")) {
-    try {
-      const q = new URL(req.url, "http://localhost").searchParams;
-      const cid = q.get("cid") || "";
-      const name = q.get("name") || "";
-      const range = q.get("range") || "1y";
-      const ticker = tickerFor(cid) || (cid ? `${cid.toUpperCase().slice(0, 6)}.NS` : "LT.NS");
-      let data = null;
-      try {
-        data = await fetchStockHistory({ ticker, range, name });
-      } catch (err) {
-        data = null;
-      }
-      if (!data || !data.points || !data.points.length) {
-        data = { cid, name, ticker, range, points: [], moves: [], error: "No stock history is stored for this company." };
-      }
-      res.setHeader("Content-Type", "application/json");
-      res.setHeader("Cache-Control", "public, max-age=300");
-      return res.end(JSON.stringify(data));
-    } catch (e) {
-      const q = new URL(req.url, "http://localhost").searchParams;
-      const cid = q.get("cid") || "";
-      const name = q.get("name") || "";
-      const range = q.get("range") || "1y";
-      const data = { cid, name, ticker: "", range, points: [], moves: [], error: String((e && e.message) || e) };
-      res.setHeader("Content-Type", "application/json");
-      return res.end(JSON.stringify(data));
-    }
-  }
   if (req.url && req.url.startsWith("/api/pulse")) {
     try {
       const q = new URL(req.url, "http://localhost").searchParams;
       const cid = q.get("cid") || "";
       const name = q.get("name") || "";
       const product = q.get("product") || "";
-      const data = await fetchPulse({ name, ticker: tickerFor(cid), product });
+      /* Decision: live Google News headlines stay (not from the DB, not reviewed); stock
+         is hidden, so no quote is fetched. */
+      const data = { stock: null, trending: await fetchTrending(name, product), fetchedAt: new Date().toISOString() };
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "public, max-age=300"); // 5 min
       return res.end(JSON.stringify(data));

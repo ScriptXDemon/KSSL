@@ -16,7 +16,6 @@ import Thumb from "../../components/thumb/Thumb.jsx";
    rest of the card. Both are still exported and still used by the pages that have no
    whole-row link. */
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
-import { tickerFor, notListedNote } from "../../lib/tickers";
 import { detailLine, listLine, competitorFullName } from "../../lib/companyNames";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
    persisted to localStorage, which survives the tab, the browser and the machine's
@@ -116,33 +115,6 @@ export function tenureText(from, to, now = new Date().getFullYear()) {
   return `${span} · ${n < 1 ? "under 1 yr" : `${n} yr${n === 1 ? "" : "s"}`}`;
 }
 
-function getLeaderPsychology(leader, companyName) {
-  const name = (leader.name || "").toLowerCase();
-  const cName = (companyName || "").toLowerCase();
-  if (name.includes("rajvanshi") || cName.includes("adani")) {
-    return {
-      doctrine: "Champion of end-to-end sovereign ecosystems; prioritises speed of technology absorption from tier-1 global aerospace and defence innovators into domestic manufacturing clusters.",
-      execution: "Favours high-throughput mega-complexes (e.g., South Asia's largest ammunition and missile facilities in Kanpur) over fragmented workshops to achieve sovereign economies of scale.",
-      risk: "Calculated aggressive early-mover capital allocation: commits capital to build advanced manufacturing infrastructure ahead of formal procurement cycles, positioning the group as a prime bidder for major MoD tenders.",
-      outlook: "Aligns tightly with MoD indigenisation positive lists (DAP 2020) and targets export corridors across the Middle East, Southeast Asia, and Central Asia."
-    };
-  }
-  if (name.includes("subrahmanyan") || cName.includes("larsen") || cName.includes("l&t")) {
-    return {
-      doctrine: "Engineering-first sovereign capability builder with zero tolerance for execution slippage; positions L&T as India's premier private defence contractor across naval platforms, artillery, and strategic missile launchers.",
-      execution: "Integrates precision heavy engineering with proprietary digital design systems; leverages massive internal EPC capacity to deliver complex multi-year defence programs ahead of contractual schedules.",
-      risk: "Disciplined, long-term balance sheet stewardship: balances long-gestation strategic defence capital expenditure with consistent cash generation from diversified commercial divisions.",
-      outlook: "Core advocate of strategic autonomy; champions indigenous design IP in partnership with DRDO and the Indian Navy while remaining selective about high-technology JVs with Western primes."
-    };
-  }
-  return {
-    doctrine: `Focuses on developing core sovereign engineering IP and rapid vertical integration to support indigenous modernization mandates at ${companyName}.`,
-    execution: "Emphasizes modular platform architecture, stringent quality assurance, and digitalized manufacturing workflows to compress delivery lead times.",
-    risk: "Prudent risk appetite balanced by strategic capital reinvestment into specialized test facilities, precision tooling, and domestic supply-chain resilience.",
-    outlook: "Actively aligns organizational capabilities with tri-services long-term acquisition plans and export opportunities in friendly foreign countries."
-  };
-}
-
 function LeaderPage({ leader, companyName, companyArticles, onBack }) {
   const exp = leader.experience || [];
   const edu = leader.education || [];
@@ -159,7 +131,6 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
     return (companyArticles || []).slice(0, 4);
   }, [leader, companyArticles]);
 
-  const psych = useMemo(() => getLeaderPsychology(leader, companyName), [leader, companyName]);
 
   return (
     <div className="cp-person">
@@ -253,43 +224,8 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
         )}
       </section>
 
-      <section className="cp-person-sec">
-        <h2 className="cp-person-h">Psychology & Strategic Thinking</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px", marginTop: "10px" }}>
-          <div style={{ background: "var(--d-bg-1)", border: "1px solid var(--d-line)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", color: "#f0593c", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: "6px" }}>
-              Strategic Doctrine
-            </div>
-            <div style={{ fontSize: "13px", lineHeight: "1.55", color: "var(--d-txt)" }}>
-              {psych.doctrine}
-            </div>
-          </div>
-          <div style={{ background: "var(--d-bg-1)", border: "1px solid var(--d-line)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", color: "#34d399", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: "6px" }}>
-              Execution & Scale Philosophy
-            </div>
-            <div style={{ fontSize: "13px", lineHeight: "1.55", color: "var(--d-txt)" }}>
-              {psych.execution}
-            </div>
-          </div>
-          <div style={{ background: "var(--d-bg-1)", border: "1px solid var(--d-line)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", color: "#60a5fa", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: "6px" }}>
-              Risk Profile & Capital Allocation
-            </div>
-            <div style={{ fontSize: "13px", lineHeight: "1.55", color: "var(--d-txt)" }}>
-              {psych.risk}
-            </div>
-          </div>
-          <div style={{ background: "var(--d-bg-1)", border: "1px solid var(--d-line)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", color: "#fbbf24", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: "6px" }}>
-              Geopolitical & Indigenisation Outlook
-            </div>
-            <div style={{ fontSize: "13px", lineHeight: "1.55", color: "var(--d-txt)" }}>
-              {psych.outlook}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* "Psychology & Strategic Thinking" removed: it was text written in code about named
+          people, with no table behind it. Add a column (e.g. on competitive_leader) if wanted. */}
 
       {leader.source || leader.bioSource || leader.photoSource ? (
         <div className="cp-person-src" style={{ marginTop: "24px" }}>
@@ -481,13 +417,12 @@ export default function Profile() {
   const [newsFilter, setNewsFilter] = useState("All");
   // the Leadership card opened as a full page in the right column (leader object), or null
   const [selectedLeader, setSelectedLeader] = useState(null);
-  const [stockOpen, setStockOpen] = useState(false);
-  useEffect(() => { setSelectedLeader(null); setStockOpen(false); }, [cid]);
+  useEffect(() => { setSelectedLeader(null); }, [cid]);
   // opening or closing a person starts that page at its top
   useEffect(() => {
     let el = document.querySelector(".v-profile .cp-body");
     while (el) { el.scrollTop = 0; el = el.parentElement; }
-  }, [selectedLeader, stockOpen]);
+  }, [selectedLeader]);
   /* How far back counts as current. The reader's choice, not a constant -- see
      lib/news.NEWS_WINDOWS. The 15-card cap below is the panel's and is not. */
   const [newsWindow, setNewsWindow] = useState(NEWS_WINDOW_DEFAULT);
@@ -890,8 +825,6 @@ export default function Profile() {
       <div className="cp-body" style={{ padding: "24px" }}>
         {!p ? (
           <div className="cp-empty">select a competitor</div>
-        ) : stockOpen ? (
-          <StockPage cid={p.cid} companyName={displayName} onBack={() => setStockOpen(false)} />
         ) : selectedLeader ? (
           <LeaderPage
             leader={selectedLeader}
@@ -1178,61 +1111,7 @@ export default function Profile() {
               )}
             </Sec>
 
-            {/* 6. COMPANY STOCKS */}
-            <Sec title="Company Stocks">
-              <div className="ln-widget-row" style={{ marginTop: "4px" }}>
-                {(() => {
-                  const ticker = tickerFor(p.cid) || (p.cid === "larsen-toubro" ? "LT.NS" : `${p.cid.toUpperCase().slice(0, 6)}.NS`);
-                  const st = (pulse && pulse.stock) || {
-                    symbol: ticker,
-                    price: p.cid === "adani-defence" ? 3140.50 : 3692.50,
-                    currency: "INR",
-                    changePct: p.cid === "adani-defence" ? 2.84 : -1.80,
-                    change: p.cid === "adani-defence" ? 86.80 : -67.50,
-                    exchange: "NSE",
-                    asOf: new Date().toISOString(),
-                    series: p.cid === "adani-defence"
-                      ? [3050, 3070, 3090, 3080, 3110, 3120, 3105, 3130, 3140.5]
-                      : [3780, 3760, 3740, 3720, 3750, 3730, 3710, 3690, 3705, 3692.5]
-                  };
-                  const open = () => { setSelectedLeader(null); setStockOpen(true); };
-                  return (
-                    <div
-                      className="ln-widget cp-stock-card"
-                      role="button"
-                      tabIndex={0}
-                      title="Open the price history"
-                      onClick={open}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}
-                      style={{ cursor: "pointer", transition: "border-color 0.15s ease", border: "1px solid var(--d-line)" }}
-                    >
-                      <div className="ln-widget-h">
-                        <span className="eyebrow">STOCK · {ticker}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "26px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                          {st.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                        </span>
-                        <span style={{ fontSize: "12px", color: "var(--d-txt-2)" }}>{st.currency}</span>
-                        {typeof st.changePct === "number" ? (
-                          <span style={{ fontSize: "12px", fontVariantNumeric: "tabular-nums",
-                            color: st.changePct >= 0 ? "var(--d-up, #34d399)" : "var(--d-down, #f87171)" }}>
-                            {st.changePct >= 0 ? "+" : ""}{st.changePct}%{typeof st.change === "number" ? ` (${st.change >= 0 ? "+" : ""}${st.change.toFixed(2)})` : ""}
-                          </span>
-                        ) : null}
-                      </div>
-                      {st.series && st.series.length > 1 ? (
-                        <Spark series={st.series} up={(st.changePct || 0) >= 0} />
-                      ) : null}
-                      <div style={{ fontSize: "11px", color: "var(--d-txt-2)", marginTop: "4px" }}>
-                        {st.exchange || "NSE"} · {st.asOf ? new Date(st.asOf).toLocaleDateString() : "1/10/2026"} · Yahoo Finance
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </Sec>
-
+            {/* Company stock: removed by decision (stock is hidden; no live quotes). */}
             {/* 7. NEWS (LIST / TABULAR FORMAT) */}
             <Sec
               title="News"
@@ -1349,204 +1228,5 @@ export default function Profile() {
         )}
       </div>
     </div>
-  );
-}
-
-
-/* THE STOCK CARD'S PAGE. Opened from the Stock card; replaces the profile in the right
-   column. Prices are Yahoo's closes (via /api/pulse/history). Each large move lists the
-   headlines Google News dates to within 3 days of it -- shown as what was in the news
-   then, NOT as the cause: nothing here can establish why a price moved. */
-const STOCK_RANGES = [["1mo", "1M"], ["6mo", "6M"], ["1y", "1Y"], ["5y", "5Y"]];
-const fmtMoney = (v, cur) => {
-  if (typeof v !== "number") return "—";
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: cur || "USD", maximumFractionDigits: 2 }).format(v);
-  } catch (e) {
-    return v.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  }
-};
-const fmtDay = (iso) => {
-  const d = new Date(iso);
-  return isNaN(d) ? iso : d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
-};
-
-function PriceChart({ points, moves, currency }) {
-  const W = 900, H = 300, PL = 88, PR = 16, PT = 16, PB = 30;
-  const n = points.length;
-  if (n < 2) return null;
-  const vals = points.map((p) => p.c);
-  const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
-  const X = (i) => PL + (i / (n - 1)) * (W - PL - PR);
-  const Y = (v) => PT + (1 - (v - min) / span) * (H - PT - PB);
-  const line = points.map((p, i) => `${X(i).toFixed(1)},${Y(p.c).toFixed(1)}`).join(" ");
-  const up = vals[n - 1] >= vals[0];
-  const col = up ? "#34d399" : "#f87171";
-  const idx = {};
-  points.forEach((p, i) => { idx[p.t] = i; });
-  const ticks = [0, 0.5, 1].map((f) => min + f * span);
-  const xl = [0, Math.floor((n - 1) / 2), n - 1];
-  return (
-    <svg className="cp-stock-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Price history">
-      <defs>
-        <linearGradient id="cpStockFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={col} stopOpacity="0.28" />
-          <stop offset="100%" stopColor={col} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {ticks.map((v, i) => (
-        <g key={i}>
-          <line x1={PL} x2={W - PR} y1={Y(v)} y2={Y(v)} stroke="var(--d-line)" strokeDasharray="3 5" />
-          <text x={PL - 8} y={Y(v) + 4} textAnchor="end" className="cp-stock-axis">{fmtMoney(v, currency)}</text>
-        </g>
-      ))}
-      {xl.map((i) => (
-        <text key={i} x={X(i)} y={H - 8} textAnchor={i === 0 ? "start" : i === n - 1 ? "end" : "middle"} className="cp-stock-axis">
-          {fmtDay(points[i].t)}
-        </text>
-      ))}
-      <polygon points={`${X(0)},${H - PB} ${line} ${X(n - 1)},${H - PB}`} fill="url(#cpStockFill)" />
-      <polyline points={line} fill="none" stroke={col} strokeWidth="2" strokeLinejoin="round" />
-      {(moves || []).map((m, k) => {
-        const i = idx[m.date];
-        if (i == null) return null;
-        const x = X(i), y = Y(points[i].c), drop = m.dir === "drop";
-        return (
-          <a key={k} href={`#move-${m.date}`} onClick={(e) => { e.preventDefault(); const el = document.getElementById(`move-${m.date}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }}>
-            <title>{`${fmtDay(m.date)}: ${m.pct > 0 ? "+" : ""}${m.pct}%`}</title>
-            <path d={drop ? `M${x - 6},${y + 8} L${x + 6},${y + 8} L${x},${y + 18} Z` : `M${x - 6},${y - 8} L${x + 6},${y - 8} L${x},${y - 18} Z`}
-                  fill={drop ? "#f87171" : "#34d399"} />
-            <circle cx={x} cy={y} r="3.5" fill={drop ? "#f87171" : "#34d399"} />
-          </a>
-        );
-      })}
-    </svg>
-  );
-}
-
-function StockPage({ cid, companyName, onBack }) {
-  const [range, setRange] = useState("1y");
-  const [hist, setHist] = useState({ loading: true });
-  useEffect(() => {
-    let on = true;
-    setHist({ loading: true });
-    fetch(`/api/pulse/history?cid=${encodeURIComponent(cid)}&name=${encodeURIComponent(companyName || "")}&range=${range}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!on) return;
-        if (d && d.points && d.points.length) {
-          setHist({ data: d });
-        } else {
-          setHist({ data: null });
-        }
-      })
-      .catch(() => {
-        if (on) {
-          setHist({ data: null });
-        }
-      });
-    return () => { on = false; };
-  }, [cid, companyName, range]);
-  const h = hist.data || null;
-  return (
-    <div className="cp-person cp-stock">
-      <button type="button" className="cp-person-back" onClick={onBack}>← Back to {companyName}</button>
-      <div className="cp-stock-head">
-        <div>
-          <h1 className="cp-person-name">{companyName} · Stock</h1>
-          <div className="cp-person-now">
-            {h ? `${h.symbol}${h.exchange ? ` · ${h.exchange}` : " · NSE"}` : tickerFor(cid) || ""}
-            <span className="cp-person-at"> · Yahoo Finance</span>
-          </div>
-        </div>
-        {h ? (
-          <div className="cp-stock-price">
-            <span className="cp-stock-now">{fmtMoney(h.price, h.currency)}</span>
-            {typeof h.rangeChangePct === "number" ? (
-              <span className={h.rangeChangePct >= 0 ? "cp-up" : "cp-down"}>
-                {h.rangeChangePct >= 0 ? "+" : ""}{h.rangeChangePct}% over {STOCK_RANGES.find((r) => r[0] === h.range || r[1] === h.range)?.[1] || h.range}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="cp-stock-tabs">
-        {STOCK_RANGES.map(([k, l]) => (
-          <button
-            key={k}
-            type="button"
-            className={`cp-stock-tab${(range === k || range.toUpperCase() === l) ? " on" : ""}`}
-            onClick={() => setRange(k)}
-          >
-            {l}
-          </button>
-        ))}
-        {h ? (
-          <span className="cp-stock-hl">High {fmtMoney(h.high, h.currency)} · Low {fmtMoney(h.low, h.currency)}</span>
-        ) : null}
-      </div>
-
-      {hist.loading ? (
-        <div className="cp-thin" style={{ padding: "40px 0" }}>Loading price history and the news around each move…</div>
-      ) : !h ? (
-        <div className="cp-thin" style={{ padding: "40px 0" }}>Price history unavailable right now.</div>
-      ) : (
-        <>
-          <div className="cp-stock-chart-wrap">
-            <PriceChart points={h.points} moves={h.moves} currency={h.currency} />
-          </div>
-
-          <section className="cp-person-sec">
-            <h2 className="cp-person-h">Biggest moves · {h.moves.length}</h2>
-            <p className="cp-stock-note">
-              Days the price moved unusually far for this stock. Under each: headlines published within 3 days of it
-              (Google News) &mdash; what was in the news at the time, <b>not a confirmed cause</b>.
-            </p>
-            {h.moves.length ? (
-              <div className="cp-person-list">
-                {h.moves.map((m) => (
-                  <div className={`cp-stock-move ${m.dir}`} id={`move-${m.date}`} key={m.date}>
-                    <div className="cp-stock-move-top">
-                      <span className={`cp-stock-badge ${m.dir}`}>{m.dir === "drop" ? "▼ Drop" : "▲ Rise"} {m.pct > 0 ? "+" : ""}{m.pct}%</span>
-                      <span className="cp-stock-move-date">{fmtDay(m.date)}</span>
-                      <span className="cp-stock-move-px">{fmtMoney(m.from, h.currency)} → {fmtMoney(m.to, h.currency)}</span>
-                    </div>
-                    {m.news && m.news.length ? (
-                      <ul className="cp-stock-news">
-                        {m.news.map((a, j) => (
-                          <li key={j}>
-                            <a href={a.url} target="_blank" rel="noopener noreferrer">{a.title}</a>
-                            <span className="cp-stock-src">{a.source || ""}{a.date ? ` · ${fmtDay(a.date)}` : ""}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className="cp-thin" style={{ fontSize: "12px" }}>No headline found around this date.</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="cp-thin">No unusually large move in this range.</div>
-            )}
-          </section>
-        </>
-      )}
-    </div>
-  );
-}
-
-/* Tiny inline sparkline for the live stock widget -- last ~22 closes, no library. */
-function Spark({ series, up }) {
-  const w = 132, h = 30, n = series.length;
-  const min = Math.min(...series), max = Math.max(...series), span = max - min || 1;
-  const pts = series.map((v, i) => `${(i / (n - 1)) * w},${h - ((v - min) / span) * (h - 4) - 2}`).join(" ");
-  const col = up ? "var(--d-up, #34d399)" : "var(--d-down, #f87171)";
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: "block", marginTop: "6px" }}
-         role="img" aria-label="30-day price trend" preserveAspectRatio="none">
-      <polyline points={pts} fill="none" stroke={col} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
   );
 }
