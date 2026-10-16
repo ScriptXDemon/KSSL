@@ -625,9 +625,9 @@ export function metricsFor(cfg, pillar, d) {
 /* metric tile -> which signals it opens. `tags` is a space-separated string on
    each card. */
 export const TILE_LABELS = {
-  atstake: "contested bids, by value",
-  threat: "threats to active bids",
-  fav: "openings to press",
+  atstake: "at-stake items",
+  threat: "threat-marked items",
+  fav: "favourable-marked items",
   /* the Watch tile's `act` is "watch"; without this the count line ended in a bare
      " · " -- "13 of 26 signals ·" */
   watch: "watch signals",
@@ -639,11 +639,11 @@ export const TILE_LABELS = {
   opps: "perceived opportunities",
   rival: "competitor advancements",
   adopt: "adoptable advances",
-  geo: "markets in play",
-  positioning: "rating-matched rivals",
-  gap: "capability gaps",
-  patents: "patent activity",
-  emission: "emission compliance",
+  geo: "markets",
+  positioning: "rival matchups",
+  gap: "gap comparisons",
+  patents: "patent filings",
+  emission: "emission items",
   all: "all signals",
 };
 
