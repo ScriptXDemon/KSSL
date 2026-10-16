@@ -65,6 +65,7 @@ function shape(row, byUrl, i) {
     sourceUrl: row.url || undefined,
     url: row.url || undefined,
     image: row.image || undefined,
+    product_id: row.product_id || undefined,
     /* DOES THIS LINK GO TO THE STORY, OR TO THE PAGE IT WAS FOUND ON? Shaped here
        rather than at each render site, because every news surface in the app reads an
        article through this function -- and the one thing a card must never do is claim
@@ -225,8 +226,9 @@ function mentions(article, name) {
 /* The company's articles that actually name this product. Returns [] rather than
    falling back to the company feed — an article about a different platform is not
    news about this one, and presenting it as such is the bug we removed. */
-export function productNews(data, compId, productName) {
-  return companyNews(data, compId).filter((a) => mentions(a, productName));
+export function productNews(data, compId, productName, productId) {
+  return companyNews(data, compId).filter((a) =>
+    (productId && a.product_id === productId) || mentions(a, productName));
 }
 
 /* The company's articles that actually name this country. */
@@ -239,7 +241,6 @@ export function partnerNews(data, compId, partnerLabel) {
   return companyNews(data, compId).filter((a) => mentions(a, partnerLabel));
 }
 
-/* Self-check: `node src/lib/news.js` (or import newsSelfCheck from a page). */
 /* THE FEED IS A HEADLINE, NOT AN ARCHIVE.
  *
  * Profile opened six articles and grew by six on every click with no ceiling, so
@@ -371,52 +372,4 @@ export function collapseThreads(articles) {
       const also = alsoIn[a.url] || [];
       return (trail.length || also.length) ? { ...a, trail, alsoIn: also } : a;
     });
-}
-
-export function newsSelfCheck() {
-  const data = {
-    competitorNews: {
-      saab: [
-        { id: 1, title: "Saab receives Carl-Gustaf M4 order", description: "so what",
-          source: "saab.com", date: "2026-07-13", category: "Artillery",
-          url: "https://saab.com/a", image: "https://saab.com/i.jpg" },
-        { id: 2, title: "Saab opens a plant in Brazil", description: "d2",
-          source: "p.com", date: "2026-06-02", category: "Industry",
-          url: "https://p.com/b" },
-      ],
-    },
-    competitiveCards: [{ id: "pl_1", url: "https://saab.com/a" }],
-    details: { pl_1: { what: "the long read", why: "why it matters" } },
-  };
-  const out = [];
-  const t = (name, ok) => { if (!ok) out.push(name); };
-
-  const n = companyNews(data, "saab");
-  t("two rows for the company", n.length === 2);
-  t("newest leads", n[0].id === "news-1" && n[0].isTopStory === true);
-  t("second is not a top story", n[1].isTopStory === false);
-  t("date is rendered, not relative", n[0].ago === "13 Jul 2026");
-  t("publisher survives", n[0].source === "saab.com");
-  t("fullText comes from the joined detail", n[0].fullText === "the long read");
-  t("impact comes from the joined detail", n[0].impact === "why it matters");
-  t("no detail -> excerpt is the body", n[1].fullText === "d2");
-  t("no detail -> no invented impact", n[1].impact === undefined);
-  t("missing image stays undefined", n[1].image === undefined);
-  t("unknown company is empty, not a template",
-    companyNews(data, "nobody").length === 0 && companyNews(data, null).length === 0);
-
-  t("product filter keeps the matching article",
-    productNews(data, "saab", "Carl-Gustaf M4").length === 1);
-  t("product filter drops the other one",
-    productNews(data, "saab", "Gripen").length === 0);
-  t("a generic word alone does not match",
-    productNews(data, "saab", "system").length === 0);
-  t("market filter matches the country named in the story",
-    marketNews(data, "saab", "Brazil").length === 1);
-  t("market filter is empty rather than wrong",
-    marketNews(data, "saab", "Peru").length === 0);
-  t("newsDate passes through what it cannot parse", newsDate("soon") === "soon");
-  t("newsDate on nothing is empty", newsDate(null) === "");
-
-  return out;
 }

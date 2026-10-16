@@ -336,7 +336,7 @@ export default function GlobalRequirement() {
               <div className="tp-asmt-sec">
                 <span className="eyebrow">{clientName} Platform Match</span>
                 <div className="tp-fit-verdict" style={{ textTransform: "capitalize" }}>
-                  {selectedReq.ksslFit || "Strong"} Fit · {selectedReq.ksslModel || "Indigenous Defense Portfolio"}
+                  {[selectedReq.ksslFit, selectedReq.ksslModel].filter(Boolean).join(" Fit · ")}
                 </div>
               </div>
 

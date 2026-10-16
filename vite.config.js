@@ -1,7 +1,5 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { fetchPulse, fetchStockHistory } from "./src/lib/pulseFetch.js";
-import { tickerFor } from "./src/lib/tickers.js";
 
 const apiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8600";
 
@@ -9,9 +7,8 @@ const apiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8600";
    the production build fetches /api relative to its own origin, so any static
    server that also routes /api to the backend serves it unchanged. */
 
-/* Serve only the live company-pulse endpoint from the dev and preview servers. The
-   dataset always comes from the PostgreSQL-backed API; a checked-in snapshot would
-   make an empty database look populated. */
+/* The dataset always comes from the PostgreSQL-backed API; a checked-in snapshot or
+   external enrichment endpoint would make an empty database look populated. */
 async function apiMiddleware(req, res, next) {
   if (req.url && req.url.startsWith("/api/img")) {
     /* Image proxy: many publishers block hotlinking (Referer/UA checks), so an
@@ -35,51 +32,6 @@ async function apiMiddleware(req, res, next) {
     } catch (e) {
       res.statusCode = 404;
       return res.end("img fetch failed");
-    }
-  }
-  if (req.url && req.url.startsWith("/api/pulse/history")) {
-    try {
-      const q = new URL(req.url, "http://localhost").searchParams;
-      const cid = q.get("cid") || "";
-      const name = q.get("name") || "";
-      const range = q.get("range") || "1y";
-      const ticker = tickerFor(cid) || (cid ? `${cid.toUpperCase().slice(0, 6)}.NS` : "LT.NS");
-      let data = null;
-      try {
-        data = await fetchStockHistory({ ticker, range, name });
-      } catch (err) {
-        data = null;
-      }
-      if (!data || !data.points || !data.points.length) {
-        data = { cid, name, ticker, range, points: [], moves: [], error: "No stock history is stored for this company." };
-      }
-      res.setHeader("Content-Type", "application/json");
-      res.setHeader("Cache-Control", "public, max-age=300");
-      return res.end(JSON.stringify(data));
-    } catch (e) {
-      const q = new URL(req.url, "http://localhost").searchParams;
-      const cid = q.get("cid") || "";
-      const name = q.get("name") || "";
-      const range = q.get("range") || "1y";
-      const data = { cid, name, ticker: "", range, points: [], moves: [], error: String((e && e.message) || e) };
-      res.setHeader("Content-Type", "application/json");
-      return res.end(JSON.stringify(data));
-    }
-  }
-  if (req.url && req.url.startsWith("/api/pulse")) {
-    try {
-      const q = new URL(req.url, "http://localhost").searchParams;
-      const cid = q.get("cid") || "";
-      const name = q.get("name") || "";
-      const product = q.get("product") || "";
-      const data = await fetchPulse({ name, ticker: tickerFor(cid), product });
-      res.setHeader("Content-Type", "application/json");
-      res.setHeader("Cache-Control", "public, max-age=300"); // 5 min
-      return res.end(JSON.stringify(data));
-    } catch (e) {
-      res.statusCode = 200; // never break the page on a data-source hiccup
-      res.setHeader("Content-Type", "application/json");
-      return res.end(JSON.stringify({ stock: null, trending: [], error: String((e && e.message) || e) }));
     }
   }
   return next();

@@ -52,6 +52,15 @@ def text(value: Any) -> str:
     return "" if value is None else str(value)
 
 
+def number(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def first_nonempty(row: dict[str, Any], *names: str) -> Any:
     for name in names:
         value = row.get(name)
@@ -255,6 +264,98 @@ def build_products(database):
             "source_url": "",
         }))
     return products_by_company, client_products
+
+
+def build_stocks(database):
+    """Build stock quote and history records from serving stock tables only."""
+    result = {}
+    stock_to_company = {}
+    for row in table(database, "serving", "competitive_stock_quote"):
+        competitor_id = text(row.get("competitor_id"))
+        stock_id = text(row.get("stock_id"))
+        if not competitor_id or not stock_id:
+            continue
+        stock_to_company[stock_id] = competitor_id
+        result[competitor_id] = {
+            "quote": {
+                "symbol": text(row.get("ticker")),
+                "price": number(row.get("latest_price")),
+                "currency": text(row.get("currency")),
+                "exchange": text(row.get("exchange")),
+                "asOf": text(row.get("quote_timestamp")),
+                "availabilityState": text(row.get("availability_state")),
+                "emptyMessage": text(row.get("empty_message")),
+            },
+            "ranges": {},
+        }
+
+    grouped = defaultdict(list)
+    for row in table(database, "serving", "competitive_stock_series"):
+        stock_id = text(row.get("stock_id"))
+        if stock_id and stock_id in stock_to_company:
+            grouped[(stock_id, text(row.get("range_key")))].append(row)
+
+    for (stock_id, range_key), rows in grouped.items():
+        competitor_id = stock_to_company[stock_id]
+        rows = sorted(rows, key=lambda item: text(item.get("period_end")))
+        points = []
+        moves = []
+        for index, row in enumerate(rows):
+            close = number(row.get("close_price"))
+            date_value = text(row.get("period_end"))
+            if close is not None and date_value:
+                points.append({"t": date_value, "c": close, "v": row.get("volume")})
+            direction = text(row.get("move_direction"))
+            move_percent = number(row.get("move_percent"))
+            if direction and move_percent is not None and close is not None:
+                previous = number(rows[index - 1].get("close_price")) if index else None
+                moves.append({
+                    "date": date_value,
+                    "dir": direction,
+                    "pct": move_percent,
+                    "from": previous,
+                    "to": close,
+                    "newsArticleId": text(row.get("move_news_article_id")),
+                })
+        if not points:
+            continue
+        result[competitor_id]["ranges"][range_key] = {
+            "range": range_key,
+            "label": text(rows[0].get("range_label")),
+            "value": text(rows[0].get("range_value")),
+            "points": points,
+            "moves": moves,
+            "high": max(point["c"] for point in points),
+            "low": min(point["c"] for point in points),
+            "rangeChangePct": ((points[-1]["c"] - points[0]["c"]) / points[0]["c"] * 100)
+            if points[0]["c"]
+            else None,
+        }
+    return result
+
+
+def build_competitor_news(database):
+    product_companies = {
+        text(row.get("product_id")): text(row.get("competitor_id"))
+        for row in table(database, "serving", "competitive_product")
+        if row.get("product_id") and row.get("competitor_id")
+    }
+    news = defaultdict(list)
+    for row in table(database, "serving", "competitive_product_news"):
+        product_id = text(row.get("product_id"))
+        company_id = product_companies.get(product_id)
+        if not company_id:
+            continue
+        news[company_id].append({
+            "id": text(first_nonempty(row, "product_news_id", "matchup_id")),
+            "title": text(row.get("headline")),
+            "source": text(row.get("publisher")),
+            "date": text(row.get("published_date")),
+            "category": text(row.get("category")),
+            "url": text(row.get("article_url")),
+            "product_id": product_id,
+        })
+    return dict(news)
 
 
 def build_signals(database, details):
@@ -559,6 +660,7 @@ def build_dataset(database):
 
     competitors, comp_order = build_competitors(database)
     products_by_company, client_products = build_products(database)
+    stocks = build_stocks(database)
     for company_id, products in products_by_company.items():
         if company_id in competitors:
             competitors[company_id]["products"] = products
@@ -617,7 +719,7 @@ def build_dataset(database):
         "geoComps": geo_comps,
         "competitors": competitors,
         "compOrder": comp_order,
-        "competitorNews": {},
+        "competitorNews": build_competitor_news(database),
         "competitiveCards": lanes["competitive"],
         "marketCards": lanes["market"],
         "techCards": lanes["technology"],
@@ -640,6 +742,7 @@ def build_dataset(database):
         "projects": projects,
         "projectsConfig": projects_config,
         "competitorMoment": build_competitor_moment(database),
+        "stocks": stocks,
     }
 
 

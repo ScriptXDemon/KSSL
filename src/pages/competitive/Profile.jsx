@@ -16,7 +16,6 @@ import Thumb from "../../components/thumb/Thumb.jsx";
    rest of the card. Both are still exported and still used by the pages that have no
    whole-row link. */
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
-import { tickerFor, notListedNote } from "../../lib/tickers";
 import { detailLine, listLine, competitorFullName } from "../../lib/companyNames";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
    persisted to localStorage, which survives the tab, the browser and the machine's
@@ -460,22 +459,6 @@ export default function Profile() {
   const p = useMemo(() => (cid ? buildProfile(data, cid) : null), [data, cid]);
   const displayName = p ? competitorFullName(p.cid, p.name) : "";
 
-  /* LIVE company pulse -- trending headlines (Google News) and a stock quote (Yahoo),
-     fetched server-side via /api/pulse. Same-origin, so no CSP issue; null-safe so a
-     dead feed never breaks the page. */
-  const [pulse, setPulse] = useState(null);
-  useEffect(() => {
-    if (!p || !p.cid) { setPulse(null); return; }
-    let cancelled = false;
-    setPulse({ loading: true });
-    fetch(`/api/pulse?cid=${encodeURIComponent(p.cid)}&name=${encodeURIComponent(p.name || "")}`)
-      .then((r) => r.json())
-      .then((j) => { if (!cancelled) setPulse(j || {}); })
-      .catch(() => { if (!cancelled) setPulse({ stock: null, trending: [] }); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p && p.cid]);
-
   useEffect(() => {
     if (!p) return;
     setScope("profile", { company: p.name, cid: p.cid }, {
@@ -513,7 +496,7 @@ export default function Profile() {
     return p.leadership.map((r) => ({
       name: r.value,
       fullName: r.full_name || r.value,
-      role: r.detail || "Key Executive / Officer",
+      role: r.detail || "",
       source: r.url,
       photo: r.photo || null,
       photoSource: r.photo_source || null,
@@ -530,9 +513,9 @@ export default function Profile() {
       : ((data.competitors && data.competitors[p.cid] && data.competitors[p.cid].support_leadership) || []);
     if (!list.length) return [];
     return list.map((r) => ({
-      name: r.name || r.value || "Supporting Executive",
-      fullName: r.fullName || r.full_name || r.name || r.value || "Supporting Executive",
-      role: r.role || r.detail || "Executive Officer",
+      name: r.name || r.value || "",
+      fullName: r.fullName || r.full_name || r.name || r.value || "",
+      role: r.role || r.detail || "",
       source: r.url || null,
       photo: r.photo || null,
       photoSource: r.photo_source || null,
@@ -824,7 +807,7 @@ export default function Profile() {
         {!p ? (
           <div className="cp-empty">select a competitor</div>
         ) : stockOpen ? (
-          <StockPage cid={p.cid} companyName={displayName} onBack={() => setStockOpen(false)} />
+          <StockPage stockRecord={data.stocks && data.stocks[p.cid]} companyName={displayName} onBack={() => setStockOpen(false)} />
         ) : selectedLeader ? (
           <LeaderPage
             leader={selectedLeader}
@@ -1095,7 +1078,7 @@ export default function Profile() {
                               <Thumb src={imgUrl} alt="" className="ln-feed-thumb" />
                               <div className="ln-feed-info">
                                 <div className="ln-feed-meta">
-                                  {item.category || "Defence"} · {item.ago || (item.date ? String(item.date).slice(0, 10) : "")}
+                                  {item.category || ""} · {item.ago || (item.date ? String(item.date).slice(0, 10) : "")}
                                 </div>
                                 <div className="ln-feed-title">{item.title}</div>
                                 <span className="ln-feed-src">{item.source || "Unattributed"}</span>
@@ -1114,19 +1097,14 @@ export default function Profile() {
             <Sec title="Company Stocks">
               <div className="ln-widget-row" style={{ marginTop: "4px" }}>
                 {(() => {
-                  const ticker = tickerFor(p.cid) || (p.cid === "larsen-toubro" ? "LT.NS" : `${p.cid.toUpperCase().slice(0, 6)}.NS`);
-                  const st = (pulse && pulse.stock) || {
-                    symbol: ticker,
-                    price: p.cid === "adani-defence" ? 3140.50 : 3692.50,
-                    currency: "INR",
-                    changePct: p.cid === "adani-defence" ? 2.84 : -1.80,
-                    change: p.cid === "adani-defence" ? 86.80 : -67.50,
-                    exchange: "NSE",
-                    asOf: new Date().toISOString(),
-                    series: p.cid === "adani-defence"
-                      ? [3050, 3070, 3090, 3080, 3110, 3120, 3105, 3130, 3140.5]
-                      : [3780, 3760, 3740, 3720, 3750, 3730, 3710, 3690, 3705, 3692.5]
-                  };
+                  const stockRecord = data.stocks && data.stocks[p.cid];
+                  const quote = stockRecord && stockRecord.quote;
+                  const sparkRange = stockRecord && stockRecord.ranges && stockRecord.ranges["1mo"];
+                  const sparkSeries = sparkRange ? sparkRange.points.map((point) => point.c) : [];
+                  const sparkChange = sparkRange && sparkRange.rangeChangePct;
+                  if (!quote || quote.price == null) {
+                    return <div className="cp-thin">{quote && quote.emptyMessage ? quote.emptyMessage : "No stock quote on record."}</div>;
+                  }
                   const open = () => { setSelectedLeader(null); setStockOpen(true); };
                   return (
                     <div
@@ -1139,25 +1117,23 @@ export default function Profile() {
                       style={{ cursor: "pointer", transition: "border-color 0.15s ease", border: "1px solid var(--d-line)" }}
                     >
                       <div className="ln-widget-h">
-                        <span className="eyebrow">STOCK · {ticker}</span>
+                        <span className="eyebrow">STOCK · {quote.symbol}</span>
                       </div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
                         <span style={{ fontSize: "26px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                          {st.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          {quote.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                         </span>
-                        <span style={{ fontSize: "12px", color: "var(--d-txt-2)" }}>{st.currency}</span>
-                        {typeof st.changePct === "number" ? (
+                        <span style={{ fontSize: "12px", color: "var(--d-txt-2)" }}>{quote.currency}</span>
+                        {typeof sparkChange === "number" ? (
                           <span style={{ fontSize: "12px", fontVariantNumeric: "tabular-nums",
-                            color: st.changePct >= 0 ? "var(--d-up, #34d399)" : "var(--d-down, #f87171)" }}>
-                            {st.changePct >= 0 ? "+" : ""}{st.changePct}%{typeof st.change === "number" ? ` (${st.change >= 0 ? "+" : ""}${st.change.toFixed(2)})` : ""}
+                            color: sparkChange >= 0 ? "var(--d-up, #34d399)" : "var(--d-down, #f87171)" }}>
+                            {sparkChange >= 0 ? "+" : ""}{sparkChange}%
                           </span>
                         ) : null}
                       </div>
-                      {st.series && st.series.length > 1 ? (
-                        <Spark series={st.series} up={(st.changePct || 0) >= 0} />
-                      ) : null}
+                      {sparkSeries.length > 1 ? <Spark series={sparkSeries} up={(sparkChange || 0) >= 0} /> : null}
                       <div style={{ fontSize: "11px", color: "var(--d-txt-2)", marginTop: "4px" }}>
-                        {st.exchange || "NSE"} · {st.asOf ? new Date(st.asOf).toLocaleDateString() : "1/10/2026"} · Yahoo Finance
+                        {quote.exchange} · {quote.asOf ? new Date(quote.asOf).toLocaleDateString() : ""}
                       </div>
                     </div>
                   );
@@ -1286,10 +1262,8 @@ export default function Profile() {
 
 
 /* THE STOCK CARD'S PAGE. Opened from the Stock card; replaces the profile in the right
-   column. Prices are Yahoo's closes (via /api/pulse/history). Each large move lists the
-   headlines Google News dates to within 3 days of it -- shown as what was in the news
-   then, NOT as the cause: nothing here can establish why a price moved. */
-const STOCK_RANGES = [["1mo", "1M"], ["6mo", "6M"], ["1y", "1Y"], ["5y", "5Y"]];
+   column. Prices and series are read from the served stock tables. Each move includes
+   only the fields stored with that series row. */
 const fmtMoney = (v, cur) => {
   if (typeof v !== "number") return "—";
   try {
@@ -1356,30 +1330,12 @@ function PriceChart({ points, moves, currency }) {
   );
 }
 
-function StockPage({ cid, companyName, onBack }) {
-  const [range, setRange] = useState("1y");
-  const [hist, setHist] = useState({ loading: true });
-  useEffect(() => {
-    let on = true;
-    setHist({ loading: true });
-    fetch(`/api/pulse/history?cid=${encodeURIComponent(cid)}&name=${encodeURIComponent(companyName || "")}&range=${range}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!on) return;
-        if (d && d.points && d.points.length) {
-          setHist({ data: d });
-        } else {
-          setHist({ data: null });
-        }
-      })
-      .catch(() => {
-        if (on) {
-          setHist({ data: null });
-        }
-      });
-    return () => { on = false; };
-  }, [cid, companyName, range]);
-  const h = hist.data || null;
+function StockPage({ stockRecord, companyName, onBack }) {
+  const ranges = stockRecord && stockRecord.ranges ? stockRecord.ranges : {};
+  const rangeOptions = Object.values(ranges).map((item) => [item.range, item.label || item.value || item.range]);
+  const [range, setRange] = useState(() => rangeOptions[0] && rangeOptions[0][0]);
+  const quote = stockRecord && stockRecord.quote;
+  const h = ranges[range] ? { ...ranges[range], ...quote } : null;
   return (
     <div className="cp-person cp-stock">
       <button type="button" className="cp-person-back" onClick={onBack}>← Back to {companyName}</button>
@@ -1387,8 +1343,7 @@ function StockPage({ cid, companyName, onBack }) {
         <div>
           <h1 className="cp-person-name">{companyName} · Stock</h1>
           <div className="cp-person-now">
-            {h ? `${h.symbol}${h.exchange ? ` · ${h.exchange}` : " · NSE"}` : tickerFor(cid) || ""}
-            <span className="cp-person-at"> · Yahoo Finance</span>
+            {h ? `${h.symbol}${h.exchange ? ` · ${h.exchange}` : ""}` : ""}
           </div>
         </div>
         {h ? (
@@ -1396,7 +1351,7 @@ function StockPage({ cid, companyName, onBack }) {
             <span className="cp-stock-now">{fmtMoney(h.price, h.currency)}</span>
             {typeof h.rangeChangePct === "number" ? (
               <span className={h.rangeChangePct >= 0 ? "cp-up" : "cp-down"}>
-                {h.rangeChangePct >= 0 ? "+" : ""}{h.rangeChangePct}% over {STOCK_RANGES.find((r) => r[0] === h.range || r[1] === h.range)?.[1] || h.range}
+                {h.rangeChangePct >= 0 ? "+" : ""}{h.rangeChangePct}% over {h.label || h.value || h.range}
               </span>
             ) : null}
           </div>
@@ -1404,11 +1359,11 @@ function StockPage({ cid, companyName, onBack }) {
       </div>
 
       <div className="cp-stock-tabs">
-        {STOCK_RANGES.map(([k, l]) => (
+        {rangeOptions.map(([k, l]) => (
           <button
             key={k}
             type="button"
-            className={`cp-stock-tab${(range === k || range.toUpperCase() === l) ? " on" : ""}`}
+            className={`cp-stock-tab${range === k ? " on" : ""}`}
             onClick={() => setRange(k)}
           >
             {l}
@@ -1419,9 +1374,7 @@ function StockPage({ cid, companyName, onBack }) {
         ) : null}
       </div>
 
-      {hist.loading ? (
-        <div className="cp-thin" style={{ padding: "40px 0" }}>Loading price history and the news around each move…</div>
-      ) : !h ? (
+      {!h ? (
         <div className="cp-thin" style={{ padding: "40px 0" }}>Price history unavailable right now.</div>
       ) : (
         <>

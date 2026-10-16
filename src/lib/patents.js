@@ -136,11 +136,8 @@ function normSample(r) {
     url:
       (r.srcs && r.srcs[0] && r.srcs[0].url) ||
       r.url ||
-      `https://patents.google.com/?q=${encodeURIComponent(r.title || r.id || "")}`,
-    /* 4 records have no filing link and fall back to a Google Patents SEARCH.
-       Labelling that "View patent" presents a query as a citation, so the flag
-       lets the link say what it actually is. */
-    urlIsSearch: !((r.srcs && r.srcs[0] && r.srcs[0].url) || r.url),
+      "",
+    urlIsSearch: false,
   };
 }
 

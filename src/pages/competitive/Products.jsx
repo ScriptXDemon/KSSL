@@ -10,24 +10,6 @@ import { companyCountries, facetOptionsByName } from "../../lib/countryFacet";
 import Thumb from "../../components/thumb/Thumb.jsx";
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
 
-/* Live web-mentions (/api/pulse) are a slow server-side RSS fetch, so cache the result
-   per product for the session: re-selecting a product is then instant instead of
-   re-waiting on the feed. In-memory Map (fast) backed by sessionStorage (survives a
-   reload), both wrapped so blocked storage degrades to memory-only. */
-const PULSE_CACHE = new Map();
-const pulseKey = (cid, product) => `${cid}|${product}`;
-function readPulse(k) {
-  if (PULSE_CACHE.has(k)) return PULSE_CACHE.get(k);
-  try {
-    const s = sessionStorage.getItem("pulse:" + k);
-    if (s) { const v = JSON.parse(s); PULSE_CACHE.set(k, v); return v; }
-  } catch (e) { /* private mode / blocked storage: memory only */ }
-  return null;
-}
-function writePulse(k, v) {
-  PULSE_CACHE.set(k, v);
-  try { sessionStorage.setItem("pulse:" + k, JSON.stringify(v)); } catch (e) { /* ignore */ }
-}
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
    persisted to localStorage, which survives the tab, the browser and the machine's
    next reboot -- so a company opened once was still the landing selection weeks
@@ -603,42 +585,9 @@ export default function Products() {
   // Generate Product News Dataset when a product is selected
   const productNewsArticles = useMemo(() => {
     if (!selectedProduct) return [];
-    const direct = productNews(data, selectedCompany.cid, selectedProduct.name);
-    if (direct && direct.length > 0) return direct;
-    const allCompany = companyNews(data, selectedCompany.cid) || [];
-    const pName = (selectedProduct.name || "").toLowerCase();
-    const cat = (selectedProduct.category || "").toLowerCase();
-    const filtered = allCompany.filter((a) => {
-      const txt = `${a.title || ""} ${a.category || ""}`.toLowerCase();
-      return txt.includes(pName) || txt.includes(cat);
-    });
-    if (filtered.length > 0) return filtered;
-    return allCompany.slice(0, 6);
+    const productId = String(selectedProduct.id || "").replace(/^co-prod-/, "");
+    return productNews(data, selectedCompany.cid, selectedProduct.name, productId);
   }, [data, selectedProduct, selectedCompany]);
-
-  /* LIVE WEB MENTIONS for the selected product -- Google News RSS, anchored to the maker,
-     fetched server-side via /api/pulse (same lane as the company pulse). This is SEPARATE
-     from the corpus-sourced product news above and clearly labelled live/unverified: it
-     fills the common gap where the pipeline has no sourced story yet, without ever being
-     counted as "sourced". Null-safe; a dead feed just yields []. */
-  const [productPulse, setProductPulse] = useState(null);
-  useEffect(() => {
-    const cid = selectedCompany && selectedCompany.cid;
-    const pname = selectedProduct && selectedProduct.name;
-    if (!cid || !pname) { setProductPulse(null); return; }
-    const k = pulseKey(cid, pname);
-    const cached = readPulse(k);
-    if (cached) { setProductPulse(cached); return; } // instant on a re-visit; no re-fetch this session
-    setProductPulse(null); // first time for this product: show the loading state while it fetches
-    let cancelled = false;
-    fetch(`/api/pulse?cid=${encodeURIComponent(cid)}&name=${encodeURIComponent(selectedCompany.name || "")}&product=${encodeURIComponent(pname)}`)
-      .then((r) => r.json())
-      .then((j) => { const v = j || {}; if (!cancelled) { setProductPulse(v); writePulse(k, v); } })
-      .catch(() => { if (!cancelled) setProductPulse({ trending: [] }); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCompany && selectedCompany.cid, selectedProduct && selectedProduct.name]);
-  const productMentions = (productPulse && productPulse.trending) || [];
 
   /* The pills used to be a fixed list -- Sales, Technology, Testing -- matched against
      each article's `category`. But `category` is the pipeline's PRODUCT category
@@ -1165,7 +1114,7 @@ export default function Products() {
 
                 {/* Grid of news cards */}
                 <div className="ln-grid">
-                  {(filteredProdArticles.length > 0 ? filteredProdArticles.slice(0, 6) : (productMentions.length > 0 ? productMentions.slice(0, 6) : [])).map((item, idx) => (
+                  {filteredProdArticles.slice(0, 6).map((item, idx) => (
                     <ArticleLink
                       key={item.id || item.url || `pn-${idx}`}
                       article={item}
@@ -1190,15 +1139,15 @@ export default function Products() {
                       </div>
                       <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>
                         <div style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "11px", color: "var(--d-txt-3)", fontFamily: "var(--mono)" }}>
-                          <span style={{ color: "#f0593c", fontWeight: "600" }}>{item.category || "Defence"}</span>
+                          <span style={{ color: "#f0593c", fontWeight: "600" }}>{item.category || ""}</span>
                           <span>·</span>
-                          <span>{item.date ? new Date(item.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Recent"}</span>
+                          <span>{item.date ? new Date(item.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : ""}</span>
                         </div>
                         <div style={{ fontSize: "13px", fontWeight: "600", color: "#ffffff", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                           {item.title}
                         </div>
                         <div style={{ marginTop: "auto", paddingTop: "6px", fontSize: "11px", color: "var(--d-txt-3)", fontFamily: "var(--mono)" }}>
-                          {item.source || "demo · defence-daily.example"}
+                          {item.source || ""}
                         </div>
                       </div>
                     </ArticleLink>
