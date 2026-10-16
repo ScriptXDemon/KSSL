@@ -15,7 +15,6 @@
        the raw index and misses on exactly the cases the adapter exists to fix. */
 
 import { revenueTierOf } from "./revenueFacet.js";
-import { clientShort } from "./client.js";
 import { unescapeEntities } from "./html.js";
 import { companyCountries, companyOrigin } from "./countryFacet.js";
 import { compareCards } from "./overview.js";
@@ -40,29 +39,9 @@ const txt = (s) => unescapeEntities(s || "").trim();
  * every competitor with no recorded HQ displayed its head office as 'Defence &
  * Aerospace' -- 136 of 178 served competitors have no hq value. A default belongs to
  * the field that wants one, not to the formatter every field shares. */
-const ACRONYMS = new Set([
-  "EW", "UAV", "UAS", "C-UAS", "CUAS", "C4I", "C4ISR", "C4", "C2", "OEM", "R&D", "PSU",
-  "MBT", "ARV", "HMV", "ICV", "ATGM", "BVR", "JV", "FCV", "RCWS", "RWS", "LMG", "SPH",
-  "AD", "OFB", "AI", "MRO", "EO/IR", "EO", "IR", "GPS", "GNSS", "RF", "VTOL", "HE",
-  "APFSDS", "ISR", "ISTAR", "AESA", "AIS", "SATCOM", "HUD", "FLIR", "IRST",
-  "DRDO", "BDL", "BEL", "L&T", "IAF", "BAE", "IAI", "HAL", "JSW", "BHEL",
-  "ISRO", "ADA", "NAL", "USA", "US", "UK", "EU", "UN", "UAE", "NATO", "HQ",
-  // platform designations, from the product-name formatter this replaced: without
-  // them 'BMP-2' comes back 'Bmp-2' and 'MK1' comes back 'Mk1'
-  "BMP", "APC", "IFV", "SPG", "MK1", "MK2", "MK3", "T", "LCA", "ATV",
-  /* The acceptance sheet (FE 12, FE 32, FE 34, T 20): the roster and its products
-     carry these and the list did not, so the sector dropdown printed "Ari", "Mraps",
-     "Usvs" and "(Astt)" against a profile heading that printed them correctly.
-     Plurals are NOT listed -- the formatter keeps the small s itself (UAVs, MRAPs). */
-  "ARI", "SAM", "MRSAM", "LRSAM", "QRSAM", "SHORAD", "VSHORAD", "GBAD", "MANPADS",
-  "ASTT", "DSRV", "OPV", "USV", "UGV", "UUV", "AUV", "ROV", "MRAP", "FPV", "PRS",
-  "CTAS", "IHE", "HEAT", "ERA", "APS", "MLRS", "MRLS", "MBRL", "ATAGS", "FICV",
-  "LMV", "LAV", "JLTV", "ACV", "AMV", "LCH", "LAH", "HALE", "MALE", "NSM", "ESSM",
-  "THAAD", "NASAMS", "GMLRS", "MMP", "RPG", "HMG", "GPMG", "IWI", "CIWS", "ASW",
-  "AAW", "SSK", "SSN", "AIP", "SIGINT", "ELINT", "COMINT", "ECM", "ECCM", "ESM",
-  "DIRCM", "EOD", "IED", "CBRN", "NBC", "NVG", "AR",
-]);
-
+/* No acronym list lives here (it held defence, currency and company abbreviations): casing follows the
+   stored text. A word is capitalised by the label rule below unless it carries a digit, and stored
+   capitals are not corrected. */
 /* A separator that separates nothing is a defect, not a word. Partner labels arrive
    as "Saab," and "Merlin,", and one of those joined into a list prints "Saab,, Foo" --
    the double comma reported on L&T's product content (FE 31). Collapse a repeated
@@ -90,15 +69,6 @@ export function tidySeparators(raw) {
    it misfires on other acronyms: "EOS" is a company, not the plural of EO, and
    "IRS" is not two infrareds. Measured over the 482 company and partner labels in
    the served set, that was the only misreading the rule produced. */
-const acronymForm = (word) => {
-  const up = word.toUpperCase();
-  /* the client's own short name is an acronym when the data says so; it is read from the client record, not typed here */
-  if (clientShort() && up === clientShort().toUpperCase() && clientShort() === clientShort().toUpperCase()) return up;
-  if (ACRONYMS.has(up)) return up;
-  if (up.length > 3 && up.endsWith("S") && ACRONYMS.has(up.slice(0, -1))) return up.slice(0, -1) + "s";
-  return null;
-};
-
 export function formatLabel(raw) {
   if (!raw) return "";
   // "Counterparty" is the extractor's term; the product speaks of "Competitor"
@@ -116,8 +86,6 @@ export function formatLabel(raw) {
     if (edge && (edge[1] || edge[3]) && edge[2]) {
       return edge[1] + token(edge[2]) + edge[3];
     }
-    const acr = acronymForm(word);
-    if (acr) return acr;
     if (word.includes("/")) return word.split("/").map(token).join("/");
     if (word.includes("-")) return word.split("-").map(token).join("-");
     if (word === "&" || word === "·") return word;
@@ -199,13 +167,12 @@ export function formatProductName(raw) {
   if (!raw) return "";
   const s = tidySeparators(unescapeEntities(String(raw)).replace(/&amp;/g, "&"));
   if (!s) return "";
-  return titleCaseHeadline(s).replace(/[A-Za-z][A-Za-z0-9&]*/g, (w) => acronymForm(w) || w);
+  return titleCaseHeadline(s);
 }
 
 /* PROPER title case for a notice/headline title (operator: "everything in proper Pascal
    case"). Unlike titleCaseHeadline, which only RAISES, this also LOWERS ordinary all-caps
    words (BRAND-NAME -> Brand-Name, ONLY -> Only) while PRESERVING what must not be touched:
-     - listed acronyms via acronymForm (USA, UAV, UAS, UAVs ...)
      - mixed-case designations (sUAS, BrahMos)
      - any token carrying a digit (M109, K9, YFQ-44A)
    Minor words (of, and, for ...) go lower unless they lead the title. A hyphen is a word
@@ -213,8 +180,6 @@ export function formatProductName(raw) {
 const MINOR_WORDS = new Set(["a", "an", "and", "as", "at", "but", "by", "for", "from",
   "in", "nor", "of", "on", "or", "per", "the", "to", "via", "vs", "with"]);
 const caseCore = (core) => {
-  const acr = acronymForm(core);
-  if (acr) return acr;
   if (/[a-z]/.test(core) && /[A-Z]/.test(core)) return core; // sUAS, BrahMos
   if (/\d/.test(core)) return core;                          // M109, K9
   return core.charAt(0).toUpperCase() + core.slice(1).toLowerCase();
@@ -238,8 +203,6 @@ export function smartTitleCase(raw) {
     if (/\d/.test(tok)) {
       return tok.split("-").map((part) => {
         if (/\d/.test(part)) return part;
-        const acr = acronymForm(part);
-        if (acr) return acr;
         if (/[A-Z]/.test(part)) return part;
         return part.charAt(0).toUpperCase() + part.slice(1);
       }).join("-");
@@ -255,15 +218,13 @@ export function formatSectorName(rawSector) {
 }
 
 /* Standardized company name formatting helper. Reads the ONE acronym list above:
-   it used to carry its own sixteen, which is how three lists came to disagree. */
+   no acronym list: the stored casing is kept for short capitals. */
 export function formatCompanyName(rawName) {
   if (!rawName) return "";
   let s = unescapeEntities(String(rawName)).trim();
   return s
     .split(/\s+/)
     .map((word) => {
-      const acr = acronymForm(word);
-      if (acr) return acr;
       if (word.includes("/")) {
         return word
           .split("/")

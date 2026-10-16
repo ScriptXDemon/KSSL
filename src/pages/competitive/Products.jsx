@@ -1,4 +1,4 @@
-import { clientShort, clientName as clientFullName } from "../../lib/client.js";
+import { clientShort, clientName as clientFullName, isPresenceLabel } from "../../lib/client.js";
 import { useState, useMemo, useEffect } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { revenueOptions, revenueTierOf } from "../../lib/revenueFacet";
@@ -488,11 +488,7 @@ export default function Products() {
         let name = rawBf.trim();
         const ownPrefix = [clientShort(), clientFullName()].filter(Boolean).find((n) => name.toLowerCase().startsWith(n.toLowerCase()) && /^\s*·/.test(name.slice(n.length)));
         if (ownPrefix) name = name.slice(ownPrefix.length).replace(/^\s*·\s*/, "").trim();
-        if (!name || name === "KSSL present" || name.startsWith("KSSL")) {
-          const match = rawBf.match(/KSSL\s*·\s*(.*)/i);
-          if (match) name = match[1].trim();
-        }
-        if (name && name !== "KSSL present" && !seen.has(name.toLowerCase())) {
+        if (name && !isPresenceLabel(name, data.actLabel) && !seen.has(name.toLowerCase())) {
           seen.add(name.toLowerCase());
           const specsObj = productSpecs(m.specs, "client", formatCategoryTitle);
           prods.push({

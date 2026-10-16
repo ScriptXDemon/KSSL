@@ -2,7 +2,7 @@
    Everything the three Gap surfaces show is derived here; nothing is stored.
    Takes the wired dataset explicitly instead of reading globals, so a re-fetch
    rebuilds the model rather than leaving a stale one behind. */
-import { clientShort } from "./client.js";
+import { clientShort, stripClientPrefix } from "./client.js";
 import { computeSpecEdge } from "./edge.js";
 import { escAll } from "./html.js";
 import { formatCrore } from "../utils/formatNumber.js";
@@ -411,7 +411,7 @@ export function gapCorrelateStrip(model, pillar, matchLabel) {
     let rec = null;
     if (pillar === "technology") {
       rec = model.find(
-        (g) => g.pillar === "technology" && (g.koel_entity === `KSSL · ${matchLabel}` || (g.koel_entity || "").endsWith(matchLabel)),
+        (g) => g.pillar === "technology" && (g.koel_entity || "").endsWith(matchLabel),
       );
     } else if (pillar === "market") {
       rec = model.find((g) => g.pillar === "market" && g.tenderTitle === matchLabel);
@@ -434,7 +434,7 @@ export function gapCorrelateStrip(model, pillar, matchLabel) {
             : c.pillar === "technology"
               ? "Technology"
               : "Competitive";
-        const lbl = (c.label || "").replace(/^(KSSL|Kalyani Strategic Systems) · /, "");
+        const lbl = stripClientPrefix(c.label || "");
         const isMkt = c.pillar === "market";
         h +=
           `<span class="gapx-chip ${c.pillar}${isMkt ? " clickable" : ""}"` +

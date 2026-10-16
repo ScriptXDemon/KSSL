@@ -1860,7 +1860,7 @@ const PG_IMG_ONERROR =
       if (sourceRegistry && sourceRegistry.length) {
         const byCo = {};
         sourceRegistry.forEach((r) => {
-          (byCo[r.company || "Other"] = byCo[r.company || "Other"] || []).push(r);
+          (byCo[r.company || "—"] = byCo[r.company || "—"] || []).push(r);
         });
         h += `<div class="syn-sec-l" style="margin-top:16px">▸ All tracked sources (${sourceRegistry.length})</div>`;
         Object.keys(byCo)

@@ -13,6 +13,7 @@
  * No backend, no index: the corpus is a few thousand rows and a substring scan of it
  * is well under a frame. */
 import { bucketTenders } from "./overview.js";
+import { isPresenceLabel } from "./client.js";
 
 export const SEARCH_MIN_CHARS = 2;
 
@@ -105,7 +106,7 @@ export function searchDataset(data, query, limits = {}) {
       }
     }
     const own = productName(m.bf);
-    if (own && own !== "KSSL present" && matches(tokens, [own, m.cat, clientId])) {
+    if (own && !isPresenceLabel(own, d.actLabel) && matches(tokens, [own, m.cat, clientId])) {
       const k = norm(`${clientId}|${own}`);
       if (!seenProduct.has(k)) {
         seenProduct.add(k);

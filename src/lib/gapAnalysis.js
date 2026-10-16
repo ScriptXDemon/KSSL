@@ -780,12 +780,8 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
     "(0-100, 50 = parity, below 50 the rival is stronger), read from the same computation the dossier shows. " +
     "<b>Calibre, MTOW, naval length and barrel length are excluded</b>: each is the class axis the two products were " +
     "paired on, so scoring it would be circular - 155 against 155 and 5.56 against 5.56 carry no information, and " +
-    "155 against 70 means the products are not comparable at all. " +
-    "What decides Indian defence orders is mostly outside this comparison: DAP 2020 categorisation and indigenous " +
-    "content thresholds, Positive Indigenisation List embargoes, L1 price among all technically-compliant bidders, " +
-    "how the GSQR was written, field evaluation trials run at no cost and no commitment in desert and high-altitude " +
-    "conditions, offset obligations, lifecycle support and spares pricing, integrity-pact and blacklisting status, " +
-    "and SCOMET, ITAR or MTCR export clearance.</div></div>";
+    "155 against 70 means the products are not comparable at all. "
+    "</div></div>";
   return h;
 }
 

@@ -24,3 +24,12 @@ export function stripClientPrefix(label) {
   );
   return own ? s.slice(own.length).replace(/^\s*·\s*/, "") : s;
 }
+
+/* The self-naming "<client> present" label some rows carry in place of a product name. It is the stored
+   actLabel.bf when the dataset has one, else the client's own short or full name followed by "present". */
+export function isPresenceLabel(label, actLabel) {
+  const s = String(label == null ? "" : label).trim().toLowerCase();
+  if (!s) return false;
+  const stored = actLabel && actLabel.bf ? String(actLabel.bf).trim().toLowerCase() : "";
+  return s === stored || [clientShort(), clientName()].filter(Boolean).some((n) => s === `${n.toLowerCase()} present`);
+}
