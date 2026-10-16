@@ -175,18 +175,20 @@ export function formatProductName(raw) {
   return titleCaseHeadline(s);
 }
 
-/* PROPER title case for a notice/headline title (operator: "everything in proper Pascal
-   case"). Unlike titleCaseHeadline, which only RAISES, this also LOWERS ordinary all-caps
-   words (BRAND-NAME -> Brand-Name, ONLY -> Only) while PRESERVING what must not be touched:
+/* Title case for a notice/headline title. A lower-case word is raised; the rest of a mixed word is
+   lowered. What must not be touched is kept exactly as stored (R15):
+     - an ALL-CAPITALS token (ARI, BAE, (TEST), OR) -- display reflects the stored text
      - mixed-case designations (sUAS, BrahMos)
      - any token carrying a digit (M109, K9, YFQ-44A)
-   Minor words (of, and, for ...) go lower unless they lead the title. A hyphen is a word
-   break, so each side is cased on its own. */
+   Minor words (of, and, for ...) go lower unless they lead the title, and unless they are all capitals.
+   A hyphen is a word break, so each side is cased on its own. */
+const allCaps = (t) => /[A-Z]/.test(t) && t === t.toUpperCase();
 const MINOR_WORDS = new Set(["a", "an", "and", "as", "at", "but", "by", "for", "from",
   "in", "nor", "of", "on", "or", "per", "the", "to", "via", "vs", "with"]);
 const caseCore = (core) => {
   if (/[a-z]/.test(core) && /[A-Z]/.test(core)) return core; // sUAS, BrahMos
   if (/\d/.test(core)) return core;                          // M109, K9
+  if (allCaps(core)) return core;                            // ARI, BAE, TEST
   return core.charAt(0).toUpperCase() + core.slice(1).toLowerCase();
 };
 const casePart = (part) => {
@@ -200,7 +202,7 @@ export function smartTitleCase(raw) {
   return String(raw).split(/(\s+)/).map((tok) => {
     if (tok === "" || /^\s+$/.test(tok)) return tok;
     wi += 1;
-    if (wi > 0 && MINOR_WORDS.has(tok.toLowerCase())) return tok.toLowerCase();
+    if (wi > 0 && MINOR_WORDS.has(tok.toLowerCase()) && !allCaps(tok)) return tok.toLowerCase();
     // A token carrying a digit is a platform designation (AH-64, KC-46, YFQ-44A, BMP-2,
     // 155mm). Case each hyphen part as a designation: the digit part stays verbatim, a
     // listed acronym is raised (bmp-2 -> BMP-2), an already-capitalised alpha part is kept

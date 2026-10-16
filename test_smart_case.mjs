@@ -17,29 +17,29 @@ const ck = (name, want, got) => {
   else { console.log("  %s FAIL (want %j, got %j)", name.padEnd(58), want, got); bad++; }
 };
 
-// ---- 1. ordinary all-caps words are LOWERED to title case -----------------------
-ck("all-caps ordinary word is title-cased", "Brand-Name", smartTitleCase("BRAND-NAME"));
-ck("all-caps single word lowered", "Only", smartTitleCase("ONLY"));
+// ---- 1. an all-capitals token of the stored text is kept as stored (R15); lower-case words are raised -----------------------
+ck("all-caps ordinary word is title-cased", "BRAND-NAME", smartTitleCase("BRAND-NAME"));
+ck("all-caps single word lowered", "ONLY", smartTitleCase("ONLY"));
 ck("lowercase word is capitalized", "Hello World", smartTitleCase("hello world"));
 
 // ---- 2. there is no acronym list: stored capitals are cased by the label rule, nothing is corrected -------------------------------------------
 ck(" is not corrected (no list)", "Usa", smartTitleCase("usa"));
 ck(" is not corrected (no list)", "Uav", smartTitleCase("uav"));
-ck(" is not corrected (no list) mid-phrase", "The Uk Fleet", smartTitleCase("the UK fleet"));
+ck(" is not corrected (no list) mid-phrase", "The UK Fleet", smartTitleCase("the UK fleet"));
 ck(" is not corrected (no list)", "Eu", smartTitleCase("eu"));
 ck(" is not corrected (no list)", "Un", smartTitleCase("un"));
 ck("K9 (digit token) preserved verbatim", "K9", smartTitleCase("K9"));
-ck("plural UAVS is not corrected (no list)", "Uavs", smartTitleCase("UAVS"));
+ck("plural UAVS is not corrected (no list)", "UAVS", smartTitleCase("UAVS"));
 
 // ---- 3. the reported case: US Army must NOT be mangled ---------------------------
-ck("US Army follows the label rule (no acronym list)", "Us Army", smartTitleCase("US Army"));
+ck("US Army follows the label rule (no acronym list)", "US Army", smartTitleCase("US Army"));
 ck("us army follows the label rule", "Us Army", smartTitleCase("us army"));
 
 // ---- 4. minor words go lower UNLESS first ----------------------------------------
-ck("minor words lowered mid-title", "War of the Worlds", smartTitleCase("WAR OF THE WORLDS"));
-ck("leading minor word IS capitalized", "Of Mice and Men", smartTitleCase("OF MICE AND MEN"));
+ck("minor words lowered mid-title", "WAR OF THE WORLDS", smartTitleCase("WAR OF THE WORLDS"));
+ck("leading minor word IS capitalized", "OF MICE AND MEN", smartTitleCase("OF MICE AND MEN"));
 ck("minor word 'for' lowered", "Systems for Defence", smartTitleCase("systems for defence"));
-ck("minor word 'and' lowered", "Command and Control", smartTitleCase("command AND control"));
+ck("minor word 'and' lowered", "Command AND Control", smartTitleCase("command AND control"));
 
 // ---- 5. mixed-case designations preserved verbatim -------------------------------
 ck("sUAS preserved", "sUAS", smartTitleCase("sUAS"));
@@ -62,7 +62,7 @@ ck("hyphen with an acronym side", "C-Uas", smartTitleCase("c-uas"));
 // ---- 8. leading/trailing punctuation attached to a token -------------------------
 ck("trailing comma keeps acronym", "Ai,", smartTitleCase("ai,"));
 ck("parenthesized acronym", "(Dsrv)", smartTitleCase("(dsrv)"));
-ck("punctuation-wrapped ordinary word", "(Frigate)", smartTitleCase("(FRIGATE)"));
+ck("punctuation-wrapped ordinary word", "(FRIGATE)", smartTitleCase("(FRIGATE)"));
 
 // ---- 9. empty / null / undefined input -------------------------------------------
 ck("empty string", "", smartTitleCase(""));
@@ -70,14 +70,20 @@ ck("null input", "", smartTitleCase(null));
 ck("undefined input", "", smartTitleCase(undefined));
 
 // ---- 10. whitespace between words is preserved -----------------------------------
-ck("multiple spaces preserved", "Us  Army", smartTitleCase("US  Army"));
+ck("multiple spaces preserved", "US  Army", smartTitleCase("US  Army"));
 
 // ---- 11. hyphenated platform designations keep BOTH sides (BUG-1 regression) ------
 ck("AH-64 designation", "AH-64 Spares", smartTitleCase("AH-64 spares"));
 ck("CH-47 designation", "CH-47 Blades", smartTitleCase("CH-47 blades"));
 ck("KC-46 designation", "KC-46 Boom", smartTitleCase("KC-46 boom"));
 ck("YFQ-44A designation", "YFQ-44A Drone", smartTitleCase("YFQ-44A drone"));
-ck("digit token stays verbatim mid-title", "155mm He Shells", smartTitleCase("155mm HE shells"));
+ck("digit token stays verbatim mid-title", "155mm HE Shells", smartTitleCase("155mm HE shells"));
+
+// ---- R15: all-capitals tokens are never altered, including inside brackets and minor words ----
+ck("R15: ARI stays ARI", "ARI", smartTitleCase("ARI"));
+ck("R15: (TEST) stays (TEST)", "Service Carbines (TEST)", smartTitleCase("service carbines (TEST)"));
+ck("R15: a mixed title keeps ARI, BAE, OR, AS", "Supply of ARI Radars (TEST) OR BAE Kit AS Spares", smartTitleCase("supply of ARI radars (TEST) OR BAE kit AS spares"));
+ck("R15: a lower-case minor word is still lowered", "Supply OF Radars or Spares", smartTitleCase("supply OF radars OR spares".replace("OR", "or")));
 
 if (bad) { console.log(`\n${bad} failure(s)`); process.exit(1); }
-console.log("\nok - smartTitleCase preserves acronyms/designations/digits, lowers all-caps and minor words, does not mangle US Army");
+console.log("\nok - smartTitleCase preserves acronyms/designations/digits, keeps all-caps tokens, lowers lower-case minor words, does not mangle US Army");
