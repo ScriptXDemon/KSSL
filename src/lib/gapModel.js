@@ -3,28 +3,12 @@
    Takes the wired dataset explicitly instead of reading globals, so a re-fetch
    rebuilds the model rather than leaving a stale one behind. */
 import { computeSpecEdge } from "./edge.js";
-import { escAll } from "./html.js";
-import { formatCrore } from "../utils/formatNumber.js";
 import { logger } from "../utils/logger.js";
 
-/* Tender values arrive in six currencies and two scales, and several already
-   carry the rupee equivalent ("US$225 M (~₹1,867 cr)"). Taking the first
-   number in the string read "~US$4.69 B" as ₹4.69 cr — a ₹39,000 cr Egyptian
-   MRO programme shown as pocket change — and this figure also weights gap
-   severity, so it reordered which gaps looked worst. Prefer a stated ₹ crore
-   figure; otherwise convert at the documented rate below. */
-export const CR_PER_MILLION = { "us$": 8.3, "a$": 5.5, $: 8.3, "€": 9.0, "£": 10.5, aed: 2.26, myr: 1.9 };
-export function parseCr(v) {
-  if (!v) return 0;
-  const s = `${v}`.replace(/,/g, "");
-  const inr = s.match(/₹\s*([\d.]+)/);
-  if (inr) return parseFloat(inr[1]); // already in crore
-  const m = s.match(/(US\$|A\$|\$|€|£|AED|MYR)\s*([\d.]+)\s*(B|bn|billion|M|mn|million)?/i);
-  if (!m) return 0; // "n/d", "Undisclosed (LOI stage)" — no figure to size
-  const per = CR_PER_MILLION[m[1].toLowerCase()] || 0;
-  const inMillions = /^b/i.test(m[3] || "") ? parseFloat(m[2]) * 1000 : parseFloat(m[2]);
-  return inMillions * per;
-}
+/* Tender values are stated in several currencies and no exchange-rate column exists, so
+   nothing here converts or adds them up: exposure is not computed. This stub only keeps the
+   import in lib/overview.js (group A) working until that file stops calling it. */
+export const parseCr = () => 0;
 
 export function buildGapModel(d) {
   /* Degrade to no gaps on a missing dataset. The destructure below dereferences d
@@ -42,17 +26,15 @@ export function buildGapModel(d) {
      KSSL itself had won. Settled programmes still count as tracked context,
      but they set neither the exposure sum nor the deadline horizon. */
   function expForCat(cat) {
-    let val = 0;
+    const val = 0;
     let cnt = 0;
-    let tracked = 0;
+    const tracked = 0;
     let hz = null;
     try {
       tenders.forEach((t) => {
         if ((t.cat || t.category) !== cat) return;
-        tracked += parseCr(t.value);
         const settled = (t.status || "").toLowerCase() === "awarded" || t.isLive === false;
         if (settled) return;
-        val += parseCr(t.value);
         cnt++;
         const dl = typeof t.dl === "number" ? t.dl : null;
         if (dl !== null && dl > 0) hz = hz === null ? dl : Math.min(hz, dl);
@@ -152,8 +134,8 @@ export function buildGapModel(d) {
       const ms = t.matches || [];
       let best = null;
       ms.forEach((mm) => {
-        const pc = parseInt(`${mm.pct || ""}`.replace(/[^\d]/g, ""), 10);
-        if (!Number.isNaN(pc) && (best === null || pc > best.pct))
+        const pc = mm.percent;
+        if (pc != null && (best === null || pc > best.pct))
           best = { pct: pc, n: mm.n, fit: mm.fit };
       });
       if (best === null) return; // no scored bid -> honest skip
@@ -169,7 +151,7 @@ export function buildGapModel(d) {
           t.cat || t.category || "—",
           `tender.matches.pct=${best.pct}%`,
           {
-            value: parseCr(t.value),
+            value: 0,
             count: 1,
             /* Same settled/awarded + dl>0 guard as expForCat. An awarded contract
                carries dl:0, and a bare `typeof t.dl === "number" ? t.dl : null` let
@@ -420,53 +402,4 @@ export function buildGapModel(d) {
     }));
   });
   return gaps;
-}
-
-/* shared: build the cross-pillar correlate + exposure strip for a category.
-   `onTenderClick` is a global function NAME, because this returns a string that is
-   injected with dangerouslySetInnerHTML — the same trade the original made. */
-export function gapCorrelateStrip(model, pillar, matchLabel) {
-  try {
-    let rec = null;
-    if (pillar === "technology") {
-      rec = model.find(
-        (g) => g.pillar === "technology" && (g.koel_entity === `KSSL · ${matchLabel}` || (g.koel_entity || "").endsWith(matchLabel)),
-      );
-    } else if (pillar === "market") {
-      rec = model.find((g) => g.pillar === "market" && g.tenderTitle === matchLabel);
-    }
-    if (!rec) return "";
-    let h = '<div class="gapx-strip">';
-    // exposure line (only if meaningful)
-    if (rec.exposure_value > 0) {
-      h +=
-        `<div class="gapx-exp"><span class="gapx-lbl">₹ exposure</span><span class="gapx-val">${formatCrore(rec.exposure_value)}</span>` +
-        `<span class="gapx-note">live tenders in ${escAll(rec.category)} this gap touches</span></div>`;
-    }
-    // cross-pillar correlates
-    if (rec.correlates && rec.correlates.length) {
-      h += '<div class="gapx-corr"><span class="gapx-lbl">Reinforced across pillars</span>';
-      rec.correlates.forEach((c) => {
-        const pn =
-          c.pillar === "market"
-            ? "Market"
-            : c.pillar === "technology"
-              ? "Technology"
-              : "Competitive";
-        const lbl = (c.label || "").replace(/^(KSSL|Kalyani Strategic Systems) · /, "");
-        const isMkt = c.pillar === "market";
-        h +=
-          `<span class="gapx-chip ${c.pillar}${isMkt ? " clickable" : ""}"` +
-          (isMkt
-            ? ` role="button" tabindex="0" data-tender="${escAll(lbl).replace(/"/g, "&quot;")}" title="Open this tender in Market"`
-            : "") +
-          `>${pn} · ${escAll(lbl.slice(0, 30))}${isMkt ? " ↗" : ""}</span>`;
-      });
-      h += "</div>";
-    }
-    h += "</div>";
-    return h === '<div class="gapx-strip"></div>' ? "" : h;
-  } catch (e) {
-    return "";
-  }
 }

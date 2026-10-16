@@ -6,9 +6,9 @@ import { createGeo } from "../lib/geo";
 import { createPartners } from "../lib/partners";
 import { buildGapModel } from "../lib/gapModel";
 import { navCounts, viewMetaFor } from "../lib/overview";
-import { marketSelfCheck } from "../lib/marketOverview";
 import { profileSelfCheck } from "../lib/profile";
 import { logger } from "../utils/logger";
+import { ReviewProvider } from "../components/review/Review";
 
 const DataContext = createContext(null);
 
@@ -69,10 +69,6 @@ export function DataProvider({ children }) {
       value.partners.selfCheck();
       value.partners.geomCheck();
       if (hasGeo) value.geo.selfCheck();
-      /* Both run against value.data — the WIRED dataset. That matters for the market
-         one: computeTenderRealDays rewrites dl and deadline, and the served rows carry
-         dl: null, for which `dl <= 0` is true and every tender buckets as closed. */
-      marketSelfCheck(value.data.tenders, value.data.marketCards);
       if (hasCompetitors) profileSelfCheck(value.data);
       logger.info("self-checks complete", {
         globals: Object.keys(value.data).length,
@@ -120,7 +116,11 @@ export function DataProvider({ children }) {
     );
   }
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  return (
+    <DataContext.Provider value={value}>
+      <ReviewProvider initial={raw.review}>{children}</ReviewProvider>
+    </DataContext.Provider>
+  );
 }
 
 export function useData() {

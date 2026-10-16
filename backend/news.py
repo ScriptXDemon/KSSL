@@ -32,7 +32,8 @@ Where things go (no columns are added to ui/serving tables):
     This is the only place the local image copy and the source tier ("primary" |
     "independent") live; the news tables have no column for them.
 
-Connection: env KSSL_STAGING_DSN, falling back to KSSL_DSN. Writes go to schema `staging` only.
+Connection: env KSSL_STAGING_DSN, falling back to KSSL_DSN. Writes go to schema `staging` only
+(the GET reads KSSL_SERVING_DSN on the live backend).
 Competitor names come from staging.competitive_competitor (display_name, legal_name,
 short_name); there is no website column, so company domains are only learnt from the RSS
 publisher when it is the company itself (or passed with --domain).
@@ -874,11 +875,13 @@ def collect(name: str, aliases=(), product: str = "", company_domains=(), limit=
 
 # ----------------------------------------------------------------------------- DB (staging only)
 
-def _connect():
+def _connect(serving=False):
+    """Writes always go to the staging DB; only the live GET (serving=True) reads the serving DB."""
     import psycopg2
-    dsn = (os.getenv("KSSL_STAGING_DSN") or os.getenv("KSSL_DSN") or "").strip()
+    name = "KSSL_SERVING_DSN" if serving else "KSSL_STAGING_DSN"
+    dsn = (os.getenv(name) or os.getenv("KSSL_DSN") or "").strip()
     if not dsn:
-        raise RuntimeError("KSSL_STAGING_DSN (or KSSL_DSN) is not set")
+        raise RuntimeError(f"{name} (or KSSL_DSN) is not set")
     return psycopg2.connect(dsn, connect_timeout=5)
 
 
@@ -1068,8 +1071,9 @@ def api_refresh(competitor_id: str = "all", products: bool = False, limit: int =
 @router.get("/api/news")
 def api_list(competitor_id: str | None = None, from_: str | None = Query(None, alias="from"),
              to: str | None = None, limit: int = Query(200, ge=1, le=1000)):
-    """Stored articles from the schema the backend reads (KSSL_VIEW=review -> staging, else serving)."""
-    schema = "staging" if os.environ.get("KSSL_VIEW", "").strip().lower() == "review" else "serving"
+    """Stored articles from the DB the backend reads (KSSL_VIEW=review -> staging DB, else serving DB)."""
+    review_view = os.environ.get("KSSL_VIEW", "").strip().lower() == "review"
+    schema = "staging" if review_view else "serving"
     if competitor_id in ("", "all"):
         competitor_id = None
     if competitor_id and not _is_uuid(competitor_id):
@@ -1102,7 +1106,7 @@ def api_list(competitor_id: str | None = None, from_: str | None = Query(None, a
     keys = ("id", "owner_id", "owner_name", "headline", "published_date", "publisher", "article_url",
             "image_url", "category", "image_local_path", "source_tier")
     try:
-        conn = _connect()
+        conn = _connect(serving=not review_view)
     except RuntimeError as e:
         raise HTTPException(503, str(e)) from None
     try:

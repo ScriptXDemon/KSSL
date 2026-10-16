@@ -7,7 +7,6 @@ import MetricsStrip from "../metricsStrip/MetricsStrip";
 import MalloryChat from "../malloryChat/MalloryChat";
 import Overview from "../../pages/overview/Overview";
 import Positioning from "../../pages/competitive/Positioning";
-import GapAnalysis from "../../pages/competitive/GapAnalysis";
 import Partnerships from "../../pages/competitive/Partnerships";
 import Geo from "../../pages/competitive/Geo";
 import Patents from "../../pages/competitive/Patents";
@@ -192,11 +191,9 @@ export default function Layout() {
         return <Products />;
       case "positioning":
         return <Positioning />;
-      /* ARCHIVED — off the rail, still routed. getInitialAppState validates the pillar
-         but never the view, so a saved route or a pasted link pointing here would
-         otherwise fall through to `default: null` and render a blank pane forever. */
-      case "gap-competitive":
-        return <GapAnalysis />;
+      /* Gap Analysis is hidden by decision (2026-10-16): not routed at all, so its
+         written essays never show. parseRoute sends a stale #v=gap-competitive link to
+         the pillar's default view. */
       case "partnerships":
         return <Partnerships />;
       case "projects":
@@ -209,7 +206,7 @@ export default function Layout() {
         return <Patents />;
       case "tender":
       /* Also archived: the Market overview carries Awarded and Closed as tabs now, but
-         the routes stay for the same reason gap-competitive's does. */
+         the routes stay so a saved link still resolves. */
       case "awarded-tenders":
       case "closed-tenders":
         return <Tenders mode={view} />;

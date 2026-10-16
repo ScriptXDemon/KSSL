@@ -67,8 +67,8 @@ export function searchDataset(data, query, limits = {}) {
 
   /* competitors: name, sector, hq and the serving key */
   Object.entries(d.competitors || {}).forEach(([cid, c]) => {
-    if (!c) return;
-    if (matches(tokens, [c.name, c.sector, c.hq, cid])) {
+    if (!c || c.dir === "client") return; // the client has no competitor profile
+    if (matches(tokens, [c.name, c.short, c.legal, c.sector, c.hq, cid])) {
       add("competitors", {
         key: `comp:${cid}`,
         title: text(c.name) || cid,

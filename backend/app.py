@@ -11,19 +11,21 @@ from typing import Any
 
 import psycopg2
 import psycopg2.extras
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
 from backend.areas import a_competitive, b_products, c_network, d_market_tech
+from backend import review
 from backend.common import json_value
 
 AREAS = (a_competitive, b_products, c_network, d_market_tech)  # a first: others read competitors
 
 
-DSN = os.environ.get("KSSL_DSN", "").strip()
-# Review flow (db/migrations/001_staging.sql): the live backend reads ui / serving; the review
-# backend (KSSL_VIEW=review) reads the staged copies, under the same "ui" / "serving" keys.
+# Two databases (db/make_databases.sh): the live backend reads the serving DB (KSSL_SERVING_DSN,
+# schemas ui / serving); the review backend (KSSL_VIEW=review) reads the staging DB
+# (KSSL_STAGING_DSN, schemas staging_ui / staging) under the same "ui" / "serving" keys. Each DSN
+# falls back to KSSL_DSN (one database holding all four schemas, e.g. the kssl_v2_test* DBs).
 REVIEW = os.environ.get("KSSL_VIEW", "").strip().lower() == "review"
 SOURCE_SCHEMA = {"ui": "staging_ui", "serving": "staging"} if REVIEW else {"ui": "ui", "serving": "serving"}
 
@@ -46,11 +48,12 @@ def build_dataset(database):
 
 
 def connect():
-    if not DSN:
+    dsn = review.staging_dsn() if REVIEW else review.serving_dsn()
+    if not dsn:
         raise RuntimeError(
-            "KSSL_DSN is not configured. Set it to the PostgreSQL connection string."
+            "KSSL_SERVING_DSN / KSSL_STAGING_DSN (or KSSL_DSN) is not configured. Set it to the PostgreSQL connection string."
         )
-    return psycopg2.connect(DSN, connect_timeout=5)
+    return psycopg2.connect(dsn, connect_timeout=5)
 
 
 def load_all_tables() -> dict[str, dict[str, list[dict[str, Any]]]]:
@@ -90,12 +93,14 @@ def load_schema_manifest() -> dict[str, dict[str, list[dict[str, Any]]]]:
                        data_type, udt_name, is_nullable, character_maximum_length,
                        numeric_precision, numeric_scale
                 FROM information_schema.columns
-                WHERE table_schema IN ('ui', 'serving')
+                WHERE table_schema IN %s
                 ORDER BY table_schema, table_name, ordinal_position
-                """
+                """,
+                (tuple(SOURCE_SCHEMA.values()),),
             )
+            back = {v: k for k, v in SOURCE_SCHEMA.items()}
             for row in cur.fetchall():
-                schema = row["table_schema"]
+                schema = back[row["table_schema"]]
                 name = row["table_name"]
                 manifest[schema].setdefault(name, []).append({
                     key: json_value(value)
@@ -112,7 +117,7 @@ def health():
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
                 cur.fetchone()
-        return {"ok": True, "database": "kssl_frontend", "schemas": ["ui", "serving"]}
+        return {"ok": True, "view": "review" if REVIEW else "live", "schemas": list(SOURCE_SCHEMA.values())}
     except Exception as exc:  # noqa: BLE001
         return JSONResponse(status_code=503, content={"ok": False, "error": str(exc)})
 
@@ -123,6 +128,9 @@ def dataset():
         database = load_all_tables()
         payload = build_dataset(database)
         payload["databaseSchema"] = load_schema_manifest()
+        if REVIEW:
+            with review.session() as (st, sv):
+                payload["review"] = review.statuses(st, sv)
         return payload
     except Exception as exc:  # noqa: BLE001
         return JSONResponse(status_code=503, content={"error": f"PostgreSQL dataset unavailable: {exc}"})
@@ -135,3 +143,54 @@ def manifest():
         return {"schemas": schema, "read_only": True}
     except Exception as exc:  # noqa: BLE001
         return JSONResponse(status_code=503, content={"error": str(exc)})
+
+
+# ---- review copy: Approve / Reject / Undo / Unpublish, setup tables, Trace (backend/review.py) ----
+
+def _review_only() -> None:
+    # ponytail: access control is "only the review backend has these routes"; run it on
+    # localhost/VPN. Add a login before exposing the review copy beyond that.
+    if not REVIEW:
+        raise HTTPException(status_code=404, detail="review routes exist only on the review backend")
+
+
+def _run(fn, *args):
+    """fn(staging cursor, serving cursor, *args), committed; then the fresh statuses."""
+    try:
+        with review.session() as (st, sv):
+            fn(st, sv, *args)
+        with review.session() as (st, sv):
+            return review.statuses(st, sv)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except psycopg2.Error as exc:
+        raise HTTPException(status_code=500, detail=(exc.pgerror or str(exc)).strip()) from None
+
+
+@app.post("/api/review")
+def review_decide(table: str, key: str, action: str) -> dict[str, Any]:
+    """Approve / reject / undo / unpublish one card. Returns the fresh statuses."""
+    _review_only()
+    if action not in review.ACTIONS:
+        raise HTTPException(status_code=400, detail=f"action must be one of {sorted(review.ACTIONS)}")
+    return {"table": table, "key": key, "action": action, "review": _run(review.ACTIONS[action], table, key)}
+
+
+@app.post("/api/review/table")
+def review_table(schema: str, table: str, action: str) -> dict[str, Any]:
+    """Approve (replace the whole live table) / unpublish (empty it) one setup table."""
+    _review_only()
+    if schema not in ("ui", "serving") or action not in review.TABLE_ACTIONS:
+        raise HTTPException(status_code=400, detail="schema must be ui|serving, action approve|unpublish")
+    return {"schema": schema, "table": table, "action": action,
+            "review": _run(review.TABLE_ACTIONS[action], schema, table)}
+
+
+@app.get("/api/review/trace")
+def review_trace(table: str, key: str) -> dict[str, Any]:
+    _review_only()
+    try:
+        with review.session() as (st, sv):
+            return json_value(review.trace(st, sv, table, key))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
