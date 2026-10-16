@@ -193,7 +193,7 @@ def build_projects(database, competitors):
             "stageNote": row.get("stage_note"),
             "specs": [{"k": s.get("spec_label"), "v": _with_unit(s.get("spec_value"), s.get("unit"))}
                       for s in ordered(specs.get(pid, []), "display_order", "project_spec_id")],
-            "timeline": [{"date": t.get("event_date"), "label": t.get("event_title"), "expected": bool(t.get("is_expected"))}
+            "timeline": [{"date": t.get("event_date"), "label": t.get("event_title"), "expected": t.get("is_expected")}
                          for t in ordered(timeline.get(pid, []), "display_order", "event_date")],
             "latest": {"date": row.get("latest_milestone_date"), "label": row.get("latest_milestone")},
             "overview": [row.get("what_the_project_is")] if row.get("what_the_project_is") else [],
