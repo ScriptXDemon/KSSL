@@ -10,7 +10,7 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
   if (edge == null) {
     return (
       '<div class="tech-report"><div class="tr-head"><div class="tr-title">Positioning Briefing · CEO</div>' +
-      `<div class="tr-sub">${escAll(m.comp || "")} vs ${escAll(m.bf || "KSSL")}</div>` +
+      `<div class="tr-sub">${escAll(m.comp || "")} vs ${escAll(m.bf || "")}</div>` +
       `<div class="tr-meta">CONFIDENTIAL · KSSL · Prepared ${today} · Category: ${escAll(m.cat || "")}</div></div>` +
       '<div class="tr-verdict parity"><b>KSSL specification not publicly disclosed.</b></div>' +
       `<div class="tr-sec"><div class="tr-sec-h">Assessment</div><div class="tr-body">${escAll(m.comp || "")} is a real, sourced competitor mapped to KSSL's ${escAll((m.bf || "counterpart").replace(/^KSSL · /, ""))} by role and spec class. KSSL has not publicly disclosed specifications for this counterpart, The comparison holds at the role and capability-class level.</div></div>` +

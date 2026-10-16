@@ -161,7 +161,7 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
               <div className="adv-col bf">
                 <div className="ah">
                   <span className="dot" />
-                  <span>{data.client?.short || "KSSL"} analytics</span>
+                  <span>{data.client?.short || ""} analytics</span>
                 </div>
                 <div>
                   {(m.advBf || []).length ? null : (

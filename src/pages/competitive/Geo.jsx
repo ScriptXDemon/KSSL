@@ -113,7 +113,7 @@ function outcomeText(row) {
 
 function footprintCountries(data, geo) {
   const preferred = data?.geoCountries || [];
-  const clientKey = data?.client?.id || data?.client?.short || "KSSL";
+  const clientKey = data?.client?.id || data?.client?.short || "";
   const own = geo?.countriesForComp(clientKey) || Object.keys(data?.geoData?.[clientKey] || {});
   const all = [...new Set([...preferred, ...own])];
   return all.map((name) => {
@@ -136,8 +136,8 @@ export default function Geo() {
   const [menuSearch, setMenuSearch] = useState("");
   const [drillBack, setDrillBack] = useState(false);
 
-  const clientKey = data?.client?.id || data?.client?.short || "KSSL";
-  const clientName = data?.client?.short || data?.client?.name || "KSSL";
+  const clientKey = data?.client?.id || data?.client?.short || "";
+  const clientName = data?.client?.short || data?.client?.name || "";
 
   useEffect(() => {
     const closeMenus = (event) => { if (!event.target.closest(".geo-dd")) setActiveMenu(null); };

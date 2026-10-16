@@ -6,7 +6,7 @@ import { smartTitleCase } from "../../lib/profile";
 export default function GlobalRequirement() {
   const { data } = useData();
   const { setScope } = useAppState();
-  const clientName = (data?.client && (data.client.short || data.client.name)) || "KSSL";
+  const clientName = (data?.client && (data.client.short || data.client.name)) || "";
 
   const reqList = useMemo(() => {
     return data?.globalRequirements || [];

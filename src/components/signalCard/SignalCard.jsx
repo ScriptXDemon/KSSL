@@ -37,7 +37,7 @@ export default function SignalCard({ card, dirWord, badgeClass, selected, fresh,
         <div className="sowhat" dangerouslySetInnerHTML={{ __html: card.ksslImpact || card.sowhat }} />
         {card.match && card.match.length > 0 && card.match[0].n && (
           <div className="koel-prod-highlight-row">
-            <span className="kph-label">{data.client?.short || "KSSL"} Product:</span>
+            <span className="kph-label">{data.client?.short || ""} Product:</span>
             <span className="kph-val">{card.match[0].n}</span>
           </div>
         )}

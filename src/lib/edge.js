@@ -151,9 +151,9 @@ export function computeSpecEdge(m) {
    used 60/48, so an index of 45 read "near parity" on the gauge and "competitor
    holds the edge" three panels over. Symmetric band of +/-8 around parity: a single
    decided dimension needs a ~13% gap to move the verdict off parity. */
-export function edgeVerdict(e, clientName = "KSSL") {
-  const short = (clientName || "KSSL").toUpperCase();
-  const name = clientName || "KSSL";
+export function edgeVerdict(e, clientName = "") {
+  const short = (clientName || "").toUpperCase();
+  const name = clientName || "";
   if (e == null)
     return {
       cls: "parity",

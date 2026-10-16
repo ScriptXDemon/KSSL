@@ -18,7 +18,7 @@ export function createGeo(d) {
   const { geoData, geoComps, matchups, competitors, CAT_META, counterRules, actLabel } = d;
   // A KEY, not a label: geoData is keyed by the client's id. Using the display
   // short name matched nothing, so every overlap test silently returned "none".
-  const CLIENT_KEY = (d.client && (d.client.id || d.client.short)) || "KSSL";
+  const CLIENT_KEY = (d.client && (d.client.id || d.client.short)) || "";
 
   /* IS THERE A CLIENT FOOTPRINT AT ALL?
 

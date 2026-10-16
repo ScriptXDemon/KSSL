@@ -720,7 +720,7 @@ export function navCounts(d, gapModel) {
     });
     counts.positioning = posCompanies.size;
     // Partnerships: competitor profiles (exclude the client's own reference network)
-    counts.partnerships = Object.keys(d.competitors).filter((k) => k !== ((d.client && d.client.id) || "KSSL")).length;
+    counts.partnerships = Object.keys(d.competitors).filter((k) => k !== ((d.client && d.client.id) || "")).length;
     // Geo: distinct countries across all companies' footprints
     const geoCountries = new Set();
     Object.values(d.geoData).forEach((byCountry) =>
@@ -741,7 +741,7 @@ export function navCounts(d, gapModel) {
        `d.client.id` is the slug by the time this runs; wireDataset resolves it from
        the row whose dir is "client", precisely so this join is not on a display label. */
     counts.profile = Object.keys(d.competitors).filter(
-      (k) => k !== ((d.client && d.client.id) || "KSSL"),
+      (k) => k !== ((d.client && d.client.id) || ""),
     ).length;
     counts["threat-analysis"] = 0;
     counts.projects = Array.isArray(d.projects) ? d.projects.length : 0;
@@ -751,7 +751,7 @@ export function navCounts(d, gapModel) {
        comp side of matchups + each competitor's own products), so the badge counts
        those — not KSSL's own SKUs, which is what it used to show (a "1" over a catalog
        of dozens). Same two sources the page reads, deduped by name. */
-    const clientId = (d.client && d.client.id) || "KSSL";
+    const clientId = (d.client && d.client.id) || "";
     const compProds = new Set();
     Object.values(d.matchups || {}).forEach((m) => {
       const nm = (m.comp || "").replace(/.*·\s*/, "").trim();
@@ -825,7 +825,7 @@ export function viewMetaFor(d) {
   let geoCountries = new Set();
   try {
     Object.entries(competitors).forEach(([k, c]) => {
-      if (k !== ((d.client && d.client.id) || "KSSL") && c.partners) allianceCount += c.partners.length;
+      if (k !== ((d.client && d.client.id) || "") && c.partners) allianceCount += c.partners.length;
     });
     Object.values(geoData).forEach((byCountry) =>
       Object.keys(byCountry || {}).forEach((c) => geoCountries.add(c)),
@@ -833,8 +833,8 @@ export function viewMetaFor(d) {
   } catch (e) {
     /* fall through to the static copy below */
   }
-  const partnerCount = Object.keys(competitors).filter((k) => k !== ((d.client && d.client.id) || "KSSL")).length;
-  const geoCompCount = Object.keys(geoData).filter((k) => k !== ((d.client && d.client.short) || "KSSL")).length;
+  const partnerCount = Object.keys(competitors).filter((k) => k !== ((d.client && d.client.id) || "")).length;
+  const geoCompCount = Object.keys(geoData).filter((k) => k !== ((d.client && d.client.short) || "")).length;
   const alertCount = (d.competitiveCards || []).length;
   return {
     overview: {

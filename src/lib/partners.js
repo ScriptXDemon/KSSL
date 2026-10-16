@@ -661,7 +661,7 @@ export function overlapBadge(p, clientName) {
 
 export function createPartners(d) {
   const { competitors, KSSL_PARTNERS, REL_LABEL, FIELDSYN, COMPSYN, TRACEIDS, sourceRegistry } = d;
-  const CLIENT_CID = (d.client && d.client.id) || "KSSL";
+  const CLIENT_CID = (d.client && d.client.id) || "";
 
   /* Which rivals each shared company serves. Deduped per rival: the dataset carries
      one peer row per source edge, so one company can appear 2-3 times under a single
@@ -1712,7 +1712,7 @@ const PG_IMG_ONERROR =
 
   /* the shared-partner read under the graph */
   function overlapHtml(c, cid, open, clientNameOverride) {
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "KSSL";
+    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "";
     const keyOf = pgKeyer(c.partners);
     const idx = pgSharedIndex();
     const shared = pgSharedFor(c);
@@ -1806,7 +1806,7 @@ const PG_IMG_ONERROR =
      read. Returns "" when there is no overlap, so the drawer prints nothing rather
      than an empty heading. */
   function overlapDefsHtml(c, cid, clientNameOverride) {
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "KSSL";
+    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "";
     if (!c || !pgDistinct(c)) return "";
     const shared = pgSharedFor(c);
     if (!shared.length) return "";
@@ -1837,7 +1837,7 @@ const PG_IMG_ONERROR =
   /* competitor-level drawer: the synthesis read, or the plain relationship list for
      the rivals that carry no synthesis. */
   function compReportHtml(c, cid, clientNameOverride) {
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "KSSL";
+    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "";
     /* A competitor id restored from localStorage can outlive the dataset that
        held it, and then `c` is an id with no row behind it. Read the ties through
        one guarded local rather than assuming the array exists. */
@@ -1922,7 +1922,7 @@ const PG_IMG_ONERROR =
 
   /* one relationship row, the drawer's deepest read */
   function tieHtml(c, cid, pid, clientNameOverride, activeRelCardIndex) {
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "KSSL";
+    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "";
     const p = (c.partners || []).find((x) => x.id === pid);
     if (!p) return "";
 
@@ -2355,7 +2355,7 @@ const PG_IMG_ONERROR =
 
   function allPartnersRosterHtml(c, cid, clientNameOverride) {
     if (!c) return "";
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "KSSL";
+    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "";
     /* Ranked (overlaps + evidence first) and capped: the roster surfaces the top
        defensible partners, not the long co-mention tail. */
     const all = pgNodes(c);

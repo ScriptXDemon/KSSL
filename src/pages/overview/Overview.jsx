@@ -71,7 +71,7 @@ export default function Overview({
     cfg.tagWord && c.kind && c.kind in cfg.tagWord ? cfg.tagWord[c.kind] : cfg.dirWord[c.dir] || c.dir;
   // the badge's colour class: a config may repaint a dir without changing the dir itself
   const badgeFor = (c) => (cfg.badgeClass && cfg.badgeClass[c.dir]) || c.dir;
-  const clientLabel = (data.client && (data.client.short || data.client.name)) || "KSSL";
+  const clientLabel = (data.client && (data.client.short || data.client.name)) || "";
   // `data` is a dependency because the sort now reads the same date the card prints,
   // which lives in data.details, not on the card
   const feed = useMemo(() => buildFeed(cfg, seqMode, data), [cfg, seqMode, data]);

@@ -22,7 +22,7 @@ import * as viewState from "../../lib/viewState";
 export default function Patents() {
   const { data } = useData();
   const { setScope, takePending } = useAppState();
-  const clientName = (data.client && (data.client.short || data.client.name)) || "KSSL";
+  const clientName = (data.client && (data.client.short || data.client.name)) || "";
   const getSavedPat = () => {
     try {
       const s = viewState.getItem("kssl_pat_state");

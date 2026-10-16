@@ -128,7 +128,7 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
    table; an empty one would mean the tier table had been emptied, and the gate below
    treats that as "cannot run" rather than "demote everything". */
 export function footprintCountries(data) {
-  const clientId = (data && data.client && data.client.id) || "KSSL";
+  const clientId = (data && data.client && data.client.id) || "";
   const rows = (data && data.geoData && data.geoData[clientId]) || null;
   const out = new Set();
   Object.keys(rows || {}).forEach((row) => {

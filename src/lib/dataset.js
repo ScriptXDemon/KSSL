@@ -443,7 +443,7 @@ export function wireDataset(raw) {
   // mark them 'bf' so they read as "KSSL present" and don't get a counter-product line.
   try {
     const clientShort =
-      (d.client && (d.client.id || d.client.short || d.client.name)) || "KSSL";
+      (d.client && (d.client.id || d.client.short || d.client.name)) || "";
     const ownGeo = (d.geoData && d.geoData[clientShort]) || {};
     Object.keys(ownGeo).forEach((ct) =>
       ownGeo[ct].forEach((p) => {
@@ -510,7 +510,7 @@ export function wireDataset(raw) {
          so the visible list, the header count and the tile can never disagree. Scored on
          fit + geo presence + value + recency: the geo set is the countries KSSL is present
          in (its own footprint), so a tender in a market KSSL already sells into ranks up. */
-      const clientGeoKey = (d.client && (d.client.id || d.client.short || d.client.name)) || "KSSL";
+      const clientGeoKey = (d.client && (d.client.id || d.client.short || d.client.name)) || "";
       const geoSet = new Set(Object.keys((d.geoData && d.geoData[clientGeoKey]) || {}));
       const shown = marketAttention(open, { geo: geoSet });
 

@@ -30,7 +30,7 @@ export default function GapAnalysis() {
 
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState(getSavedGap);
-  const clientName = (data.client && (data.client.short || data.client.name)) || "KSSL";
+  const clientName = (data.client && (data.client.short || data.client.name)) || "";
 
   const cats = useMemo(() => gapCategories(data.matchups), [data.matchups]);
 

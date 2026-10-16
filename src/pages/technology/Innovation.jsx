@@ -21,7 +21,7 @@ const EMPTY = [];
 export default function Innovation() {
   const { data, gapModel } = useData();
   const { setScope, jumpTo, takePending, searchQuery } = useAppState();
-  const clientName = (data.client && (data.client.short || data.client.name)) || "KSSL";
+  const clientName = (data.client && (data.client.short || data.client.name)) || "";
 
   const GAP_LAB = { behind: `${clientName} behind`, parity: `${clientName} at parity`, ahead: `${clientName} ahead` };
   const GAP_HEAD = {

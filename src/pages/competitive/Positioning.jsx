@@ -135,7 +135,7 @@ export default function Positioning() {
   const m = selected ? data.matchups[selected] : null;
   /* Free comparison of any two products (keys into the product index), or null. Opening
      a matched pair closes it; a comparison closes the matched pair. */
-  const clientShortName = (data.client && data.client.short) || "KSSL";
+  const clientShortName = (data.client && data.client.short) || "";
   const products = useMemo(() => buildProductIndex(data.matchups, clientShortName), [data.matchups, clientShortName]);
   const [compare, setCompare] = useState(null);
   const byKey = useMemo(() => new Map(products.map((p) => [p.key, p])), [products]);
@@ -145,7 +145,7 @@ export default function Positioning() {
   /* What the header's Copy / Export / Print act on: the open matchup -- its verdict,
      every spec row as served, both advantage lists -- or, with nothing selected, the
      list of pairs that survived the comparability gate. */
-  const clientShort = (data.client && data.client.short) || "KSSL";
+  const clientShort = (data.client && data.client.short) || "";
   const report = useMemo(() => {
     if (m) {
       const val = (v) => (v == null || v === "" ? "—" : String(v));
@@ -250,7 +250,7 @@ export default function Positioning() {
               </div>
               <span className="vsbadge">VS</span>
               <div className="side bf">
-                <div className="pn">{data.client?.short || "KSSL"} · —</div>
+                <div className="pn">{data.client?.short || ""} · —</div>
               </div>
             </div>
           </div>

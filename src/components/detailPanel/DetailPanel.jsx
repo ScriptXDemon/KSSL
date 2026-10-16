@@ -263,7 +263,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
 
         {isTender && detail.match && detail.match.length ? (
           <div className="ctx-sec">
-            <span className="eyebrow">Matched {data.client?.short || "KSSL"} product</span>
+            <span className="eyebrow">Matched {data.client?.short || ""} product</span>
             <div>
               {detail.match.map((m, i) => (
                 <div className="cd-match" key={`${m.n}-${i}`}>

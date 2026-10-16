@@ -24,7 +24,7 @@ const sectorText = (co) => formatSectorName(co && co.sector);
 export default function Partnerships() {
   const { data, partners } = useData();
   const { setScope, searchQuery } = useAppState();
-  const clientName = (data.client && (data.client.short || data.client.name)) || "KSSL";
+  const clientName = (data.client && (data.client.short || data.client.name)) || "";
   const getSavedPart = () => {
     try {
       const s = viewState.getItem("kssl_part_state");
@@ -37,9 +37,9 @@ export default function Partnerships() {
      Restore it only if the row is still here, or the drawer renders an id with no
      competitor behind it and throws on the first field it reads. */
   const defaultCid =
-    (data.compOrder && data.compOrder.find((k) => k !== (data.client?.id || "KSSL") && data.competitors[k])) || null;
+    (data.compOrder && data.compOrder.find((k) => k !== (data.client?.id || "") && data.competitors[k])) || null;
   const savedCid =
-    savedPart.cid && data.competitors[savedPart.cid] && savedPart.cid !== (data.client?.id || "KSSL")
+    savedPart.cid && data.competitors[savedPart.cid] && savedPart.cid !== (data.client?.id || "")
       ? savedPart.cid
       : defaultCid;
 
@@ -146,7 +146,7 @@ export default function Partnerships() {
   const ksslCo = useMemo(() => {
     const raw = Array.isArray(data.KSSL_PARTNERS) ? data.KSSL_PARTNERS : [];
     return {
-      id: (data.client && data.client.id) || "KSSL",
+      id: (data.client && data.client.id) || "",
       name: clientName,
       dir: "client",
       partners: raw,
@@ -159,7 +159,7 @@ export default function Partnerships() {
 
   /* The rival ids this list draws from -- the same population the options describe. */
   const rivalIds = useMemo(
-    () => data.compOrder.filter((k) => k !== (data.client?.id || "KSSL") && data.competitors[k]),
+    () => data.compOrder.filter((k) => k !== (data.client?.id || "") && data.competitors[k]),
     [data],
   );
   /* This select was headed "All HQ Countries" and offered the raw hq strings --
@@ -177,7 +177,7 @@ export default function Partnerships() {
     const rel = data.REL_LABEL || {};
     if (!selCo) {
       /* nothing selected: the roster the rail lists, each with its mapped-partner count */
-      const clientId = (data.client && data.client.id) || "KSSL";
+      const clientId = (data.client && data.client.id) || "";
       const roster = (data.compOrder || [])
         .filter((k) => k !== clientId && data.competitors[k])
         .map((k) => {
@@ -253,7 +253,7 @@ export default function Partnerships() {
   const tokens = activeQ.split(/\s+/).filter(Boolean);
 
   const list = data.compOrder
-    .filter((k) => k !== (data.client?.id || "KSSL"))
+    .filter((k) => k !== (data.client?.id || ""))
     .filter((k) => {
       const co = data.competitors[k];
       if (!co) return false;

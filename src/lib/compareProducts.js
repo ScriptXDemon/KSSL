@@ -24,7 +24,7 @@ function split(label, fallbackMaker) {
   return { maker: fallbackMaker || "", name: s };
 }
 
-export function buildProductIndex(matchups, clientShort = "KSSL") {
+export function buildProductIndex(matchups, clientShort = "") {
   const byKey = new Map();
   const add = (side, label, maker, cat, country, spec, v, n) => {
     const { maker: mk, name } = split(label, maker);

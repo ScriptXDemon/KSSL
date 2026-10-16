@@ -32,7 +32,7 @@ export function buildGapModel(d) {
      on the next line could ever run -- that guard was dead. */
   if (!d) return [];
   const { matchups, tenders, innovations, techCats, competitors, POS_CATS } = d;
-  const clientName = (d && d.client && (d.client.short || d.client.name)) || "KSSL";
+  const clientName = (d && d.client && (d.client.short || d.client.name)) || "";
   const gaps = [];
   let _id = 0;
   const nid = () => `g${++_id}`;

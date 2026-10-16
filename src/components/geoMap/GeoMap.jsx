@@ -123,15 +123,15 @@ export default function GeoMap({ data, geo, selectedCountry, onSelectCountry }) 
          Prefer the explicit client id and keep the legacy isBf/short fallbacks so
          archived datasets still render their own footprint correctly. */
       const clientRow = (data.geoComps || []).find((c) => c.isBf);
-      const clientKey = data.client?.id || clientRow?.id || data.client?.short || "KSSL";
+      const clientKey = data.client?.id || clientRow?.id || data.client?.short || "";
       const ownData =
         (data.geoData &&
-          (data.geoData[clientKey] || data.geoData[clientRow?.id] || data.geoData[data.client?.short || "KSSL"])) ||
+          (data.geoData[clientKey] || data.geoData[clientRow?.id] || data.geoData[data.client?.short || ""])) ||
         {};
       const isKoelPresent = !!ownData[ct];
       const isSelected = selectedCountry === ct;
 
-      const clientLabel = (data.client && (data.client.short || data.client.name)) || "KSSL";
+      const clientLabel = (data.client && (data.client.short || data.client.name)) || "";
       /* "Contested" requires an actual rival presence row here — a country with no
          activity on file is reported as exactly that, not as a contested market.
 

@@ -253,7 +253,7 @@ export function pairVals(x) {
 /* One rival in one band. Ownership decides the verdict (no cancellation); the
    margin, record and worst-case are kept because they are real facts the table
    shows alongside it. */
-export function gapRivals(matchups, cat, clientName = "KSSL") {
+export function gapRivals(matchups, cat, clientName = "") {
   _gapMetaCat = cat || "";
   const by = {};
   Object.keys(matchups).forEach((id) => {
@@ -519,7 +519,7 @@ function gapBarAxis() {
   return `${s}</svg>`;
 }
 
-function gapDimGrid(rivals, clientName = "KSSL") {
+function gapDimGrid(rivals, clientName = "") {
   const rows = gapDimRows(rivals);
   if (!rows.length)
     return '<div class="gd-note">No dimension has enough published data in this band to judge.</div>';
@@ -763,7 +763,7 @@ const GAP_WHY = {
   }
 };
 
-function gapWhyBlock(rivals, clientName = "KSSL") {
+function gapWhyBlock(rivals, clientName = "") {
   const rows = gapDimRows(rivals).filter((r) => r.rivalOwns > 0);
   if (!rows.length)
     return '<div class="gd-note">No rival owns a measured dimension in this band, so there is no spec-side advantage to interpret.</div>';
@@ -817,7 +817,7 @@ function gapWhyBlock(rivals, clientName = "KSSL") {
    WORST pairing -- so of the eleven head-to-head comparisons the header advertised
    in Artillery, six were unreachable and none of the underlying numbers appeared
    anywhere. A count the reader cannot open is a claim, not evidence. */
-function gapComparisons(rivals, clientName = "KSSL", held = 0) {
+function gapComparisons(rivals, clientName = "", held = 0) {
   const total = rivals.reduce((t, r) => t + r.n, 0);
   if (!total) return "";
   let h =
@@ -866,7 +866,7 @@ function gapComparisons(rivals, clientName = "KSSL", held = 0) {
 }
 
 
-export function gapCategoryBody(rivals, clientName = "KSSL", held = 0) {
+export function gapCategoryBody(rivals, clientName = "", held = 0) {
   if (!rivals.length)
     return (
       '<div class="pat-empty"><div class="pe-ic">⊘</div><div class="pe-t">No measured matchups in this band</div>' +

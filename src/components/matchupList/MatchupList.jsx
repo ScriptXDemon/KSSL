@@ -35,7 +35,7 @@ export default function MatchupList({ data, selected, onSelect, products = [], c
   const productGroups = useMemo(() => {
     const g = new Map();
     products.forEach((p) => {
-      const k = p.side === "client" ? `${data.client?.short || "KSSL"} products` : p.cat;
+      const k = p.side === "client" ? `${data.client?.short || ""} products` : p.cat;
       if (!g.has(k)) g.set(k, []);
       g.get(k).push(p);
     });
@@ -199,7 +199,7 @@ export default function MatchupList({ data, selected, onSelect, products = [], c
             ))}
           </select>
           <select className="mu-fsel" onChange={select(setKoel)} value={koel}>
-            <option value="">All {data.client?.short || "KSSL"} Products</option>
+            <option value="">All {data.client?.short || ""} Products</option>
             {options.koel.map((v) => (
               <option key={v} value={v}>
                 {labels.koelLabel[v] || v}
@@ -269,7 +269,7 @@ export default function MatchupList({ data, selected, onSelect, products = [], c
               {g.anchors.map(({ anchor, ids }) => (
                 <div key={anchor}>
                   <div className="mu-anchor">
-                    <span className="ma-koel">{data.client?.short || "KSSL"}</span> {anchor}{" "}
+                    <span className="ma-koel">{data.client?.short || ""}</span> {anchor}{" "}
                     <span className="ma-count">
                       {ids.length} rival{ids.length > 1 ? "s" : ""}
                     </span>

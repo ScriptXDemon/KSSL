@@ -93,7 +93,7 @@ const DASHBOARD_PARAM_KEYS = new Set(["buyer", "country", "category", "value", "
 export default function Tenders({ mode = "tender" }) {
   const { data, gapModel } = useData();
   const { setScope, takePending, searchQuery } = useAppState();
-  const clientName = (data.client && (data.client.short || data.client.name)) || "KSSL";
+  const clientName = (data.client && (data.client.short || data.client.name)) || "";
   const getSavedTender = () => {
     try {
       const s = localStorage.getItem("kssl_tender_state");
