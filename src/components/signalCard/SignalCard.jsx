@@ -26,7 +26,7 @@ export default function SignalCard({ card, dirWord, badgeClass, selected, fresh,
       }}
     >
       <div className="gut">
-        <span className={`sig ${card.dir}`} />
+        <span className={card.dir ? `sig ${card.dir}` : "sig"} />
         <span className="rank">{card.rank}</span>
       </div>
       <div className="body">
@@ -45,7 +45,7 @@ export default function SignalCard({ card, dirWord, badgeClass, selected, fresh,
       </div>
       <div className="aside">
         {/* a Technology card also carries its kind, so ADOPTABLE can read green (k-adopt) */}
-        {dirWord ? <span className={`dirtag ${badgeClass || card.dir}${card.kind ? ` k-${card.kind}` : ""}`}>{dirWord}</span> : null}
+        {dirWord ? <span className={`dirtag${badgeClass || card.dir ? ` ${badgeClass || card.dir}` : ""}${card.kind ? ` k-${card.kind}` : ""}`}>{dirWord}</span> : null}
         {/* `when` comes from signalDate() so the card and its detail panel cannot
             disagree about the same event. Falls back to the card’s own value.
 

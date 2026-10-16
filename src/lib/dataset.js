@@ -5,7 +5,6 @@
 
    Pure: takes the fetched object, returns a new wired one. Nothing is written to
    `window`, so the app can re-fetch and re-wire without a reload. */
-import { clientShort } from "./client.js";
 import { pairingReason } from "./specs.js";
 import { wireTendersWithRealDays } from "./tenderCalc.js";
 import { tenderGist, tenderSummary } from "./tenderRow.js";
@@ -278,7 +277,7 @@ export function wireDataset(raw) {
            global search. */
         cards: technologyAttention(d.techCards, isRivalCard),
         title: "Technology Knowledge",
-        cnt: `recent defence-tech: competitor advancements + advances ${clientShort()} can adopt`,
+        cnt: "technology articles",
         /* No Gap/Watch/Edge words anywhere. Every card is knowledge. */
         dirWord: { fav: "Advancement", watch: "Advancement", threat: "Advancement" },
         /* The card badge must name WHICH stream a card is in, not stamp a flat
@@ -392,14 +391,11 @@ export function wireDataset(raw) {
      head when the corpus carries no grades. The Tender Pipeline still lists every open
      tender; this is the curated head.
 
-     THE SPLIT IS A PARTITION, because Overview filters on `card.dir === f.f` -- a card
-     can sit in exactly one facet, so overlapping ones would silently drop rows:
-       threat -> priced   open AND publishes a value
-       fav    -> unpriced open, value not published
-     This value split drives the feed facets and is asserted by test_market_facets; it is
-     NOT the card's status word, which is one "LIVE BID" for every open tender (dirWord
-     below) -- a tender is not a "threat" for having published a number. CONCLUDED tenders
-     are never promoted: awarded and closed have their own two views.
+     A PROMOTED TENDER IS MARKED `kind: "tender"` AND CARRIES NO `dir`. Whether a tender
+     publishes a price is not a stance, so the browser no longer splits tenders into
+     threat/fav on it; the facets, groups and tiles select on `kind` (asserted by
+     test_market_facets). CONCLUDED tenders are never promoted: awarded and closed have
+     their own two views.
 
      Each card carries a detail record built from the tender's own stored fields. A card
      with no detail opens an empty panel -- the drawer reads data.details[id]. */
@@ -466,7 +462,7 @@ export function wireDataset(raw) {
              field -- so without this the tender path never fired and every promoted
              tender opened as an "article" with a Favourable/Threat stance pill. */
           id,
-          dir: "fav",   // one class for every tender card: a published price is not a stance
+          kind: "tender",   // what the card IS; it carries no dir, because the data holds no stance for a tender
           title: gist,
           facts: [
             ["Issuer", t.issuer],
@@ -487,7 +483,7 @@ export function wireDataset(raw) {
         };
         return {
           id,
-          dir: "fav",   // one class for every tender card: a published price is not a stance
+          kind: "tender",   // what the card IS; no dir, the data holds no stance for a tender
           rank: String(i + 1).padStart(2, "0"),
           title: gist,
           meta: [t.cat, where].filter(Boolean).join(" · "),
@@ -545,26 +541,21 @@ export function wireDataset(raw) {
               ? "latest tenders and perceived opportunities"
               : d.overviewConfig.market.cnt,
             /* Card badges: a tender reads "TENDER", an opportunity "OPPORTUNITY". The
-               value split still lives on `dir` (fav unpriced / threat priced) but is no
-               longer surfaced as a threat word. */
+               tender is marked by its `kind`, not by a stance. */
             dirWord: {
               ...(d.overviewConfig.market.dirWord || {}),
-              fav: "TENDER",
-              threat: "TENDER",
               watch: "OPPORTUNITY",
             },
-            /* the TENDER badge reads green whichever value band it is in (owner request);
-               `dir` itself is untouched -- sequencing and filters still read it */
-            badgeClass: { fav: "fav", threat: "fav" },
-            /* Two filter pills, one per stream. "Latest Tenders" selects both tender
-               directions (fav+threat); "Perceived Opportunities" selects the watch stream.
-               filterMatch (lib/overview) reads the `dirs` array. */
+            tagWord: { tender: "TENDER" },
+            /* Two filter pills, one per stream. "Latest Tenders" selects the cards of kind
+               tender; "Perceived Opportunities" selects the watch stream.
+               filterMatch (lib/overview) reads `kinds` and `dirs`. */
             /* The All / Latest Tenders / Perceived Opportunities buttons are OFF on this pillar (owner request);
                `filters` stays for the tiles and the count line. */
             hideFilterButtons: true,
             filters: [
               { f: "all", l: "All" },
-              { f: "tenders", l: "Latest Tenders", dirs: ["fav", "threat"], c: "var(--threat)" },
+              { f: "tenders", l: "Latest Tenders", kinds: ["tender"], c: "var(--threat)" },
               { f: "opps", l: "Perceived Opportunities", dirs: ["watch"], c: "var(--watch)" },
             ],
             /* Tiles: counted by metricsFor(market) from the served feed. Labels MUST
@@ -576,11 +567,11 @@ export function wireDataset(raw) {
               { l: "Perceived opportunities", act: "opps" },
               { l: "All signals", act: "all" },
             ],
-            /* The two content groups, cut by direction (buildFeed reads `dirs`). Banners
+            /* The two content groups, cut by kind and direction (buildFeed reads `kinds` and `dirs`). Banners
                are off in the feed, but the order (tenders then opportunities) and the
                exported report read these. */
             groups: [
-              { h: "Latest Tenders", dirs: ["fav", "threat"] },
+              { h: "Latest Tenders", kinds: ["tender"] },
               { h: "Perceived Opportunities", dirs: ["watch"] },
             ],
           },

@@ -14,8 +14,8 @@
  *
  *   1. the facets are non-empty -- the actual complaint;
  *   2. the split is a PARTITION. Overview filters on `card.dir === f.f`, so a card sits
- *      in exactly one facet; overlapping facets would silently drop rows. fav + threat
- *      must equal the open tenders, no double counting, none missed;
+ *      in exactly one facet. The open tenders are the cards of `kind: "tender"`, no
+ *      double counting, none missed; they carry NO `dir` (the data holds no stance for a tender);
  *   3. CONCLUDED tenders are not promoted. Awarded and closed have their own two views,
  *      and adding them here would inflate "Emerging Demand" with unbiddable contracts;
  *   4. every promoted card has a DETAIL. The drawer reads data.details[id]; a card
@@ -24,6 +24,7 @@
  */
 import { wireDataset } from "./src/lib/dataset.js";
 import { marketSelfCheck } from "./src/lib/marketOverview.js";
+import { filterMatch, tilePredicate, buildFeed } from "./src/lib/overview.js";
 
 let bad = 0;
 const fail = (m) => { bad++; console.log("  FAIL " + m); };
@@ -58,16 +59,17 @@ const raw = {
 const d = wireDataset(raw);
 const cards = d.marketCards || [];
 const by = (dir) => cards.filter((c) => c.dir === dir);
+const tenders = cards.filter((c) => c.kind === "tender");
 
 // 1. the tender facet has members -- the complaint
-if (by("fav").length === 0) fail("the tender facet is empty");
+if (tenders.length === 0) fail("the tender facet is empty");
 
-// 2. exactly the open tenders, all in ONE class: whether a tender publishes a price is not a stance,
-//    so the browser no longer splits them into Live Bids and Opportunities on it
-if (by("fav").length !== 3)
-  fail(`the 3 open tenders should all be one class, got ${by("fav").length}`);
-if (by("threat").length !== 0)
-  fail(`no tender may be sorted into a second class on its price, got ${by("threat").length}`);
+// 2. exactly the open tenders, marked by KIND and by nothing else: whether a tender publishes a price is not a
+//    stance, so no tender carries a dir (no fav, no threat, no watch)
+if (tenders.length !== 3)
+  fail(`the 3 open tenders should all be kind "tender", got ${tenders.length}`);
+for (const c of tenders) if ("dir" in c && c.dir != null) fail(`${c.id} carries a stance (dir=${c.dir}) the data does not hold`);
+if (by("fav").length + by("threat").length !== 0) fail("no card may be sorted into fav or threat on a tender's price");
 const ids = cards.map((c) => c.id);
 if (new Set(ids).size !== ids.length) fail("a tender was promoted twice");
 
@@ -80,7 +82,8 @@ for (const gone of ["tender-t-awarded", "tender-t-closed"]) {
 for (const c of cards.filter((x) => x.id.startsWith("tender-"))) {
   const det = (d.details || {})[c.id];
   if (!det) { fail(`${c.id} has no detail -- its drawer would open empty`); continue; }
-  if (det.dir !== c.dir) fail(`${c.id} detail dir disagrees with the card`);
+  if (det.dir != null) fail(`${c.id} detail carries a stance (dir=${det.dir})`);
+  if (det.kind !== "tender") fail(`${c.id} detail is not marked kind "tender"`);
   if (!det.url) fail(`${c.id} detail has no source url`);
   if (!det.facts.some((f) => f[0] === "Issuer")) fail(`${c.id} detail lost its issuer`);
   // no fabricated value on a tender that publishes none
@@ -97,6 +100,10 @@ if (by("watch").length !== 2) fail(`the 2 demand cards should be intact, got ${b
 // required). d.marketCards still carries the whole news lane for search.
 const served = ((d.overviewConfig || {}).market || {}).cards || [];
 const promotedCards = cards.filter((c) => c.id.startsWith("tender-"));
+const mk = (d.overviewConfig || {}).market || {};
+for (const f of mk.filters || []) if (f.dirs && f.dirs.some((x) => x === "fav" || x === "threat")) fail(`filter ${f.f} still selects tenders by a stance`);
+for (const g of mk.groups || []) if (g.dirs && g.dirs.some((x) => x === "fav" || x === "threat")) fail(`group ${g.h} still selects tenders by a stance`);
+if (!(mk.filters || []).some((f) => f.kinds && f.kinds.includes("tender"))) fail("the Latest Tenders filter must select kind tender");
 const tenderServed = served.filter((c) => c.id.startsWith("tender-"));
 if (tenderServed.length !== promotedCards.length)
   fail(`the Latest Tenders stream has ${tenderServed.length}, expected the ${promotedCards.length} promoted tenders`);
@@ -105,10 +112,24 @@ if (oppServed.length === 0)
   fail("the overview feed must carry the Perceived Opportunities stream (watch cards)");
 if (served.length !== tenderServed.length + oppServed.length)
   fail("the feed is the two streams and nothing else -- tenders + opportunities");
-if (/fit|act on/.test(((d.overviewConfig || {}).market || {}).cnt || ""))
+if (/fit|act on|defence-tech|can adopt/.test(((d.overviewConfig || {}).market || {}).cnt || ""))
   fail("the subhead claims a fit or an action the data does not hold");
 if (/demand signals/.test(((d.overviewConfig || {}).market || {}).cnt || ""))
   fail("the subhead still calls the feed 'demand signals'");
+
+// the pills, the "Latest tenders" tile and the feed groups select tenders by kind
+for (const c of tenders) {
+  if (!filterMatch(c, "tenders", mk.filters)) fail(`${c.id} is missed by the Latest Tenders pill`);
+  if (filterMatch(c, "opps", mk.filters)) fail(`${c.id} is wrongly in Perceived Opportunities`);
+  if (!tilePredicate("open")(c)) fail(`${c.id} is missed by the Latest tenders tile`);
+}
+for (const c of oppServed) {
+  if (filterMatch(c, "tenders", mk.filters) || tilePredicate("open")(c)) fail(`${c.id} (an opportunity) is counted as a tender`);
+}
+const feedGroups = buildFeed(mk, "priority", d).groups;
+if (!feedGroups.length || feedGroups[0].cards.some((c) => c.kind !== "tender")) fail("the first feed group must hold only tenders");
+// the technology count line names what is counted and claims nothing
+if (/adopt|defence-tech/i.test(((d.overviewConfig || {}).technology || {}).cnt || "")) fail("the technology subhead still claims what can be adopted");
 
 // and the invariant that keeps the pills and the tiles honest
 try {
@@ -123,5 +144,5 @@ try {
 } catch (e) { /* expected */ }
 
 if (bad) { console.log(`\n${bad} failure(s)`); process.exit(1); }
-console.log("ok - market facets: open tenders promoted, partition holds, "
+console.log("ok - market facets: open tenders promoted as kind tender with no stance, "
   + "concluded excluded, every card has a detail");

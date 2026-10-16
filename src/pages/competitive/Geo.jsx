@@ -501,7 +501,8 @@ export default function Geo() {
 
   const head = relHeader();
   const co = pair ? data.geoComps.find((x) => x.id === pair.cid) : null;
-  const dir = prod ? (co && co.isBf ? "fav" : "watch") : "watch";
+  /* the header carries a stance class only for the client's own row, which is the one the data marks */
+  const dir = prod && co && co.isBf ? "fav" : null;
 
   return (
     <div className="geo-view v-geo" ref={rootRef} style={{ position: "relative" }}>
@@ -689,7 +690,7 @@ export default function Geo() {
       {showDetail && (country || pair || comp) ? (
         <div className="geo-det-overlay" id="geo-det">
             <div
-              className={`geo-d-h dir-${dir}`}
+              className={dir ? `geo-d-h dir-${dir}` : "geo-d-h"}
               style={{
                 position: "relative",
                 background: "#1c1c1f",
@@ -854,7 +855,7 @@ export default function Geo() {
                 >
                   <div className="geo-det-product-scroll" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", paddingBottom: "24px" }}>
                     <div
-                      className={`geo-d-h dir-${dir}`}
+                      className={dir ? `geo-d-h dir-${dir}` : "geo-d-h"}
                       style={{
                         position: "relative",
                         background: "#ffffff",

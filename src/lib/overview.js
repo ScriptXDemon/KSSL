@@ -86,6 +86,7 @@ export function filterMatch(card, filterKey, filters) {
   if (!filterKey || filterKey === "all") return true;
   const fo = (filters || []).find((x) => x.f === filterKey);
   if (fo && fo.tag) return cardHasTag(card, fo.tag);
+  if (fo && Array.isArray(fo.kinds) && fo.kinds.length) return fo.kinds.indexOf(card.kind) >= 0;
   if (fo && Array.isArray(fo.dirs) && fo.dirs.length) return fo.dirs.indexOf(card.dir) >= 0;
   return card.dir === filterKey;
 }
@@ -93,7 +94,7 @@ export function filterMatch(card, filterKey, filters) {
 export function cutGroupsByDirection(groups, firstDirs = ["threat"]) {
   const list = Array.isArray(groups) ? groups : [];
   if (list.length < 2) return list.map((g) => ({ ...g }));
-  if (list.some((g) => g && g.dirs && g.dirs.length)) return list.map((g) => ({ ...g }));
+  if (list.some((g) => g && ((g.dirs && g.dirs.length) || (g.kinds && g.kinds.length)))) return list.map((g) => ({ ...g }));
   return list.map((g, i) => (i === 0 ? { ...g, dirs: firstDirs.slice() } : { ...g }));
 }
 
@@ -168,11 +169,12 @@ export function buildFeed(cfg, seqMode, data) {
      it names, wherever they sort. Without this the heading described a slice of the
      ranking -- "Live Opportunities" was simply the top three cards, whatever they were.
      Feeds whose defs carry no `dirs` keep the index behaviour below unchanged. */
-  const byContent = groupDefs.some((g) => (g.dirs && g.dirs.length) || (g.tags && g.tags.length));
+  const byContent = groupDefs.some((g) => (g.dirs && g.dirs.length) || (g.kinds && g.kinds.length) || (g.tags && g.tags.length));
   if (byContent) {
     const claimed = new Set();
     const claims = (g, c) =>
       (g.dirs || []).indexOf(c.dir) >= 0 ||
+      (g.kinds || []).indexOf(c.kind) >= 0 ||
       (g.tags || []).some((t) => cardHasTag(c, t));
     groupDefs.forEach((g, i) => {
       const last = i === groupDefs.length - 1;
@@ -636,14 +638,13 @@ export const TILE_LABELS = {
   valued: "published a value",
   opps: "perceived opportunities",
   rival: "competitor advancements",
-  // read at use, after the client is set
-  get adopt() { return `advances ${clientShort()} can adopt`; },
+  adopt: "adoptable advances",
   geo: "markets in play",
   positioning: "rating-matched rivals",
   gap: "capability gaps",
   patents: "patent activity",
   emission: "emission compliance",
-  all: "sorted by relevance",
+  all: "all signals",
 };
 
 export function tilePredicate(act) {
@@ -652,9 +653,9 @@ export function tilePredicate(act) {
   if (act === "atstake") return (c) => c.dir === "threat" || c.dir === "atstake" || has(c, "atstake");
   if (act === "threat") return (c) => c.dir === "threat" || has(c, "threat");
   if (act === "fav" || act === "watch") return (c) => c.dir === "fav" || c.dir === "watch" || has(c, "opening") || has(c, "fav") || has(c, "watch");
-  /* The promoted open tenders: unpriced ones are `fav`, priced ones `threat`; the
-     opportunity cards on the same feed are all `watch` and are not open tenders. */
-  if (act === "open") return (c) => c.dir === "fav" || c.dir === "threat";
+  /* The promoted open tenders are the cards of kind `tender`; the opportunity cards on
+     the same feed are `watch` and are not open tenders. */
+  if (act === "open") return (c) => c.kind === "tender";
   /* Perceived opportunities: the demand/geopolitical watch stream, no tender required. */
   if (act === "opps") return (c) => c.dir === "watch";
   /* Technology streams, selected by the tag technologyAttention stamps. */
@@ -808,12 +809,12 @@ export function viewMetaFor(d) {
   const meta = {
     overview: {
       title: "Competitive Intelligence",
-      cnt: `${alertCount} active signals · sorted by relevance`,
+      cnt: `${alertCount} signals`,
       filters: true,
     },
     profile: {
       title: "Competitor Profile",
-      cnt: `${partnerCount} companies tracked · everything we track on one rival`,
+      cnt: `${partnerCount} companies tracked`,
       filters: false,
     },
     "threat-analysis": {
@@ -824,12 +825,12 @@ export function viewMetaFor(d) {
     products: {
       title: "Products",
       /* British spelling and singular "catalogue", as every other heading (FE 18) */
-      cnt: "Competitor & client product catalogue across tracked defence categories",
+      cnt: "Competitor and client products",
       filters: false,
     },
     positioning: {
       title: "Product Evaluation",
-      cnt: `${clientShort()} products mapped to rival products by spec category`,
+      cnt: `${Object.keys(d.matchups || {}).length} product matchups`,
       filters: true,
     },
     partnerships: {
@@ -844,7 +845,7 @@ export function viewMetaFor(d) {
     },
     finances: {
       title: "Finances",
-      cnt: "0 financial records on record",
+      cnt: "Financial records",
       filters: false,
     },
     geo: {
@@ -863,37 +864,37 @@ export function viewMetaFor(d) {
     },
     tender: {
       title: "Tenders",
-      cnt: "Live opportunities matched to product portfolio",
+      cnt: "Open tenders",
       filters: false,
     },
     "global-requirement": {
       title: "Global Requirements",
-      cnt: "Worldwide defence procurement requirements and capability demand",
+      cnt: "Global requirements",
       filters: false,
     },
     "awarded-tenders": {
       title: "Awarded Tenders",
-      cnt: "Contracts awarded or settled",
+      cnt: "Awarded tenders",
       filters: false,
     },
     "closed-tenders": {
       title: "Closed Tenders",
-      cnt: "Opportunities closed or expired",
+      cnt: "Closed tenders",
       filters: false,
     },
     innovation: {
       title: "Innovation Pipeline",
-      cnt: `Technology developments tracked across ${clientShort()} product domains`,
+      cnt: "Technology developments",
       filters: false,
     },
     "patents-comp": {
       title: "Patent",
-      cnt: "Filings by rival and by technology field · sourced from patent records",
+      cnt: "Patent filings",
       filters: false,
     },
     "gap-competitive": {
       title: "Gap Analysis",
-      cnt: `Where ${clientShort()} trails rivals, from the Positioning spec comparisons`,
+      cnt: "Gap comparisons",
       filters: false,
     },
   };

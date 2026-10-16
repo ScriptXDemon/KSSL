@@ -268,7 +268,7 @@ export function marketSelfCheck(tenders, marketCards) {
      one-argument call is still valid. */
   if (Array.isArray(marketCards) && marketCards.length) {
     const { open } = bucketTenders(list);
-    const promoted = marketCards.filter((c) => c.dir === "fav" || c.dir === "threat");
+    const promoted = marketCards.filter((c) => c.kind === "tender");
     const attention = marketAttention(open).length;
     if (promoted.length !== attention)
       throw new Error(
