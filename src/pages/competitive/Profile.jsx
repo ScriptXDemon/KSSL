@@ -116,33 +116,6 @@ export function tenureText(from, to, now = new Date().getFullYear()) {
   return `${span} · ${n < 1 ? "under 1 yr" : `${n} yr${n === 1 ? "" : "s"}`}`;
 }
 
-function getLeaderPsychology(leader, companyName) {
-  const name = (leader.name || "").toLowerCase();
-  const cName = (companyName || "").toLowerCase();
-  if (name.includes("rajvanshi") || cName.includes("adani")) {
-    return {
-      doctrine: "Champion of end-to-end sovereign ecosystems; prioritises speed of technology absorption from tier-1 global aerospace and defence innovators into domestic manufacturing clusters.",
-      execution: "Favours high-throughput mega-complexes (e.g., South Asia's largest ammunition and missile facilities in Kanpur) over fragmented workshops to achieve sovereign economies of scale.",
-      risk: "Calculated aggressive early-mover capital allocation: commits capital to build advanced manufacturing infrastructure ahead of formal procurement cycles, positioning the group as a prime bidder for major MoD tenders.",
-      outlook: "Aligns tightly with MoD indigenisation positive lists (DAP 2020) and targets export corridors across the Middle East, Southeast Asia, and Central Asia."
-    };
-  }
-  if (name.includes("subrahmanyan") || cName.includes("larsen") || cName.includes("l&t")) {
-    return {
-      doctrine: "Engineering-first sovereign capability builder with zero tolerance for execution slippage; positions L&T as India's premier private defence contractor across naval platforms, artillery, and strategic missile launchers.",
-      execution: "Integrates precision heavy engineering with proprietary digital design systems; leverages massive internal EPC capacity to deliver complex multi-year defence programs ahead of contractual schedules.",
-      risk: "Disciplined, long-term balance sheet stewardship: balances long-gestation strategic defence capital expenditure with consistent cash generation from diversified commercial divisions.",
-      outlook: "Core advocate of strategic autonomy; champions indigenous design IP in partnership with DRDO and the Indian Navy while remaining selective about high-technology JVs with Western primes."
-    };
-  }
-  return {
-    doctrine: `Focuses on developing core sovereign engineering IP and rapid vertical integration to support indigenous modernization mandates at ${companyName}.`,
-    execution: "Emphasizes modular platform architecture, stringent quality assurance, and digitalized manufacturing workflows to compress delivery lead times.",
-    risk: "Prudent risk appetite balanced by strategic capital reinvestment into specialized test facilities, precision tooling, and domestic supply-chain resilience.",
-    outlook: "Actively aligns organizational capabilities with tri-services long-term acquisition plans and export opportunities in friendly foreign countries."
-  };
-}
-
 function LeaderPage({ leader, companyName, companyArticles, onBack }) {
   const exp = leader.experience || [];
   const edu = leader.education || [];
@@ -158,8 +131,6 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
     if (matched.length >= 2) return matched.slice(0, 6);
     return (companyArticles || []).slice(0, 4);
   }, [leader, companyArticles]);
-
-  const psych = useMemo(() => getLeaderPsychology(leader, companyName), [leader, companyName]);
 
   return (
     <div className="cp-person">
@@ -251,44 +222,6 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
         ) : (
           <div className="cp-thin">No recent news on record.</div>
         )}
-      </section>
-
-      <section className="cp-person-sec">
-        <h2 className="cp-person-h">Psychology & Strategic Thinking</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px", marginTop: "10px" }}>
-          <div style={{ background: "var(--d-bg-1)", border: "1px solid var(--d-line)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", color: "#f0593c", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: "6px" }}>
-              Strategic Doctrine
-            </div>
-            <div style={{ fontSize: "13px", lineHeight: "1.55", color: "var(--d-txt)" }}>
-              {psych.doctrine}
-            </div>
-          </div>
-          <div style={{ background: "var(--d-bg-1)", border: "1px solid var(--d-line)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", color: "#34d399", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: "6px" }}>
-              Execution & Scale Philosophy
-            </div>
-            <div style={{ fontSize: "13px", lineHeight: "1.55", color: "var(--d-txt)" }}>
-              {psych.execution}
-            </div>
-          </div>
-          <div style={{ background: "var(--d-bg-1)", border: "1px solid var(--d-line)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", color: "#60a5fa", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: "6px" }}>
-              Risk Profile & Capital Allocation
-            </div>
-            <div style={{ fontSize: "13px", lineHeight: "1.55", color: "var(--d-txt)" }}>
-              {psych.risk}
-            </div>
-          </div>
-          <div style={{ background: "var(--d-bg-1)", border: "1px solid var(--d-line)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", color: "#fbbf24", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: "6px" }}>
-              Geopolitical & Indigenisation Outlook
-            </div>
-            <div style={{ fontSize: "13px", lineHeight: "1.55", color: "var(--d-txt)" }}>
-              {psych.outlook}
-            </div>
-          </div>
-        </div>
       </section>
 
       {leader.source || leader.bioSource || leader.photoSource ? (
@@ -980,7 +913,7 @@ export default function Profile() {
             {/* 2. STRATEGIC POSITIONING */}
             <Sec title="Strategic Positioning">
               <p className="cp-prose" style={{ fontSize: "13.5px", lineHeight: "1.65", color: "var(--d-read)", marginBottom: "18px" }}>
-                {p.strategic_positioning || p.assess || `${displayName} is actively scaling indigenous manufacturing capabilities across core defence, aerospace, and tactical systems. The company converts technological partnerships into sovereign programs across tri-services modernisation and domestic procurement mandates.`}
+                {p.strategic_positioning || "No strategic positioning recorded."}
               </p>
 
               {/* PARALLAX READ */}
@@ -991,8 +924,7 @@ export default function Profile() {
                 <div style={{ padding: "16px 20px", background: "var(--d-bg-1)", border: "1px solid #f0593c", borderRadius: "8px", fontSize: "13.5px", lineHeight: "1.6", color: "var(--d-txt)" }}>
                   {(() => {
                     const cleanAssess = (p.assess || "").replace(/<[^>]*>/g, "").trim();
-                    if (cleanAssess) return cleanAssess;
-                    return `${displayName} is the incumbent specification across primary domestic defence tenders and tri-services modernisation programmes. Domestic manufacturing clusters and expanding tier-1 supplier integrations absorb military procurement demand before broad public tenders open.`;
+                    return cleanAssess || "No Parallax read recorded.";
                   })()}
                 </div>
               </div>

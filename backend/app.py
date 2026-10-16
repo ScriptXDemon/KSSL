@@ -154,6 +154,8 @@ def build_competitors(database):
             "origin": text(row.get("origin_country")),
             "sector": text(row.get("industry_sector")),
             "description": text(row.get("parallax_read")),
+            "strategic_positioning": text(row.get("strategic_positioning")),
+            "assess": text(row.get("parallax_read")),
             "hq": text(row.get("headquarters")),
             "starting_year": row.get("starting_year"),
             "global_locations": row.get("global_locations"),
@@ -164,6 +166,95 @@ def build_competitors(database):
         }
         order.append(cid)
     return result, order
+
+
+def build_products(database):
+    """Build product catalog rows from serving tables only.
+
+    Product images, specifications, and programs are optional database records. When
+    they are absent the API returns empty values so the UI can show its empty state.
+    """
+    specs_by_product = defaultdict(list)
+    for row in table(database, "serving", "competitive_product_specification"):
+        product_id = text(row.get("product_id"))
+        if not product_id:
+            continue
+        label = text(row.get("spec_label"))
+        value = text(row.get("spec_value"))
+        unit = text(row.get("unit"))
+        if label and value:
+            specs_by_product[product_id].append((label, f"{value}{f' {unit}' if unit else ''}"))
+
+    programs_by_product = defaultdict(list)
+    for row in table(database, "serving", "competitive_product_program"):
+        product_id = text(row.get("product_id"))
+        if not product_id:
+            continue
+        programs_by_product[product_id].append({
+            "title": text(row.get("program_title")),
+            "authority": text(row.get("authority")),
+            "status": text(row.get("status")),
+            "statusColor": text(row.get("status_color")),
+            "date": text(row.get("program_date")),
+            "description": text(row.get("description")),
+        })
+
+    products_by_company = defaultdict(list)
+    for row in table(database, "serving", "competitive_product"):
+        product_id = text(row.get("product_id"))
+        competitor_id = text(row.get("competitor_id"))
+        name = text(row.get("product_name"))
+        if not product_id or not competitor_id or not name:
+            continue
+        products_by_company[competitor_id].append({
+            "id": product_id,
+            "name": name,
+            "category": text(row.get("category")),
+            "image": text(row.get("image_url")),
+            "imageSource": text(row.get("image_source_url")),
+            "specs": dict(specs_by_product.get(product_id, [])),
+            "programs": programs_by_product.get(product_id, []),
+            "source": text(row.get("product_search_query")),
+            "source_url": text(row.get("image_source_url")),
+        })
+
+    client_products = []
+    client_specs = defaultdict(list)
+    for row in table(database, "serving", "client_product_specification"):
+        product_id = text(row.get("client_product_id"))
+        label = text(row.get("spec_name"))
+        value = text(first_nonempty(row, "value_text", "value_numeric"))
+        unit = text(row.get("unit"))
+        if product_id and label and value:
+            client_specs[product_id].append((label, f"{value}{f' {unit}' if unit else ''}"))
+    client_programs = defaultdict(list)
+    for row in table(database, "serving", "client_product_program"):
+        product_id = text(row.get("client_product_id"))
+        if product_id:
+            client_programs[product_id].append({
+                "title": text(row.get("program_name")),
+                "authority": text(row.get("owner")),
+                "status": text(row.get("status")),
+                "date": text(first_nonempty(row, "start_date", "end_date")),
+                "description": text(row.get("description")),
+            })
+    for row in table(database, "serving", "client_product"):
+        product_id = text(row.get("client_product_id"))
+        name = text(row.get("product_name"))
+        client_id = text(row.get("client_id"))
+        if not product_id or not name or not client_id:
+            continue
+        client_products.append((client_id, {
+            "id": product_id,
+            "name": name,
+            "category": text(row.get("category")),
+            "image": text(row.get("image_url")),
+            "specs": dict(client_specs.get(product_id, [])),
+            "programs": client_programs.get(product_id, []),
+            "source": "",
+            "source_url": "",
+        }))
+    return products_by_company, client_products
 
 
 def build_signals(database, details):
@@ -289,7 +380,9 @@ def build_geo(database):
     geo = defaultdict(lambda: defaultdict(list))
     geo_comps = []
     for row in table(database, "serving", "competitive_geo_company_presence"):
-        company_id = text(first_nonempty(row, "competitor_id", "client_id")) or "KSSL"
+        company_id = text(first_nonempty(row, "competitor_id", "client_id"))
+        if not company_id:
+            continue
         loc = locations.get(text(row.get("location_id")), {})
         country = text(first_nonempty(loc, "country_name", "map_label"))
         if not country:
@@ -465,6 +558,10 @@ def build_dataset(database):
     client_short = text(first_nonempty(account, "brand_name", "client_name"))
 
     competitors, comp_order = build_competitors(database)
+    products_by_company, client_products = build_products(database)
+    for company_id, products in products_by_company.items():
+        if company_id in competitors:
+            competitors[company_id]["products"] = products
     details = {}
     lanes = build_signals(database, details)
     geo_data, geo_comps, geo_countries = build_geo(database)
@@ -478,6 +575,11 @@ def build_dataset(database):
     client = {"id": client_id, "name": client_name, "short": client_short}
     if client_id and client_id not in competitors:
         competitors[client_id] = {"id": client_id, "cid": client_id, "name": client_name, "short": client_short, "dir": "client", "partners": [], "products": []}
+    if client_id:
+        competitors.setdefault(client_id, {}).setdefault("products", [])
+        competitors[client_id]["products"].extend(
+            product for owner_id, product in client_products if owner_id == client_id
+        )
 
     empty_config = {"title": "", "cnt": "", "filters": [], "groups": [], "cards": [], "metrics": [], "dirWord": {}, "badgeClass": {}}
     overview = {"competitive": {**empty_config, "cards": lanes["competitive"]}, "market": {**empty_config, "cards": lanes["market"]}, "technology": {**empty_config, "cards": lanes["technology"]}}
