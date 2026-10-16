@@ -25,11 +25,12 @@ subject:
         FROM staging.technology_innovation i
         WHERE i.category_id = {{subject.category_id}}
         ORDER BY i.title
-    - from: sql                  # news leads for this category
+    - from: sql                  # recent defence news; the model judges which stories relate to this category (news.category is a news type, not a technology category)
       query: |
         SELECT 'NEWS' AS doc, n.published_date, n.headline, n.publisher, n.article_url
         FROM staging.competitive_news_article n
-        WHERE lower(trim(n.category)) = lower(trim('{{subject.category_name}}')) AND n.published_date >= current_date - 365
+        WHERE n.published_date >= current_date - 365
+          AND COALESCE(n.category, '') NOT IN ('Stock & market', 'Non-defence business')
         ORDER BY n.published_date DESC LIMIT 40
 
 context: [client, competitors]

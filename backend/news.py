@@ -12,25 +12,26 @@ For a competitor (and optionally its products) and a date or date range it
      check (headline, og:title or description must name the company / product),
   5. reads the article page once: canonical URL, og/twitter/JSON-LD image, site name,
   6. downloads the image into media/news/<sha1>.<ext>  (KSSL_MEDIA_DIR overrides media/),
-  7. writes staging.competitive_news_article / staging.competitive_product_news. They reach the
-     live UI only after Approve in the review copy.
+  7. writes every kept item to staging.news_candidate (a holding table, never reviewed or shown).
+     `python -m prompts.run news` then groups candidates that report the same story, picks one main
+     article per story and writes ONE row per story to the real news tables (prompts/news_merge.py);
+     they reach the live UI only after Approve in the review copy.
 
 Date range: `date` (one day) or `from`/`to` (YYYY-MM-DD, inclusive). With none of them: the
 last 30 days. Only `from`: up to today. Only `to`: the 30 days ending then.
 
 Where things go (no columns are added to ui/serving tables):
-  * staging.competitive_news_article / competitive_product_news: id (uuid5 of url+competitor /
-    url+product, so re-runs are idempotent), headline, article_url, published_date, publisher,
-    image_url (remote), competitor_id / product_id. `category` is left NULL (never invented).
-    The tables have no keys, so "upsert by article_url per competitor/product" is a
-    select-then-update/insert; a row with the same URL written by another loader (other id) is
-    never overwritten.
-  * staging.fact_source (table_name, row_id = the article's/product news' id as text):
-      column_name 'article_url'       source_url = article URL, source_tier, publisher
-      column_name 'image_local_path'  source_url = downloaded file, relative to the media dir
-                                      (e.g. news/<sha1>.jpg), source_tier, publisher
-    This is the only place the local image copy and the source tier ("primary" |
-    "independent") live; the news tables have no column for them.
+  * staging.news_candidate (db/setup/06_news_candidate.sql): candidate_id (= row_id(url, owner), the id
+    the story row gets when this candidate is its main article), competitor_id / product_id (NULL =
+    company news), headline, article_url, published_date, publisher, image_url, image_local_path
+    (relative to the media dir, e.g. news/<sha1>.jpg), source_tier ("primary" | "independent"),
+    pre_group, status 'new'. A URL already stored for the same owner is not re-added (status kept).
+  * pre_group: code pre-grouping of obvious copies. A new candidate whose headline is >= 85% similar
+    (near_copy) to an earlier candidate of the SAME owner within +-3 days points at it; the model
+    run only has to group the rest.
+  * staging.competitive_news_article / competitive_product_news and the fact_source rows (article_url,
+    image_local_path, also_reported_by, category judgement) are written by prompts/news_merge.py,
+    not here; `category` is filled by the prompt run, never invented by this job.
 
 Connection: env KSSL_STAGING_DSN, falling back to KSSL_DSN. Writes go to schema `staging` only
 (the GET reads KSSL_SERVING_DSN on the live backend).
@@ -43,6 +44,7 @@ CLI:  python -m backend.news --competitor <uuid|all> [--products] [--date 2026-1
       python -m backend.news --selftest
 API:  POST /api/news/refresh?competitor_id=<uuid|all>&products=true&date=... | &from=..&to=..&limit=..
       GET  /api/news?competitor_id=&from=&to=   (reads staging when KSSL_VIEW=review, else serving)
+      python -m backend.news --regroup   (pre-group the existing 'new' candidates; one-off after a bulk move)
 
 Stdlib only (urllib, html.parser, json, concurrent.futures) + psycopg2 + FastAPI (router).
 """
@@ -65,6 +67,7 @@ import zlib
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from difflib import SequenceMatcher
 from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from pathlib import Path
@@ -890,63 +893,81 @@ def row_id(url: str, owner_id: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{url}|{owner_id}"))
 
 
-def _put_fact(cur, table: str, rid: str, column: str, source_url, tier, publisher):
-    """staging.fact_source has no key: replace the (table, row, column) entry."""
-    cur.execute("DELETE FROM staging.fact_source WHERE table_name = %s AND row_id = %s AND column_name = %s",
-                (table, rid, column))
-    if source_url:
-        cur.execute("INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, "
-                    "publisher, retrieved_at) VALUES (%s, %s, %s, %s, %s, %s, now())",
-                    (table, rid, column, source_url, tier, publisher))
+NEAR_COPY = 0.85            # headline similarity (difflib ratio of norm()) that makes two candidates one story
+NEAR_DAYS = 3
+
+
+def near_copy(a: str, b: str) -> bool:
+    """Obvious copies only (one word changed, a publisher suffix); real rewordings are left to the prompt run."""
+    a, b = norm(a), norm(b)
+    return bool(a and b) and SequenceMatcher(None, a, b).ratio() >= NEAR_COPY
+
+
+def pre_group_of(headline: str, day, peers) -> str | None:
+    """peers = [(candidate_id, headline, published_date, pre_group)] of the same owner, oldest first.
+    -> the id of the first near-copy within +-NEAR_DAYS days (its own group root if it has one), else None."""
+    if day is None:
+        return None
+    for cid, h, d, pg in peers:
+        if d is not None and abs((d - day).days) <= NEAR_DAYS and near_copy(headline, h):
+            return pg or cid
+    return None
+
+
+def _peers(cur, competitor_id: str, product_id: str | None) -> list:
+    cur.execute("SELECT candidate_id::text, headline, published_date, pre_group::text FROM staging.news_candidate "
+                "WHERE competitor_id = %s AND product_id IS NOT DISTINCT FROM %s ORDER BY found_at, candidate_id",
+                (competitor_id, product_id))
+    return cur.fetchall()
 
 
 def save(cur, items: list[Item], competitor_id: str, product_id: str | None = None) -> tuple[int, list[str]]:
-    """Insert/update kept items (by article_url within the competitor / product). Each row in its
-    own savepoint so one failure doesn't sink the run. Returns (rows written, errors)."""
-    if product_id:
-        table, idcol, keycol, owner = "competitive_product_news", "product_news_id", "product_id", product_id
-    else:
-        table, idcol, keycol, owner = "competitive_news_article", "article_id", "competitor_id", competitor_id
+    """Insert kept items as candidates (unique per owner + url; a known url is left untouched). Each row in its
+    own savepoint so one failure doesn't sink the run. Returns (candidates written, errors)."""
+    owner = product_id or competitor_id
+    peers = _peers(cur, competitor_id, product_id)
     n, errors = 0, []
     for it in items:
         if it.status != "kept":
             continue
-        rid = row_id(it.url, owner)
-        headline = it.title[:300]
+        cid = row_id(it.url, owner)
         publisher = (it.publisher or None) and it.publisher[:200]
+        pg = pre_group_of(it.title, it.date, peers)
         cur.execute("SAVEPOINT news_row")
         try:
-            cur.execute(f"SELECT {idcol}::text FROM staging.{table} WHERE {keycol} = %s AND article_url = %s",
-                        (owner, it.url))
-            have = [r[0] for r in cur.fetchall()]
-            if have and rid not in have:             # same URL written by another loader: leave it
-                it.status, it.reason = "dropped", "url already stored by another loader"
-                cur.execute("RELEASE SAVEPOINT news_row")
-                continue
-            if have:
-                sets = "headline = %s, published_date = %s, publisher = %s"
-                args = [headline, it.date, publisher]
-                if it.image_url and not product_id:      # product news has no image_url column
-                    sets += ", image_url = %s"
-                    args.append(it.image_url)
-                cur.execute(f"UPDATE staging.{table} SET {sets} WHERE {idcol} = %s", (*args, rid))
-            elif product_id:
-                cur.execute("INSERT INTO staging.competitive_product_news (product_news_id, product_id, headline, "
-                            "article_url, published_date, publisher) VALUES (%s, %s, %s, %s, %s, %s)",
-                            (rid, product_id, headline, it.url, it.date, publisher))
+            cur.execute("INSERT INTO staging.news_candidate (candidate_id, competitor_id, product_id, headline, article_url, "
+                        "published_date, publisher, image_url, image_local_path, source_tier, pre_group) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+                        (cid, competitor_id, product_id, it.title[:300], it.url, it.date, publisher, it.image_url or None,
+                         it.image_local_path or None, it.tier, pg))
+            if cur.rowcount:
+                n += 1
+                peers.append((cid, it.title, it.date, pg))
             else:
-                cur.execute("INSERT INTO staging.competitive_news_article (article_id, competitor_id, headline, "
-                            "article_url, published_date, publisher, image_url) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                            (rid, competitor_id, headline, it.url, it.date, publisher, it.image_url or None))
-            _put_fact(cur, table, rid, "article_url", it.url, it.tier, publisher)
-            _put_fact(cur, table, rid, "image_local_path", it.image_local_path, it.tier, publisher)
-            n += 1
+                it.reason = "already a candidate"
             cur.execute("RELEASE SAVEPOINT news_row")
         except Exception as e:  # noqa: BLE001
             cur.execute("ROLLBACK TO SAVEPOINT news_row")
             it.status, it.reason = "db-error", str(e).split("\n")[0][:120]
             errors.append(f"{it.url}: {it.reason}")
     return n, errors
+
+
+def regroup(cur) -> int:
+    """Set pre_group on every 'new' candidate that has none (oldest first, per owner). Returns rows changed."""
+    cur.execute("SELECT candidate_id::text, competitor_id::text, product_id::text, headline, published_date, pre_group::text "
+                "FROM staging.news_candidate WHERE status = 'new' ORDER BY found_at, candidate_id")
+    seen: dict = {}
+    n = 0
+    for cid, comp, prod, h, d, pg in cur.fetchall():
+        peers = seen.setdefault((comp, prod), [])
+        if pg is None:
+            pg = pre_group_of(h, d, peers)
+            if pg:
+                cur.execute("UPDATE staging.news_candidate SET pre_group = %s WHERE candidate_id = %s", (pg, cid))
+                n += 1
+        peers.append((cid, h, d, pg))
+    return n
 
 
 def _load_subjects(competitor_id: str, products: bool):
@@ -989,21 +1010,22 @@ def refresh(competitor_id: str, products=False, limit=10, dry_run=False, rng=Non
     t0 = time.monotonic()
     rng = rng or date_range()
     name, aliases, prods = _load_subjects(competitor_id, products)
-    runs = [("company", name, None, collect(name, aliases, company_domains=company_domains, limit=limit,
-                                            fetch_images=not dry_run, rng=rng))]
-    for pid, pname in prods:
-        runs.append(("product", pname, pid, collect(name, aliases, product=pname, company_domains=company_domains,
-                                                    limit=limit, fetch_images=not dry_run, rng=rng)))
+    runs = []
+    for kind, label, pid, product in [("company", name, None, "")] + [("product", pn, pi, pn) for pi, pn in prods]:
+        t1 = time.monotonic()
+        items = collect(name, aliases, product=product, company_domains=company_domains, limit=limit,
+                        fetch_images=not dry_run, rng=rng)
+        runs.append((kind, label, pid, items, round(time.monotonic() - t1, 1)))
     out = {"competitor_id": competitor_id, "name": name, "dry_run": dry_run, "runs": []}
     conn = None if dry_run else _connect()
     try:
-        for kind, label, pid, items in runs:
+        for kind, label, pid, items, secs in runs:
             saved, errors = 0, []
             if conn:
                 with conn, conn.cursor() as cur:
                     saved, errors = save(cur, items, competitor_id, pid)
-            out["runs"].append({"kind": kind, "name": label, "product_id": pid,
-                                "kept": sum(i.status == "kept" for i in items), "saved": saved,
+            out["runs"].append({"kind": kind, "name": label, "product_id": pid, "seconds": secs,
+                                "seen": len(items), "kept": sum(i.status == "kept" for i in items), "saved": saved,
                                 "errors": errors, "items": [_item_dict(i) for i in items]})
             if log:
                 log(kind, label, items)
@@ -1040,7 +1062,10 @@ def _is_uuid(s: str) -> bool:
 def api_refresh(competitor_id: str = "all", products: bool = False, limit: int = Query(10, ge=1, le=50),
                 day: str | None = Query(None, alias="date"), from_: str | None = Query(None, alias="from"),
                 to: str | None = None, dry_run: bool = False):
-    """Fetch news for a competitor (or 'all') and write it to staging. Returns counts + written rows."""
+    """Fetch news for a competitor (or 'all') and store the kept items as staging.news_candidate rows (`saved` =
+    new candidates; the prompt run `news` turns them into story rows). Returns counts + kept items."""
+    if os.environ.get("KSSL_VIEW", "").strip().lower() != "review":   # the live site is public: no writes from it
+        raise HTTPException(404, "news refresh exists only on the review backend")
     if competitor_id != "all" and not _is_uuid(competitor_id):
         raise HTTPException(400, "competitor_id must be a uuid or 'all'")
     try:
@@ -1180,6 +1205,17 @@ def _selftest():
     pg = parse_page('<meta property="og:image" content="/i/a.jpg"><meta property="og:site_name" content="S">'
                     '<link rel="canonical" href="https://s.test/a">', "https://s.test/a?x=1")
     assert pg.image == "https://s.test/i/a.jpg" and pg.site_name == "S" and pg.canonical == "https://s.test/a"
+    # --- pre-grouping: obvious copies only, same owner (peers), +-3 days
+    assert near_copy("Adani Defence bags AK-203 ammunition order", "Adani Defence bags AK-203 ammunition orders")
+    assert near_copy("Adani Defence wins Rs 500 crore Army order - ANI", "Adani Defence wins Rs 500 crore Army order")
+    assert not near_copy("Adani bags AK-203 ammunition order", "Army signs deal with Adani Defence for 7.62 mm rounds")
+    assert not near_copy("", "") and not near_copy("L&T wins order", "Hanwha unveils K9 upgrade")
+    peers = [("a", "Adani bags AK-203 ammunition order", date(2026, 10, 1), None),
+             ("b", "Adani bags AK-203 ammunition order!", date(2026, 10, 2), "a")]
+    assert pre_group_of("Adani bags AK-203 ammunition order", date(2026, 10, 3), peers) == "a"      # root of the group, not "b"
+    assert pre_group_of("Adani bags AK-203 ammunition order", date(2026, 10, 9), peers) is None     # too far apart
+    assert pre_group_of("Adani bags AK-203 ammunition order", None, peers) is None
+    assert pre_group_of("Something else entirely", date(2026, 10, 2), peers) is None
     print("selftest ok")
 
 
@@ -1189,6 +1225,7 @@ def main(argv=None):
     g.add_argument("--competitor", help="competitor uuid, or 'all'")
     g.add_argument("--name", help="TEST: search an ad-hoc company name (no DB read/write)")
     g.add_argument("--selftest", action="store_true", help="run the assert-based self-check (no network, no DB)")
+    g.add_argument("--regroup", action="store_true", help="pre-group the existing 'new' candidates (one-off after a bulk move)")
     ap.add_argument("--alias", action="append", default=[], help="with --name: other names")
     ap.add_argument("--product", action="append", default=[], help="with --name: product name(s) to search")
     ap.add_argument("--products", action="store_true", help="with --competitor: also fetch news for its products")
@@ -1205,8 +1242,14 @@ def main(argv=None):
     if a.selftest:
         _selftest()
         return 0
+    if a.regroup:
+        conn = _connect()
+        with conn, conn.cursor() as cur:
+            print(f"pre_group set on {regroup(cur)} candidates")
+        conn.close()
+        return 0
     if not (a.competitor or a.name):
-        ap.error("one of --competitor / --name / --selftest is required")
+        ap.error("one of --competitor / --name / --selftest / --regroup is required")
     try:
         rng = date_range(a.date, a.frm, a.to)
     except ValueError as e:
@@ -1222,7 +1265,7 @@ def main(argv=None):
 
     for res in refresh_many(a.competitor, a.products, a.limit, a.dry_run, rng, a.domain, print_table):
         for r in res["runs"]:
-            print(f"   {r['kind']} {r['name']}: kept {r['kept']}, saved {r['saved']}"
+            print(f"   {r['kind']} {r['name']}: seen {r['seen']}, kept {r['kept']}, candidates saved {r['saved']}, {r['seconds']}s"
                   + (f", errors {len(r['errors'])}: {r['errors'][:3]}" if r["errors"] else ""))
         print(f"   {res['name']}: {res['seconds']}s")
         if a.json:

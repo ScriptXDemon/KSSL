@@ -81,7 +81,8 @@ INDEPENDENT = [
 
 # --- blocked: rejected with an explicit reason (unknown domains are rejected anyway) -------
 BLOCKED = {
-    "wiki": ["wikipedia.org", "wikimedia.org", "wikiwand.com", "fandom.com"],
+    "wiki": ["wikipedia.org", "wikimedia.org", "wikiwand.com", "wikia.com", "wikia.org", "wikidata.org", "wikitree.com",
+             "fandom.com"],
     "forum / q&a": ["reddit.com", "quora.com", "defence.in", "defenceforumindia.com",
                     "pakdefense.com", "militaryforum.com", "stackexchange.com"],
     "social media": ["twitter.com", "x.com", "facebook.com", "instagram.com",
@@ -122,6 +123,20 @@ def _matches(host: str, domain: str) -> bool:
     return host == domain or host.endswith("." + domain)
 
 
+def is_wiki(url: str) -> bool:
+    """A wiki or wiki mirror (Wikipedia, Wikiwand, Fandom, wikia, any host label starting with 'wiki' or ending in 'pedia',
+    any /wiki/ path). Prompts must never cite one; the prompt runner rejects such urls."""
+    host = host_of(url or "")
+    if not host:
+        return False
+    if any(_matches(host, d) for d in BLOCKED["wiki"]):
+        return True
+    if any(l.startswith("wiki") or l.endswith("pedia") for l in host.split(".")[:-1]):
+        return True
+    return "/wiki/" in (urlsplit(url).path or "").lower() + "/"
+
+
+
 def classify_reason(url: str, company_domains=()) -> tuple[str | None, str]:
     """(tier, reason). tier is "primary", "independent" or None (rejected)."""
     if not url or not url.lower().startswith(("http://", "https://")):
@@ -129,6 +144,8 @@ def classify_reason(url: str, company_domains=()) -> tuple[str | None, str]:
     host = host_of(url)
     if not host:
         return None, "no host"
+    if is_wiki(url):
+        return None, "blocked: wiki"
     if host.endswith("news.google.com") or host == "google.com":
         return None, "google wrapper"
     if any(_matches(host, d) for d in company_domains if d):

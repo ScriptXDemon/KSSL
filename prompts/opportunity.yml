@@ -1,6 +1,6 @@
 id: opportunity
 title: Market opportunity from a demand article
-version: 1
+version: 2
 fills: [market_opportunity, market_opportunity_fit_assessment, market_opportunity_source, market_opportunity_update]
 shows_on: Top opportunity ("projects to win before they tender"), opportunity detail
 cadence: weekly                  # every news article of the last 45 days not yet run
@@ -15,6 +15,7 @@ subject:
     SELECT n.article_id, n.headline, n.article_url, n.publisher, n.published_date
     FROM staging.competitive_news_article n
     WHERE n.article_url IS NOT NULL AND n.published_date >= current_date - 45
+      AND n.category IS NOT NULL AND n.category NOT IN ('Stock & market', 'Non-defence business')
     ORDER BY n.published_date DESC
   documents:
     - from: url
@@ -24,6 +25,10 @@ subject:
         SELECT 'KNOWN OPPORTUNITY' AS doc, o.title, o.buyer_name, o.stage, o.as_of_date
         FROM staging.market_opportunity o
         WHERE o.as_of_date >= current_date - 180
+          AND o.opportunity_id::text NOT IN (   -- not this article's own earlier result (a re-run replaces it)
+            SELECT e->>'id' FROM staging.prompt_run r, jsonb_array_elements(r.loaded) e
+            WHERE r.prompt_id = 'opportunity' AND r.subject_key = {{subject.article_id}}::text AND r.status = 'loaded'
+              AND e->>'table' = 'market_opportunity')
         ORDER BY o.as_of_date DESC
 
 context: [client, client_products, competitors, competitor_products, categories]
@@ -73,6 +78,7 @@ task: |
    - update_date, headline (max 120 characters), narrative (1-2 sentences, as stated)
    market_opportunity_source (exactly one row, the article):
    - source_title, publisher, source_type (news | official | company), source_date
+     (no url field: the loader stores the article url itself)
 
   CLIENT: {{context.client}}
   CLIENT PRODUCTS:

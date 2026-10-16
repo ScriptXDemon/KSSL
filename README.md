@@ -39,7 +39,10 @@ loaders, the news job, hand inserts (`db/test_inserts_staging.sql`). The live UI
     npm run dev:review
 
 News: `python -m backend.news --competitor all --products --from 2026-09-01 --to 2026-09-30`
-(or `--date 2026-09-03`; API `POST /api/news/refresh?...`) writes news into kssl_staging.
+(or `--date 2026-09-03`; API `POST /api/news/refresh?...`) writes candidates to `staging.news_candidate`
+(holding table, never shown). `python -m prompts.run news` groups the publishers that report the same story and
+writes one row per story with its `category` to the news tables (other publishers become extra sources in
+`staging.fact_source`); those rows are what the review copy approves.
 Audits, rules, plan and answers: `docs/audit_v2/`.
 
 ## Build

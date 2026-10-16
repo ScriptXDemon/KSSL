@@ -27,6 +27,7 @@ blocks). `prompts/signal.yml` is the reference example — copy its shape.
 | `task` | the task text. Placeholders: `{{client.<col>}}`, `{{subject.<col>}}`, `{{context.<block>}}`, `{{documents}}` |
 | `output` | per table the model may write: `card` (true = one review card per record), `key`, `columns` rules, `loader` (columns the loader fills), `children` |
 | `derive` | optional named loader steps run after loading (`prompts/derive.py`), e.g. `matchup_edge` |
+| `handler` | a module in `prompts/` that applies the model's answer instead of the generic loader (`news` -> `news_merge.apply`); `output` is then documentary only |
 
 Column rules: `required`, `max` (characters), `enum` (allowed values), `type: date|number`,
 `judgement` (needs `_reason`), `from_ref: ref_<thing>` (the loader resolves a name to an id / name).
@@ -86,6 +87,7 @@ text sent and the raw output. `--due` skips subjects already run with the same p
 | kssl_fit / fit_grade / fit_label (tender, opportunity, requirement) | strong, partial, weak |
 | market_tender.url_kind | notice, portal, award |
 | technology_innovation.client_position | behind, parity, ahead |
+| competitive_news_article.category, competitive_product_news.category (prompt `news`) | Contract & order, Partnership / JV, Product launch & testing, Delivery & induction, Export, Financial results, Stock & market, Facility & capacity, Leadership & corporate, Non-defence business, Other (signal skips Stock & market, Non-defence business and Other) |
 
 ## Extensions (implemented in prompts/spec.py, prompts/vocab.py, prompts/loader.py, prompts/derive.py)
 
@@ -128,4 +130,4 @@ Other behaviour
 - Documents: a subject placeholder inside a `from: sql` query is a bound parameter. A `from: url` field that is null is skipped; with several documents a page that cannot be read is noted in the prompt and the run goes on (a single-document run fails).
 - `_sources` entries with `url: null` + a `quote` cite a stored input row: fact_source gets source_url `stored row`, tier `stored`. Quotes that name a fetched document are checked against its text; a quote not found is logged as a warning.
 - Re-runs: the rows written by the last loaded run of the subject (staging.prompt_run.loaded) are deleted first, except subject-owned rows (updated in place) and, for keyed-beyond-subject prompts, the other cards.
-- `--due` / bulk runs: a prompt keyed by an entity (competitor, category, pair, tender, innovation...) re-runs a subject once its cadence period has passed since its last run; one keyed by an event (`article_id`, `source_id`) never re-runs a subject at the same version. `recurring: true|false` in a prompt file overrides. Prompts run in dependency order (signal, moment, partnership, project, geo, matchup, tender, tender_assessment, opportunity, top_opportunity, global_requirement, innovation_discovery, innovation_detail, tech_article, patent_classification).
+- `--due` / bulk runs: a prompt keyed by an entity (competitor, category, pair, tender, innovation...) re-runs a subject once its cadence period has passed since its last run; one keyed by an event (`article_id`, `source_id`) never re-runs a subject at the same version. `recurring: true|false` in a prompt file overrides. Prompts run in dependency order (news, signal, moment, partnership, project, geo, matchup, tender, tender_assessment, opportunity, top_opportunity, global_requirement, innovation_discovery, innovation_detail, tech_article, patent_classification).

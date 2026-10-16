@@ -15,6 +15,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from backend import review
+from backend.sources import is_wiki
 
 GRAPH = review.GRAPH
 META_KEYS = ("_sources", "_reason", "_precision")
@@ -244,12 +245,18 @@ def _check_value(col: str, v: Any, rule: dict, enums: dict) -> Any:
 
 def _sources(raw: Any, path: str, warn: list) -> dict:
     out = {}
+    if raw and not isinstance(raw, dict):      # the model sent a list / string instead of {column: [entries]}
+        warn.append(f"{path}._sources is not an object; ignored")
+        return out
     for col, entries in (raw or {}).items():
         entries = [entries] if isinstance(entries, dict) else entries
         good = []
         for e in entries if isinstance(entries, list) else []:
             url = e.get("url") if isinstance(e, dict) else None
             q = e.get("quote") if isinstance(e, dict) else None
+            if isinstance(url, str) and url.startswith(("http://", "https://")) and is_wiki(url):
+                warn.append(f"{path}._sources.{col}: wiki source dropped: {url[:100]}")
+                continue
             if isinstance(url, str) and url.startswith(("http://", "https://")):
                 if isinstance(q, str) and len(q) > 300:
                     warn.append(f"{path}.{col}: quote is {len(q)} characters (max 300)")
@@ -293,6 +300,8 @@ def validate_rec(raw: dict, rules: TableRules, path: str, warn: list, rejected: 
                 refs[col] = (r, str(v))
         else:
             v = _check_value(col, values.get(col), rule, enums)
+            if isinstance(v, str) and v.startswith(("http://", "https://")) and is_wiki(v):
+                raise RowRejected(f"{col}: a wiki source is not allowed ({v[:80]})")
             if v is not None:
                 dest[col] = v
     for r in rules.refs_decl:

@@ -340,6 +340,8 @@ def build_innovations(database):
 
     grouped = defaultdict(list)
     for row in ordered(table(database, s, "technology_innovation"), "sequence_no"):
+        if text(row.get("status")) == "candidate":     # innovation_discovery's thin rows: shown once innovation_detail fills them
+            continue
         iid = text(row.get("innovation_id"))
         st = status.get(iid, {})
         names = []

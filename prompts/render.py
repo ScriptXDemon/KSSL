@@ -40,7 +40,7 @@ def connect():
 
 
 def prompt_ids() -> list[str]:
-    return sorted(p.stem for p in HERE.glob("*.yml") if not p.stem.startswith("_"))
+    return sorted(p.stem for p in HERE.glob("*.yml") if not p.stem.startswith("_") and p.stem != "sets")   # sets.yml = run sets, not a prompt
 
 
 def load_prompt(prompt_id: str) -> dict:

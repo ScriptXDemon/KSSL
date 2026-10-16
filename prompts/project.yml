@@ -23,6 +23,7 @@ subject:
         SELECT 'NEWS' AS doc, n.published_date, n.headline, n.publisher, n.article_url
         FROM staging.competitive_news_article n
         WHERE n.competitor_id = '{{subject.competitor_id}}' AND n.published_date >= current_date - 730
+          AND COALESCE(n.category, '') NOT IN ('Stock & market', 'Non-defence business')
         ORDER BY n.published_date DESC LIMIT 80
     - from: sql                  # the client's stored specs, only for kssl_platform / kssl_advantage
       query: |

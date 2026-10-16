@@ -1,6 +1,6 @@
 id: global_requirement
 title: Global requirements of governments and armed forces, per category
-version: 1
+version: 2
 fills: [market_global_requirement, market_global_requirement_specification, market_global_requirement_source]
 shows_on: "Global Requirements page (cards; detail with scope, target specifications, platform match, strategic assessment, sources)"
 cadence: quarterly
@@ -40,7 +40,8 @@ task: |
   A REQUIREMENT is a need a government, ministry or armed force has stated: a programme, a planned
   purchase, a capability gap it says it must fill, an RFI / RFP / tender, or a budget line for a
   named item. NOT a company's sales pitch, an analyst's forecast, or a contract already being
-  delivered. Only requirements first stated or updated in the last 3 years. 5-20 records; fewer if
+  delivered. Only requirements first stated or updated in the last 3 years. At most 8 records, the
+  most recent or largest first (stop searching once you have them; a run must finish in a few minutes); fewer if
   the sources support fewer. For a requirement in KNOWN REQUIREMENT that you find again, use its title
   exactly and re-check its status. Put KNOWN REQUIREMENT titles you could not confirm in
   "not_found" as "market_global_requirement.<title>".

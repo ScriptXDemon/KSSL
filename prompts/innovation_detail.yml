@@ -1,6 +1,6 @@
 id: innovation_detail
 title: Innovation detail (one candidate innovation)
-version: 1
+version: 2
 fills: [technology_innovation, technology_innovation_status, technology_innovation_company, technology_innovation_source, technology_innovation_analysis, technology_source, technology_company]
 shows_on: "Innovation Pipeline (list row badges; detail panel with why it matters, what's new, competitive landscape, background, status block, sources)"
 cadence: quarterly               # STAGE 2 of 2: picks up every technology_innovation row left at status 'candidate' by innovation_discovery
@@ -44,7 +44,8 @@ task: |
   your assessment: base them only on cited facts and CLIENT PRODUCT SPEC rows, give _reason, and
   cite in _sources the facts they rest on.
 
-  One record, table technology_innovation (updates the candidate row; keep the title):
+  One record, table technology_innovation (updates the candidate row; do NOT output title, category
+  or any field not listed here):
    - summary: 1-2 sentences, max 300 characters, what it is and who makes it
    - background_what_it_is: 3-5 sentences of facts: what the system is, how it works, stated
      performance figures with units as stated, who develops it

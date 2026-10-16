@@ -17,15 +17,15 @@ from datetime import datetime, timedelta, timezone
 import psycopg2
 import psycopg2.extras
 
-from prompts import loader, render, spec as specmod
-from prompts.claude_call import ModelError, call_model
+from prompts import loader, news_merge, render, spec as specmod
+from prompts.claude_call import ModelError, ModelResult, call_model
 
 DONE = ("loaded", "skipped", "rejected")          # a subject with one of these at this version is not pending
 FAILED_COOLDOWN = timedelta(hours=12)             # a failed subject is not retried by a bulk run before this
 CADENCE = {"daily": timedelta(days=1), "weekly": timedelta(days=7), "quarterly": timedelta(days=90)}
 LABELS = ("headline", "title", "name", "display_name")
-# a routine runs prompts in dependency order (what a later prompt reads must exist); others follow alphabetically
-ORDER = ["signal", "moment", "partnership", "project", "geo", "matchup", "tender", "tender_assessment", "opportunity",
+# a routine runs prompts in dependency order (what a later prompt reads must exist; signal reads the stories news writes); others follow alphabetically
+ORDER = ["news", "signal", "moment", "partnership", "project", "geo", "matchup", "tender", "tender_assessment", "opportunity",
          "top_opportunity", "global_requirement", "innovation_discovery", "innovation_detail", "tech_article", "patent_classification"]
 EVENT_KEYS = ("article_id", "source_id")           # one run per news article / notice: never re-run by cadence
 
@@ -162,35 +162,44 @@ def quote_check(valid, task: str) -> list[str]:
     return bad
 
 
-def run_one(conn, spec: dict, subject: dict, client: dict, blocks: dict, dry_run: bool, rerun: bool = False) -> Outcome:
+def run_one(conn, spec: dict, subject: dict, client: dict, blocks: dict, dry_run: bool, rerun: bool = False,
+            reply: ModelResult | None = None, prompt: tuple[str, str] | None = None) -> Outcome:
+    """`reply` (+ `prompt` = (system, task) as exported) replaces the prompt building and the model call:
+    prompts/batch.py load validates and loads a reply that was produced elsewhere through this same code."""
     o = Outcome(model=spec["model"])
     t0 = time.monotonic()
     key = subject["_key"]
-    try:
-        with conn.cursor() as cur:
-            docs = render.documents(cur, spec, subject) if "documents" in spec["task"] else ("none on record", [])
-            o.system, o.task, urls = render.build_prompt(cur, spec, subject, client, blocks, docs)
-        o.details["fetched_urls"] = urls
-        conn.rollback()
-    except (render.PromptError, psycopg2.Error) as e:
-        conn.rollback()
-        o.error = f"{type(e).__name__}: {e}"
-        o.seconds = round(time.monotonic() - t0, 1)
-        return o
-    output = loader.parse_output(spec["output"])
-    try:
-        with conn.cursor() as cur:
-            enums = specmod.enum_sources(cur, output, blocks)
-        conn.rollback()
-    except (ValueError, psycopg2.Error) as e:
-        conn.rollback()
-        o.error = f"enum_from: {e}"
-        o.seconds = round(time.monotonic() - t0, 1)
-        return o
-    valid = None
-    for attempt in (1, 2):                              # a reply that is not parseable JSON is asked for once more
+    if prompt is not None:
+        o.system, o.task = prompt
+    else:
         try:
-            res = call_model(o.system, o.task, spec["model"], spec["web_search"])
+            with conn.cursor() as cur:
+                docs = render.documents(cur, spec, subject) if "documents" in spec["task"] else ("none on record", [])
+                o.system, o.task, urls = render.build_prompt(cur, spec, subject, client, blocks, docs)
+            o.details["fetched_urls"] = urls
+            conn.rollback()
+        except (render.PromptError, psycopg2.Error) as e:
+            conn.rollback()
+            o.error = f"{type(e).__name__}: {e}"
+            o.seconds = round(time.monotonic() - t0, 1)
+            return o
+    handler = spec.get("handler")                       # a prompt with a handler is applied by its own module, not the loader
+    output = enums = None
+    if not handler:
+        output = loader.parse_output(spec["output"])
+        try:
+            with conn.cursor() as cur:
+                enums = specmod.enum_sources(cur, output, blocks)
+            conn.rollback()
+        except (ValueError, psycopg2.Error) as e:
+            conn.rollback()
+            o.error = f"enum_from: {e}"
+            o.seconds = round(time.monotonic() - t0, 1)
+            return o
+    valid = env = None
+    for attempt in ((2,) if reply is not None else (1, 2)):         # a reply that is not parseable JSON is asked for once more
+        try:
+            res = reply if reply is not None else call_model(o.system, o.task, spec["model"], spec["web_search"])
         except ModelError as e:
             o.error = f"model: {e}"
             o.seconds = round(time.monotonic() - t0, 1)
@@ -201,7 +210,8 @@ def run_one(conn, spec: dict, subject: dict, client: dict, blocks: dict, dry_run
         o.cost = (o.cost or 0) + (res.cost_usd or 0)
         o.details["model_seconds"] = round(o.details.get("model_seconds", 0) + res.seconds, 1)
         try:
-            valid = loader.validate(loader.parse_envelope(res.text), spec["id"], output, enums)
+            env = loader.parse_envelope(res.text)
+            valid = None if handler else loader.validate(env, spec["id"], output, enums)
             break
         except loader.NotJson as e:
             o.details["retry"] = f"attempt {attempt}: {e}"
@@ -213,6 +223,8 @@ def run_one(conn, spec: dict, subject: dict, client: dict, blocks: dict, dry_run
             o.status, o.error = "rejected", str(e)
             o.seconds = round(time.monotonic() - t0, 1)
             return o
+    if handler:
+        return _handled(conn, subject, env, o, dry_run, t0)
     valid.warnings += quote_check(valid, o.task)
     o.details.update(warnings=valid.warnings, rejected=valid.rejected, not_found=valid.not_found, conflicts=valid.conflicts)
     try:
@@ -254,6 +266,30 @@ def run_one(conn, spec: dict, subject: dict, client: dict, blocks: dict, dry_run
         else:
             conn.rollback()                                    # dry_run, rejected
     except Exception as e:  # noqa: BLE001  (a failed load must roll back and still be logged)
+        conn.rollback()
+        o.status, o.error, o.rows, o.loaded = "failed", f"load: {type(e).__name__}: {str(e).splitlines()[0]}", 0, []
+    o.seconds = round(time.monotonic() - t0, 1)
+    return o
+
+
+def _handled(conn, subject: dict, env: dict, o: Outcome, dry_run: bool, t0: float) -> Outcome:
+    """Handler prompts (news -> prompts/news_merge.py): same outcome mapping as the loader path."""
+    try:
+        with conn.cursor() as cur:
+            r = news_merge.apply(cur, subject, env, dry_run)
+        o.rows, o.loaded, o.note = r.rows, [(t, i, c) for t, i, c in r.loaded], r.note
+        o.details.update(warnings=r.warnings, **r.details)
+        if r.rows:
+            o.status = "dry_run" if dry_run else "loaded"
+        elif r.skip_reason:
+            o.status, o.skip_reason = ("dry_run" if dry_run else "skipped"), r.skip_reason
+        else:
+            o.status, o.error = "rejected", "; ".join(r.warnings[:3]) or "no story could be applied"
+        if o.status in ("loaded", "skipped"):
+            conn.commit()
+        else:
+            conn.rollback()
+    except Exception as e:  # noqa: BLE001
         conn.rollback()
         o.status, o.error, o.rows, o.loaded = "failed", f"load: {type(e).__name__}: {str(e).splitlines()[0]}", 0, []
     o.seconds = round(time.monotonic() - t0, 1)

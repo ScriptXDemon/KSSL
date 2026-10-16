@@ -25,6 +25,8 @@ build() {  # build <db> <setup sql>
 }
 build "$STG" db/setup/03_staging_db.sql
 "${PSQL[@]}" -d "$STG" < db/setup/05_prompt_run.sql   # prompt run log (python -m prompts.run)
+"${PSQL[@]}" -d "$STG" < db/setup/06_news_candidate.sql   # news holding table (python -m backend.news -> prompts.run news)
+"${PSQL[@]}" -d "$STG" < db/setup/07_page_setup.sql   # page-configuration rows the prompts need (project stages, Domestic/Export filter, pillar)
 build "$SRV" db/setup/04_serving_db.sql
 for d in "$STG" "$SRV"; do
     "${PSQL[@]}" -d "$d" -At -c "SELECT '$d: ' || string_agg(nspname || '=' || n, ' ') FROM (SELECT nspname, count(*) n FROM pg_class c JOIN pg_namespace s ON s.oid = c.relnamespace WHERE relkind = 'r' AND nspname IN ('ui','serving','staging','staging_ui') GROUP BY nspname ORDER BY nspname) t"

@@ -885,8 +885,9 @@ def _selftest() -> None:
     parsed = {}
     for pid in render.prompt_ids():
         spec = render.load_prompt(pid)
-        parsed[pid] = parse_output(spec["output"])
         render.required_context(spec)
+        if not spec.get("handler"):                    # a handler prompt (news) is applied by its own module
+            parsed[pid] = parse_output(spec["output"])
     assert len(parsed) >= 15, sorted(parsed)
     sig = parsed["signal"]["competitive_signal"]
     assert sig.card and sig.refs == {"ref_category": "category", "ref_competitor": "company_id"}
@@ -1171,7 +1172,7 @@ def _selftest() -> None:
     from prompts import run as R
     sp = {pid: render.load_prompt(pid) for pid in render.prompt_ids()}
     assert [pid for pid, x in sp.items() if not R.recurring(x)] == sorted(
-        pid for pid, x in sp.items() if x["subject"]["key"] in ("article_id", "source_id")), "event prompts"
+        pid for pid, x in sp.items() if x["subject"]["key"] in ("article_id", "source_id") or x.get("handler")), "event prompts"
     assert R.recurring(sp["moment"]) and R.recurring(sp["partnership"]) and not R.recurring(sp["signal"]) and not R.recurring(sp["tender"])
     assert R.recurring(dict(sp["signal"], recurring=True)) and not R.recurring(dict(sp["moment"], recurring=False))
     order = R.ordered_ids()

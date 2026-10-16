@@ -7,6 +7,9 @@ cadence: daily                   # routine: run for every new article since the 
 # model / web_search: inherit from _shared.yml (the article is the only document)
 
 subject:                         # one run per row; key = what makes a run unique
+  # company news only: prompts/news_merge.py also writes every product story to the company table, so reading
+  # competitive_product_news here would signal the same story twice. Stories the news prompt categorised as
+  # Stock & market / Non-defence business / Other are not signals.
   key: article_id
   query: |
     SELECT n.article_id, n.headline, n.article_url, n.publisher, n.published_date,
@@ -14,6 +17,7 @@ subject:                         # one run per row; key = what makes a run uniqu
     FROM staging.competitive_news_article n
     JOIN staging.competitive_competitor c ON c.competitor_id = n.competitor_id
     WHERE n.article_url IS NOT NULL
+      AND n.category IS NOT NULL AND n.category NOT IN ('Stock & market', 'Non-defence business', 'Other')
     ORDER BY n.published_date DESC NULLS LAST
   documents:
     - from: url                  # the runner fetches the article text

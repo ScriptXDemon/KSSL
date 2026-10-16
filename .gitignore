@@ -17,3 +17,6 @@ __pycache__/
 # news job: downloaded article images + link-resolve cache
 media/
 .cache/
+
+# VPS credentials (private, never commit)
+db/env
