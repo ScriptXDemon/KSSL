@@ -15,11 +15,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
-from backend.areas import a_competitive, b_products, c_network, d_market_tech
+from backend.areas import a_competitive, b_products, c_network, d_market_tech, e_ui_port
 from backend import review
 from backend.common import json_value
 
-AREAS = (a_competitive, b_products, c_network, d_market_tech)  # a first: others read competitors
+AREAS = (a_competitive, b_products, c_network, d_market_tech, e_ui_port)  # a first: others read competitors
 
 
 # Two databases (db/make_databases.sh): the live backend reads the serving DB (KSSL_SERVING_DSN,
@@ -41,7 +41,7 @@ app.add_middleware(
 
 def build_dataset(database):
     """The UI contract. Each area module fills its keys; nothing is defaulted beyond empty."""
-    d = {"database": database, "details": {}, "sourceRegistry": {}, "companySources": {}}
+    d = {"database": database, "details": {}}
     for area in AREAS:
         area.build(database, d)
     return d
