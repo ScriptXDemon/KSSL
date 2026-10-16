@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useRef } from "react";
 import AskBox from "../askBox/AskBox";
 import { articleBullets } from "../../lib/detail";
@@ -140,7 +141,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
           <div className={`ctx-sec cd-kssl kssl-${detail.ksslImpactKind || "watch"}`}>
             <span className="eyebrow">
               {{
-                threat: "Threat to Cummins Arabia",
+                threat: `Threat to ${clientShort()}`,
                 // These name WHAT THE SIGNAL IS. "Opportunity for KSSL" and "Adoptable
                 // by KSSL" were a recommendation the article never made -- the reader
                 // decides whether to bid or adopt; the panel reports the facts.
@@ -149,7 +150,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
                 "rival-advance": "Competitor advance",
                 opportunity: "Demand in a client line",   // rows written before 2026-09-16
                 adoptable: "Technology advance",
-              }[detail.ksslImpactKind] || "How Cummins Arabia is impacted"}
+              }[detail.ksslImpactKind] || `How ${clientShort()} is impacted`}
             </span>
             <div className="cd-prose">{detail.ksslImpact}</div>
           </div>
@@ -266,7 +267,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
 
         {isTender && detail.match && detail.match.length ? (
           <div className="ctx-sec">
-            <span className="eyebrow">Matched {data.client?.short || "Cummins Arabia"} product</span>
+            <span className="eyebrow">Matched {clientShort()} product</span>
             <div>
               {detail.match.map((m, i) => (
                 <div className="cd-match" key={`${m.n}-${i}`}>

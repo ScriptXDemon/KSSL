@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
 import ScopeChat from "../../components/scopeChat/ScopeChat";
@@ -94,7 +95,7 @@ const DASHBOARD_PARAM_KEYS = new Set(["buyer", "country", "category", "value", "
 export default function Tenders({ mode = "tender" }) {
   const { data, gapModel } = useData();
   const { setScope, takePending, searchQuery, jumpTo } = useAppState();
-  const clientName = (data.client && (data.client.short || data.client.name)) || "Cummins Arabia";
+  const clientName = clientShort();
   /* a model named on a tender opens that product in Products; a label that is not a model stays text */
   const prodName = (name) => {
     const own = productOwner(data, name);

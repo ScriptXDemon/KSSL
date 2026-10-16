@@ -5,6 +5,7 @@
 
    Pure: takes the fetched object, returns a new wired one. Nothing is written to
    `window`, so the app can re-fetch and re-wire without a reload. */
+import { clientShort } from "./client.js";
 import { computeSpecEdge } from "./edge.js";
 import { pairingReason } from "./specs.js";
 import { wireTendersWithRealDays } from "./tenderCalc.js";
@@ -244,7 +245,7 @@ export function wireDataset(raw) {
         out.partners = c.partners
           /* a row with an analyst's read (`mean`) was written by hand, not minted by the extractor,
              so the gate does not apply: it dropped Midis Group (long name), the Kuwait DGCA /
-             Ministry account and the Mitsubishi utility accounts from the Cummins set */
+             Ministry account and the Mitsubishi utility accounts from the the client set */
           .filter((p) => !(p && typeof p.label === "string" && !p.mean && isJunkPartner(p.label)))
           .map((p) =>
             p && typeof p.label === "string" ? { ...p, label: tidySeparators(p.label) } : p);
@@ -362,7 +363,7 @@ export function wireDataset(raw) {
         cards: technologyAttention(d.techCards, isRivalCard),
         shortlist: slTech,
         title: "Technology Knowledge",
-        cnt: "recent defence-tech: competitor advancements + advances Cummins Arabia can adopt",
+        cnt: `recent defence-tech: competitor advancements + advances ${clientShort()} can adopt`,
         /* No Gap/Watch/Edge words anywhere. Every card is knowledge. */
         dirWord: { fav: "Advancement", watch: "Advancement", threat: "Advancement" },
         /* The card badge must name WHICH stream a card is in, not stamp a flat
@@ -391,7 +392,7 @@ export function wireDataset(raw) {
           { h: "Competitor Advancements", tags: ["rival"],
             s: "— tech moves by tracked competitors" },
           { h: "Adoptable Advances", tags: ["adopt"],
-            s: "— defence-tech from elsewhere Cummins Arabia can learn from or adopt" },
+            s: `— defence-tech from elsewhere ${clientShort()} can learn from or adopt` },
         ],
       },
     };
@@ -480,9 +481,9 @@ export function wireDataset(raw) {
   // the client's own footprint rows are its own presence, not rival activity:
   // mark them 'bf' so they read as "KSSL present" and don't get a counter-product line.
   try {
-    const clientShort =
-      (d.client && (d.client.id || d.client.short || d.client.name)) || "Cummins Arabia";
-    const ownGeo = (d.geoData && d.geoData[clientShort]) || {};
+    const clientGeoId =
+      (d.client && (d.client.id || d.client.short || d.client.name));
+    const ownGeo = (d.geoData && d.geoData[clientGeoId]) || {};
     Object.keys(ownGeo).forEach((ct) =>
       ownGeo[ct].forEach((p) => {
         // keep the real activity: geoBadge needs it to say "Local production"
@@ -547,7 +548,7 @@ export function wireDataset(raw) {
          so the visible list, the header count and the tile can never disagree. Scored on
          fit + geo presence + value + recency: the geo set is the countries KSSL is present
          in (its own footprint), so a tender in a market KSSL already sells into ranks up. */
-      const clientGeoKey = (d.client && (d.client.id || d.client.short || d.client.name)) || "Cummins Arabia";
+      const clientGeoKey = (d.client && (d.client.id || d.client.short || d.client.name));
       const geoSet = new Set(Object.keys((d.geoData && d.geoData[clientGeoKey]) || {}));
       const shown = marketAttention(open, { geo: geoSet });
 
@@ -676,7 +677,7 @@ export function wireDataset(raw) {
             cards: marketFeed,
             title: "Top opportunity",
             cnt: marketFeed.length
-              ? "latest tenders that fit Cummins Arabia + perceived opportunities to act on"
+              ? `latest tenders that fit ${clientShort()} + perceived opportunities to act on`
               : d.overviewConfig.market.cnt,
             /* Card badges: a tender reads "TENDER", an opportunity "OPPORTUNITY". The
                value split still lives on `dir` (fav unpriced / threat priced) but is no
@@ -715,9 +716,9 @@ export function wireDataset(raw) {
                exported report read these. */
             groups: [
               { h: "Latest Tenders", dirs: ["fav", "threat"],
-                s: "— tenders that fit Cummins Arabia: strong fit, geo presence, high value, closing soon" },
+                s: `— tenders that fit ${clientShort()}: strong fit, geo presence, high value, closing soon` },
               { h: "Perceived Opportunities", dirs: ["watch"],
-                s: "— geopolitical & demand moves Cummins Arabia can act on (no tender required)" },
+                s: `— geopolitical & demand moves ${clientShort()} can act on (no tender required)` },
             ],
           },
         };
@@ -1043,7 +1044,7 @@ function adaptPatents(d) {
       whitespace: null,
       koel: {
         filings: recs.filter((r) => /kssl|kssl|bharat\s*forge/i.test(r.assignee || "")).length,
-        position: (meta && meta.reason) || "No Cummins Arabia filings recorded in this field yet.",
+        position: (meta && meta.reason) || `No ${clientShort()} filings recorded in this field yet.`,
       },
       records: recs,
     };

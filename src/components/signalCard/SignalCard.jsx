@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useData } from "../../state/DataProvider";
 import { NO_DATE_LABEL } from "../../lib/overview.js";
 
@@ -37,7 +38,7 @@ export default function SignalCard({ card, dirWord, badgeClass, selected, fresh,
         <div className="sowhat" dangerouslySetInnerHTML={{ __html: card.ksslImpact || card.sowhat }} />
         {card.match && card.match.length > 0 && card.match[0].n && (
           <div className="koel-prod-highlight-row">
-            <span className="kph-label">{data.client?.short || "Cummins Arabia"} Product:</span>
+            <span className="kph-label">{clientShort()} Product:</span>
             <span className="kph-val">{card.match[0].n}</span>
           </div>
         )}

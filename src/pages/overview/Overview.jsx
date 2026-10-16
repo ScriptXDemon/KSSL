@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import SignalCard from "../../components/signalCard/SignalCard";
 import DetailPanel from "../../components/detailPanel/DetailPanel";
@@ -87,7 +88,7 @@ export default function Overview({
   };
   // the badge's colour class: a config may repaint a dir without changing the dir itself
   const badgeFor = (c) => (cfg.badgeClass && cfg.badgeClass[c.dir]) || c.dir;
-  const clientLabel = (data.client && (data.client.short || data.client.name)) || "Cummins Arabia";
+  const clientLabel = clientShort();
   // `data` is a dependency because the sort now reads the same date the card prints,
   // which lives in data.details, not on the card
   const feed = useMemo(() => buildFeed(cfg, seqMode, data), [cfg, seqMode, data]);

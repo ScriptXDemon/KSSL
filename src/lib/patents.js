@@ -21,6 +21,7 @@
           total, source
         }>
    =================================================================== */
+import { clientShort } from "./client.js";
 import { attr, escAll, srcChips } from "./html.js";
 import { ipcDescription } from "./ipc.js";
 
@@ -416,14 +417,14 @@ export function patTechBody(d, area, res) {
       `<span class="wk-ic">${koelHere.length ? "●" : "○"}</span>` +
       `<div class="wk-txt">${
         koelHere.length
-          ? `<b>Cummins Arabia holds ${koelFilings} filing${koelFilings !== 1 ? "s" : ""} in this field.</b> ` +
+          ? `<b>${clientShort()} holds ${koelFilings} filing${koelFilings !== 1 ? "s" : ""} in this field.</b> ` +
             `It is contested by ${rivals.length} other holder${rivals.length !== 1 ? "s" : ""}.`
           : /* "recorded", not "holds": this corpus is a harvest of RIVAL filings, so
                the absence of a KSSL row means none was indexed here, which is not the
                same finding as KSSL owning nothing in the field. The enforceability
                clause is conditional and stays that way -- with no grant status
                captured it simply does not appear, rather than reading "0 enforceable". */
-            "<b>No Cummins Arabia filing is recorded in this field.</b> " +
+            `<b>No ${clientShort()} filing is recorded in this field.</b> ` +
             `${rivals.length} rival${rivals.length !== 1 ? "s have" : " has"} staked it` +
             (grantedRivals.length
               ? `, ${grantedRivals.length} with a granted patent already enforceable`
@@ -460,7 +461,7 @@ export function patTechBody(d, area, res) {
         /* th-* is the row accent. An unassessed holder gets no threat class at all --
            it used to fall back to th-low, which paints "assessed and harmless". */
         `<div class="ws-holder${l.isClient ? " client" : ""}${l.threat ? ` th-${esc(l.threat)}` : ""}">` +
-        `<div class="wh-l"><span class="wh-name">${esc(l.name)}${l.isClient ? ' <i class="wh-you">Cummins Arabia</i>' : ""}</span>` +
+        `<div class="wh-l"><span class="wh-name">${esc(l.name)}${l.isClient ? ` <i class="wh-you">${clientShort()}</i>` : ""}</span>` +
         `<span class="wh-meta">${l.filings || 0} filing${l.filings !== 1 ? "s" : ""}` +
         `${geo ? ` · ${esc(geo)}` : ""}${l.latest ? ` · latest ${l.latest}` : ""}</span></div>` +
         '<div class="wh-r">' +
@@ -479,7 +480,7 @@ export function patTechBody(d, area, res) {
         // a threat chip only where a threat was assessed; absence is not "low"
         (l.isClient || !l.threat
           ? ""
-          : `<span class="wh-chip th ${esc(l.threat)}" title="Assessed threat to Cummins Arabia">${esc(l.threat)}</span>`) +
+          : `<span class="wh-chip th ${esc(l.threat)}" title="Assessed threat to ${clientShort()}">${esc(l.threat)}</span>`) +
         "</div></div>";
     });
     h += "</div>";
@@ -503,7 +504,7 @@ export function patTechBody(d, area, res) {
   }
   if (td.koel) {
     h +=
-      '<div class="ws-koel"><span class="ws-koel-l">Cummins Arabia position</span>' +
+      `<div class="ws-koel"><span class="ws-koel-l">${clientShort()} position</span>` +
       `<div class="ws-koel-pos">${esc(td.koel.position || "—")}</div>` +
       "</div>";
   }

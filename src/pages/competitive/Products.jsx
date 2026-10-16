@@ -1,3 +1,4 @@
+import { clientShort, clientName as clientFullName } from "../../lib/client.js";
 import { useState, useMemo, useEffect } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { revenueOptions, revenueTierOf } from "../../lib/revenueFacet";
@@ -626,7 +627,7 @@ export function getProductComparison(product, company, data) {
     return {
       matchupId: product.matchupId,
       sideA: m.comp || `${cName} · ${pName}`,
-      sideB: m.bf || "Cummins Arabia Counterpart",
+      sideB: m.bf || `${clientShort()} Counterpart`,
       reason: m.verdict ? m.verdict.replace(/<[^>]*>/g, "") : `Matched on ${m.cat || cat} category and operational proximity.`,
     };
   }
@@ -731,8 +732,8 @@ export default function Products() {
   const { data } = useData();
   const { setScope, jumpTo, takePending } = useAppState();
 
-  const clientCid = (data.client && data.client.id) || "Cummins Arabia";
-  const clientName = (data.client && (data.client.short || data.client.name)) || "Cummins Arabia";
+  const clientCid = (data.client && data.client.id);
+  const clientName = clientShort();
 
   const [companyQuery, setCompanyQuery] = useState("");
   const [sidebarCountryFilter, setSidebarCountryFilter] = useState("all");
@@ -986,7 +987,9 @@ export default function Products() {
       matchups.forEach((m) => {
         let rawBf = m.bf || m.anchor || "";
         if (seenKeys.some((k) => sameProduct(k, prodKey(rawBf.replace(/^.*·\s*/, "").trim())))) return;
-        let name = rawBf.replace(/^(KSSL|Cummins Arabia)\s*·\s*/i, "").trim();
+        let name = rawBf.trim();
+        const ownPrefix = [clientShort(), clientFullName()].filter(Boolean).find((n) => name.toLowerCase().startsWith(n.toLowerCase()) && /^\s*·/.test(name.slice(n.length)));
+        if (ownPrefix) name = name.slice(ownPrefix.length).replace(/^\s*·\s*/, "").trim();
         if (!name || name === "KSSL present" || name.startsWith("KSSL")) {
           const match = rawBf.match(/KSSL\s*·\s*(.*)/i);
           if (match) name = match[1].trim();

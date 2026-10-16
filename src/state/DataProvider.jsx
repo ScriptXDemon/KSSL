@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { datasetService } from "../api/datasetService";
 import { wireDataset } from "../lib/dataset";
+import { setClient, clientName } from "../lib/client.js";
 import { edgeSelfCheck } from "../lib/edge";
 import { createGeo } from "../lib/geo";
 import { createPartners } from "../lib/partners";
@@ -44,6 +45,8 @@ export function DataProvider({ children }) {
 
   const value = useMemo(() => {
     if (!raw) return null;
+    /* the client first: wireDataset builds strings that name it */
+    setClient(raw.client);
     const data = wireDataset(raw);
     const gapModel = buildGapModel(data);
     const geo = createGeo(data);
@@ -82,6 +85,10 @@ export function DataProvider({ children }) {
     }
   }, [value]);
 
+  useEffect(() => {
+    document.title = clientName() ? `137Parallax — ${clientName()}` : "137Parallax";
+  }, [value]);
+
   if (error) {
     return (
       <div className="boot err">
@@ -89,7 +96,7 @@ export function DataProvider({ children }) {
           137<span>Parallax</span>
         </div>
         <div className="boot-msg">
-          Could not load the Cummins Arabia dataset - {error}
+          Could not load the dataset - {error}
           <br />
           <br />
           The app reads everything from <code>GET /api/dataset</code>. Start the

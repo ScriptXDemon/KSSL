@@ -5,7 +5,7 @@
    The Positioning gauge reduces a matchup to one number by averaging the signed
    advantage across dimensions. That is fine for a gauge that shows its own
    workings, but it cannot answer "does this rival have an advantage", because
-   averaging lets advantages on different dimensions CANCEL. Cummins vs KG1-750WS
+   averaging lets advantages on different dimensions CANCEL. the client vs KG1-750WS
    is ahead on ground area (11%) and fuel tank (14%) and behind on power-to-weight
    (15%); the mean is -0.03 and the matchup reads 47/100 — parity. 85 matchups
    read parity while the rival led more dimensions than KSSL.
@@ -22,6 +22,7 @@
    looked like it led power-to-weight by 29% in the 376-1500 kVA band — on 1 of
    its 25 matchups. That is a coverage fact, not a competitive one, and it now
    says so. */
+import { clientShort } from "./client.js";
 import { computeSpecEdge } from "./edge.js";
 import { escAll } from "./html.js";
 
@@ -253,7 +254,7 @@ export function pairVals(x) {
 /* One rival in one band. Ownership decides the verdict (no cancellation); the
    margin, record and worst-case are kept because they are real facts the table
    shows alongside it. */
-export function gapRivals(matchups, cat, clientName = "Cummins Arabia") {
+export function gapRivals(matchups, cat, clientName = clientShort()) {
   _gapMetaCat = cat || "";
   const by = {};
   Object.keys(matchups).forEach((id) => {
@@ -519,7 +520,7 @@ function gapBarAxis() {
   return `${s}</svg>`;
 }
 
-function gapDimGrid(rivals, clientName = "Cummins Arabia") {
+function gapDimGrid(rivals, clientName = clientShort()) {
   const rows = gapDimRows(rivals);
   if (!rows.length)
     return '<div class="gd-note">No dimension has enough published data in this band to judge.</div>';
@@ -590,8 +591,8 @@ function gapDimGrid(rivals, clientName = "Cummins Arabia") {
     h += `<span class="ga-acc-label">Gap</span><span class="ga-acc-val">${gapVal}</span>`;
     h += `<span class="ga-acc-label">Competitors</span><span class="ga-acc-val">${compCount}</span>`;
     h += `<span class="ga-acc-label">Top Rival</span><span class="ga-acc-val">${topRival}</span>`;
-    h += `<span class="ga-acc-label">Record</span><span class="ga-acc-val">rival ${tot.win} · level ${tot.level} · Cummins Arabia ${tot.loss}</span>`;
-    h += `<span class="ga-acc-label">Cummins Arabia owns vs</span><span class="ga-acc-val">${ksslOwnCells} of ${row.cells.filter((c) => c.d && c.d.own !== "nodata").length} rivals</span>`;
+    h += `<span class="ga-acc-label">Record</span><span class="ga-acc-val">rival ${tot.win} · level ${tot.level} · ${clientShort()} ${tot.loss}</span>`;
+    h += `<span class="ga-acc-label">${clientShort()} owns vs</span><span class="ga-acc-val">${ksslOwnCells} of ${row.cells.filter((c) => c.d && c.d.own !== "nodata").length} rivals</span>`;
     h += `<span class="ga-acc-label">Coverage</span><span class="ga-acc-val">${tot.comparable} matchups publish both sides</span>`;
 
     h += `<div class="ga-acc-why">`;
@@ -763,7 +764,7 @@ const GAP_WHY = {
   }
 };
 
-function gapWhyBlock(rivals, clientName = "Cummins Arabia") {
+function gapWhyBlock(rivals, clientName = clientShort()) {
   const rows = gapDimRows(rivals).filter((r) => r.rivalOwns > 0);
   if (!rows.length)
     return '<div class="gd-note">No rival owns a measured dimension in this band, so there is no spec-side advantage to interpret.</div>';
@@ -817,7 +818,7 @@ function gapWhyBlock(rivals, clientName = "Cummins Arabia") {
    WORST pairing -- so of the eleven head-to-head comparisons the header advertised
    in Artillery, six were unreachable and none of the underlying numbers appeared
    anywhere. A count the reader cannot open is a claim, not evidence. */
-function gapComparisons(rivals, clientName = "Cummins Arabia", held = 0) {
+function gapComparisons(rivals, clientName = clientShort(), held = 0) {
   const total = rivals.reduce((t, r) => t + r.n, 0);
   if (!total) return "";
   let h =
@@ -866,7 +867,7 @@ function gapComparisons(rivals, clientName = "Cummins Arabia", held = 0) {
 }
 
 
-export function gapCategoryBody(rivals, clientName = "Cummins Arabia", held = 0) {
+export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
   if (!rivals.length)
     return (
       '<div class="pat-empty"><div class="pe-ic">⊘</div><div class="pe-t">No measured matchups in this band</div>' +

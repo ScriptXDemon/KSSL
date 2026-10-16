@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs";
 import { createPartners } from "./partners.js";
+import { setClient, clientShort } from "./client.js";
 import { PARTNER_CATEGORIES, categoryOf, verdictOf, meanText } from "./partnerCategories.js";
 
-const file = new URL("../../../parallax-cummins-arabia-datapack/dataset.html.json", import.meta.url);
+const file = new URL("../../../datapack/dataset.html.json", import.meta.url);
 const d = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
 
 test("every relationship type in the dataset is a named category, none falls to Other", { skip: !d }, () => {
@@ -31,13 +32,14 @@ test("one company is one node: Zahid Group's four Caterpillar rows merge, others
   });
 });
 
-test("the relationship brief names both parties, the category, and the Cummins read; no raw tags", { skip: !d }, () => {
+test("the relationship brief names both parties, the category, and the client read; no raw tags", { skip: !d }, () => {
+  setClient(d.client);
   const P = createPartners(d);
   const cat = { ...d.competitors.CATERPIL, id: "CATERPIL" };
   const html = P.tieHtml(cat, "CATERPIL", "ZAHIDTRA");
   assert.ok(html.includes("Caterpillar ↔ Zahid Group"));
   assert.ok(html.includes("Exclusive distributor") && html.includes("Rental fleet supply") && html.includes("Framework supplier"));
-  assert.ok(html.includes("What it means for Cummins Arabia") && html.includes("Threat"));
+  assert.ok(html.includes(`What it means for ${clientShort()}`) && html.includes("Threat"));
   assert.ok(!/&lt;b&gt;|&lt;span/.test(html), "raw tags leaked into the text");
 });
 

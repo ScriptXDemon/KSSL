@@ -45,6 +45,7 @@
  * the full feed is returned unchanged. An unmeasured lane must not look like a measured
  * one that came back nearly empty.
  */
+import { clientShort } from "./client.js";
 import { geoCountryCoords, sameCountry } from "./geoCountries.js";
 import { tierOf, withinLines, tieredCountries, T0, T1, T2, T3 } from "./footprint.js";
 
@@ -128,7 +129,7 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
    table; an empty one would mean the tier table had been emptied, and the gate below
    treats that as "cannot run" rather than "demote everything". */
 export function footprintCountries(data) {
-  const clientId = (data && data.client && data.client.id) || "Cummins Arabia";
+  const clientId = (data && data.client && data.client.id);
   const rows = (data && data.geoData && data.geoData[clientId]) || null;
   const out = new Set(tieredCountries());
   Object.keys(rows || {}).forEach((row) => {
@@ -241,7 +242,7 @@ export function qualifySignal(card, ctx) {
     !!card.competitor || ctx.roster.has(str(card.company).trim().toLowerCase());
   if (!isRival) return { keep: false, reason: "not a tracked rival" };
 
-  if (card.impact !== "direct") return { keep: false, reason: "does not hit a Cummins Arabia line" };
+  if (card.impact !== "direct") return { keep: false, reason: `does not hit a ${clientShort()} line` };
 
   /* AN INDIAN RIVAL IS JUDGED ON A LOWER SEVERITY BAR, and the reason is measurable:
      of the 15 cards on this feed whose rival is an Indian company, ZERO are rated
@@ -283,11 +284,11 @@ export function qualifySignal(card, ctx) {
         const rank = { [T0]: 3, [T1]: 2, [T2]: 1 };
         if (!best || rank[t.tier] > rank[best.tier]) best = t;
       });
-      if (!best) return { keep: false, reason: "outside Cummins Arabia's markets" };
+      if (!best) return { keep: false, reason: `outside ${clientShort()}'s markets` };
       if (best.tier === T2) {
-        return { keep: true, tier: T2, reason: "a market Cummins Arabia is bidding in, not selling in" };
+        return { keep: true, tier: T2, reason: `a market ${clientShort()} is bidding in, not selling in` };
       }
-      return { keep: true, tier: best.tier, reason: "critical, on a Cummins Arabia line, in a Cummins Arabia market" };
+      return { keep: true, tier: best.tier, reason: `critical, on a ${clientShort()} line, in a ${clientShort()} market` };
     }
     /* NAMES NO COUNTRY: KEPT. Test 4 can only demote on evidence, and silence is not
        evidence of foreign ground -- demoting on it would drop a Bundeswehr order for not
@@ -297,7 +298,7 @@ export function qualifySignal(card, ctx) {
   /* no country named, or no footprint to test against: kept, but NOT as a market hit --
      it earned its place on rival + line + severity alone, and the ordering below must not
      rank it above a card that named a market KSSL actually sells in. */
-  return { keep: true, tier: null, reason: "critical, on a Cummins Arabia line, in a Cummins Arabia market" };
+  return { keep: true, tier: null, reason: `critical, on a ${clientShort()} line, in a ${clientShort()} market` };
 }
 
 /* The overview's cards, and an account of what it left out.

@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useMemo, useState } from "react";
 import { useHeaderReport, useAppState } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
@@ -89,7 +90,7 @@ function ProjectPanel({ p, onClose }) {
           {p.assessment.read.length ? p.assessment.read.map((t, i) => (
             <div className="cd-prose" key={i} style={i ? { marginTop: "8px" } : undefined}>{t}</div>
           )) : <div className="cd-prose">No assessment on record.</div>}
-          <div className="pj-note">The analyst's read for Cummins Arabia, from the dataset's record of this item.</div>
+          <div className="pj-note">The analyst`s read for ${clientShort()}, from the dataset`s record of this item.</div>
         </Sec>
 
         {p.sources.length ? (

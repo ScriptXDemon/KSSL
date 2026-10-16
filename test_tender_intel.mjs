@@ -16,12 +16,12 @@ const data = {
                     { name: "KD1000", hz: 60, specs: { "Standby rating": "1,050 kVA / 840 kW" } }] },
   },
   tenders: [
-    t({ title: "live strong", revenueMid: 2e6, cumminsFit: "strong", matches: [{ n: "C800D6E" }],
+    t({ title: "live strong", revenueMid: 2e6, clientFit: "strong", matches: [{ n: "C800D6E" }],
         competitorFit: [{ company: "Rehlko", products: ["KD1000"] }], actions: [{ do: "buy booklet", due: "2026-10-03" }] }),
-    t({ title: "pursuit partial", revenueMid: 10e6, cumminsFit: "partial", pursuit: true, dl: 9999,
+    t({ title: "pursuit partial", revenueMid: 10e6, clientFit: "partial", pursuit: true, dl: 9999,
         competitorFit: [{ company: "Rehlko", products: ["KD1500"] }], competitors: ["Al-Rashid group (6 of 12)", "Caterpillar", "MHI", "Abdullah Abunayyan Trading (Kohler)"] }),
-    t({ title: "poor", revenueMid: 1e9, cumminsFit: "poor" }),
-    t({ title: "unranked", rank: undefined, revenueMid: 5e6, cumminsFit: "strong" }),
+    t({ title: "poor", revenueMid: 1e9, clientFit: "poor" }),
+    t({ title: "unranked", rank: undefined, revenueMid: 5e6, clientFit: "strong" }),
   ],
 };
 const I = tenderIntel(data, today);
@@ -38,7 +38,7 @@ assert.equal(winWeighted(data.tenders[2]), 0);
 assert.equal(decisionOf(data.tenders[1], today).est, true);
 assert.equal(decisionOf(data.tenders[0], today).est, false);
 assert.equal(kindOf({ title: "Dorra main EPC tender" }), "main");
-// product gap: KD1500 (1,875 kVA, 60 Hz) has no Cummins set within 12 %; KD1000 (1,050) does
+// product gap: KD1500 (1,875 kVA, 60 Hz) has no client set within 12 %; KD1000 (1,050) does
 assert.equal(I.gap.n, 1);
 assert.equal(I.gap.v, 10e6);
 // channels skip OEMs; actions carry their tender and days left
@@ -48,7 +48,7 @@ assert.equal(I.actions[0].days, 4);
 assert.equal(I.rivals[0].company, "Rehlko");
 
 // smoke over the served export: every section populates
-const real = JSON.parse(readFileSync(new URL("../parallax-cummins-arabia-datapack/dataset.html.json", import.meta.url)));
+const real = JSON.parse(readFileSync(new URL("../datapack/dataset.html.json", import.meta.url)));
 const R = tenderIntel(real, today);
 assert.ok(R.headline.inPlay > 0 && R.forecast.length > 0 && R.segments.length > 0 && R.points.length > 0);
 console.log("ok - funnel, forecast, gap, channels, actions; served export:",

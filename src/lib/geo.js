@@ -11,6 +11,7 @@
    `window` (_geoPairs, _geoOv) live in this closure instead, so a re-fetch gets
    a fresh set rather than answers computed from the previous corpus.
    =================================================================== */
+import { clientShort } from "./client.js";
 import { edgeVerdict } from "./edge.js";
 import { escAll } from "./html.js";
 
@@ -18,7 +19,7 @@ export function createGeo(d) {
   const { geoData, geoComps, matchups, competitors, CAT_META, counterRules, actLabel } = d;
   // A KEY, not a label: geoData is keyed by the client's id. Using the display
   // short name matched nothing, so every overlap test silently returned "none".
-  const CLIENT_KEY = (d.client && (d.client.id || d.client.short)) || "Cummins Arabia";
+  const CLIENT_KEY = (d.client && (d.client.id || d.client.short));
 
   /* IS THERE A CLIENT FOOTPRINT AT ALL?
 
@@ -327,7 +328,7 @@ export function createGeo(d) {
     const spec = rs.filter((r) => r.tier === "spec").length;
     return spec
       ? `<span class="geo-ovb spec" title="${spec} rival${spec === 1 ? "" : "s"}` +
-          ` contest Cummins Arabia here on class-matched models">◉ ${spec} contested</span>`
+          ` contest ${clientShort()} here on class-matched models">◉ ${spec} contested</span>`
       : '<span class="geo-ovb cat" title="Rivals share a category here but no class-matched ' +
           `pair is on file">◎ ${rs.length} category only</span>`;
   }
@@ -340,17 +341,17 @@ export function createGeo(d) {
     if (p.rival > p.koel)
       return `<span class="gv-bad">rival leads ${p.rival} of ${p.graded}</span>`;
     if (p.koel > p.rival)
-      return `<span class="gv-good">Cummins Arabia leads ${p.koel} of ${p.graded}</span>`;
+      return `<span class="gv-good">${clientShort()} leads ${p.koel} of ${p.graded}</span>`;
     if (p.rival === p.koel && p.rival > 0)
-      return `<span class="gv-mid">split - rival ${p.rival}, Cummins Arabia ${p.koel}${p.level ? `, level ${p.level}` : ""} (of ${p.graded})</span>`;
+      return `<span class="gv-mid">split - rival ${p.rival}, ${clientShort()} ${p.koel}${p.level ? `, level ${p.level}` : ""} (of ${p.graded})</span>`;
     return `<span class="gv-mid">level - ${p.level} of ${p.graded} near parity</span>`;
   }
 
   /* ---- the complete product comparison behind an overlap ----
-     For every overlapping band, each matched Cummins / rival model pair, spec by spec, with who wins each
+     For every overlapping band, each matched the client / rival model pair, spec by spec, with who wins each
      directional row (`hi` true = higher is better, false = lower is better, null = not a ranking row). cv is
-     the competitor's value, kv Cummins Arabia's. A pair is ahead for whoever wins more directional rows.
-     A band with no matched pair says so and names the Cummins line that would answer it by rating. */
+     the competitor's value, kv the client's. A pair is ahead for whoever wins more directional rows.
+     A band with no matched pair says so and names the the client line that would answer it by rating. */
   const stripCo = (s) => String(s || "").replace(/^[^·]*·\s*/, "");
   function geoWinner(s) {
     if (s.hi == null || s.cn == null || s.kn == null || s.cn === s.kn) return null;
@@ -375,7 +376,7 @@ export function createGeo(d) {
   }
   const CMP_WORD = {
     rival: ["gc-rival", "Competitor’s product is better"],
-    koel: ["gc-koel", "Cummins Arabia has the superior product"],
+    koel: ["gc-koel", `${clientShort()} has the superior product`],
     level: ["gc-level", "Level: neither leads"],
     none: ["gc-none", "Not decided: no ranking spec measured on both"],
   };
@@ -402,10 +403,10 @@ export function createGeo(d) {
       return t.length ? `<div class="gc-lead ${w === "rival" ? "rv" : "kv"}"><b>${who} is ahead on</b> ${t.map((q) => `${escAll(q.s.l.replace(/ \(.*\)$/, ""))} (${pct(q.gap)})`).join(", ")}</div>` : "";
     };
     let h = `<details class="gc-pair"${open ? " open" : ""}><summary><span class="gc-names"><b>${escAll(stripCo(x.bf))}</b> <i>vs</i> <b>${escAll(stripCo(x.comp))}</b></span>` +
-      `<span class="gc-chip ${cls}">${word}</span><span class="gc-score">${r.dirn ? `${nm.short} ${r.rival} · Cummins ${r.koel} · level ${r.level} (of ${r.dirn} decided rows)` : "no ranking rows"}</span></summary>`;
+      `<span class="gc-chip ${cls}">${word}</span><span class="gc-score">${r.dirn ? `${nm.short} ${r.rival} · ${clientShort()} ${r.koel} · level ${r.level} (of ${r.dirn} decided rows)` : "no ranking rows"}</span></summary>`;
     h += `<div class="gc-reason">${escAll(x.reason || "")}</div>`;
-    h += lead("rival", nm.short) + lead("koel", "Cummins Arabia");
-    h += `<table class="gc-tbl"><tr><th>Spec</th><th>Cummins Arabia<br>${escAll(stripCo(x.bf))}</th><th>${nm.short}<br>${escAll(stripCo(x.comp))}</th><th>Gap</th></tr>`;
+    h += lead("rival", nm.short) + lead("koel", `${clientShort()}`);
+    h += `<table class="gc-tbl"><tr><th>Spec</th><th>${clientShort()}<br>${escAll(stripCo(x.bf))}</th><th>${nm.short}<br>${escAll(stripCo(x.comp))}</th><th>Gap</th></tr>`;
     CMP_ORDER.forEach((g) => {
       const rows = r.rows.filter((q) => cmpGroupOf(q.s.l) === g);
       if (!rows.length) return;
@@ -422,11 +423,11 @@ export function createGeo(d) {
     return h + "</details>";
   }
 
-  /* ---- the competitor's own products in this market, each with its Cummins answer ----
+  /* ---- the competitor's own products in this market, each with its the client answer ----
      The list a reader scans first: every genset the rival's catalogue carries, smallest first, with the
-     Cummins model it is matched to (if any) and who wins the datasheet. Picking one opens that single
-     pair on the right (geoProductCompareHtml). A model with no matched Cummins model is listed too and
-     says so, so the list is the rival's range, not only the part Cummins can answer. */
+     the client model it is matched to (if any) and who wins the datasheet. Picking one opens that single
+     pair on the right (geoProductCompareHtml). A model with no matched the client model is listed too and
+     says so, so the list is the rival's range, not only the part the client can answer. */
   let _byRival = null;
   const pairOfProduct = (pid) => {
     if (!_byRival) {
@@ -451,21 +452,21 @@ export function createGeo(d) {
     if (!rows.length) return "";
     const nm = escAll(ov.comp.name);
     const paired = rows.filter((r) => r.x).length;
-    let h = `<div class="geo-pl-h"><span class="geo-pl-t">Products ${nm} sells</span><span class="geo-pl-n">${rows.length} models · ${paired} matched to a Cummins Arabia model</span></div>`;
-    h += '<div class="geo-pl-hint">Pick a model to compare it with its Cummins Arabia counterpart on the right.</div>';
+    let h = `<div class="geo-pl-h"><span class="geo-pl-t">Products ${nm} sells</span><span class="geo-pl-n">${rows.length} models · ${paired} matched to a ${clientShort()} model</span></div>`;
+    h += `<div class="geo-pl-hint">Pick a model to compare it with its ${clientShort()} counterpart on the right.</div>`;
     rows.forEach(({ p, x, kva }) => {
       const r = x ? geoPairRead(x) : null;
-      const [cls, word] = r ? CMP_WORD[r.who] : ["gc-none", "No matched Cummins model"];
+      const [cls, word] = r ? CMP_WORD[r.who] : ["gc-none", `No matched ${clientShort()} model`];
       const meta = [p.band ? geoBandLabel(p.band) : null, kva ? `${kva} kVA` : null, p.hz ? `${p.hz} Hz` : null, p.category].filter(Boolean).join(" · ");
       h += `<div class="geo-rel-item prod${p.id === activeId ? " active" : ""}" data-cmp-prod="${escAll(p.id)}"><span class="ri-act ex"></span><div class="ri-main">` +
         `<div class="ri-nm">${escAll(p.name)}</div><div class="ri-desc">${escAll(meta)}</div>` +
-        `<div class="ri-counter${x ? "" : " none"}"><span class="rc-lab">Cummins Arabia counter</span> ` +
+        `<div class="ri-counter${x ? "" : " none"}"><span class="rc-lab">${clientShort()} counter</span> ` +
         (x ? `<span class="rc-prod">${escAll(stripCo(x.bf))}</span>` : '<span class="rc-prod muted">no like-for-like product</span>') +
         ` <span class="gc-chip ${cls}">${word}</span></div></div><span class="ri-chev">›</span></div>`;
     });
     return h;
   }
-  // { title, html } for the right-hand pane: one rival model against its Cummins counterpart
+  // { title, html } for the right-hand pane: one rival model against its the client counterpart
   function geoProductCompare(ov, pid) {
     const row = geoRivalProducts(ov).find((r) => r.p.id === pid);
     if (!row) return null;
@@ -473,10 +474,10 @@ export function createGeo(d) {
     const nm = { name: escAll(ov.comp.name), short: escAll(String(ov.comp.name).split(/[ /(]/)[0]) };
     if (x) return { title: `${p.name} vs ${stripCo(x.bf)}`, html: `<div class="gc">${geoPairCard(x, nm, true)}</div>` };
     const cr = counterRules.filter((z) => z.band === p.band)[0];
-    let h = `<div class="gc"><div class="gc-blk"><b>${escAll(p.name)}</b>: no like-for-like comparison. No ${nm.name} datasheet row is matched to a Cummins Arabia model of the same rating and frequency${cr && cr.product ? `. Cummins Arabia’s line in this class: ${escAll(cr.product)}` : ""}.</div>`;
+    let h = `<div class="gc"><div class="gc-blk"><b>${escAll(p.name)}</b>: no like-for-like comparison. No ${nm.name} datasheet row is matched to a ${clientShort()} model of the same rating and frequency${cr && cr.product ? `. ${clientShort()}’s line in this class: ${escAll(cr.product)}` : ""}.</div>`;
     h += '<table class="gc-tbl"><tr><th>Spec</th><th>' + escAll(p.name) + "</th></tr>";
     Object.keys(p.specs || {}).forEach((k) => { h += `<tr><td>${escAll(k)}</td><td>${escAll(p.specs[k])}</td></tr>`; });
-    return { title: `${p.name}: no Cummins counterpart`, html: h + "</table></div>" };
+    return { title: `${p.name}: no ${clientShort()} counterpart`, html: h + "</table></div>" };
   }
 
   /* KSSL's own row in a country: who contests it here, and how hard. */
@@ -492,9 +493,9 @@ export function createGeo(d) {
         '<div class="geo-ov none"><div class="geo-ov-h"><span class="geo-ov-t">◌ Overlap not assessed in ' +
         `${ct}</span></div>` +
         '<div class="geo-ov-why"><span class="gw-l">Why there is no answer here</span><ul>' +
-        "<li><b>No Cummins Arabia footprint is on file.</b> Every overlap test compares a rival's offering against " +
-        "Cummins Arabia's in the same country, and the served footprint tables carry no Cummins Arabia rows, so no test could run.</li>" +
-        "<li><b>This is not a finding of ‘uncontested’.</b> Rivals may well overlap Cummins Arabia here; nothing " +
+        `<li><b>No ${clientShort()} footprint is on file.</b> Every overlap test compares a rival's offering against ` +
+        `${clientShort()}'s in the same country, and the served footprint tables carry no ${clientShort()} rows, so no test could run.</li>` +
+        `<li><b>This is not a finding of ‘uncontested’.</b> Rivals may well overlap ${clientShort()} here; nothing ` +
         "has been measured either way until a client footprint is served.</li>" +
         "</ul></div></div>"
       );
@@ -503,9 +504,9 @@ export function createGeo(d) {
       return (
         '<div class="geo-ov none"><div class="geo-ov-h"><span class="geo-ov-t">○ No overlapping rival on file</span>' +
         `<span class="geo-ov-sp">${geoSpanText(k.span)}</span></div>` +
-        '<div class="geo-ov-why"><span class="gw-l">What this means for Cummins Arabia</span><ul>' +
-        "<li><b>Nothing here contests Cummins Arabia on a like-for-like platform.</b> No rival in the dataset sells into a category " +
-        `into ${ct} that meets Cummins Arabia’s ${geoSpanText(k.span)}.</li>` +
+        `<div class="geo-ov-why"><span class="gw-l">What this means for ${clientShort()}</span><ul>` +
+        `<li><b>Nothing here contests ${clientShort()} on a like-for-like platform.</b> No rival in the dataset sells into a category ` +
+        `into ${ct} that meets ${clientShort()}’s ${geoSpanText(k.span)}.</li>` +
         "<li><b>Read it as one of two things, not as a win.</b> Either the market is genuinely uncontested by the " +
         "tracked set - in which case pricing power here is higher than in India - or the rivals present are simply " +
         "not mapped for this country yet. The footprint rows are the limit of what can be said.</li>" +
@@ -519,9 +520,9 @@ export function createGeo(d) {
       .sort((a, b) => b.rival - b.koel - (a.rival - a.koel) || b.graded - a.graded)[0];
     let h =
       `<div class="geo-ov ${spec.length ? "spec" : "cat"}"><div class="geo-ov-h"><span class="geo-ov-t">` +
-      `${spec.length ? "◉ " : "◎ "}${rs.length} rival${rs.length === 1 ? "" : "s"} overlap Cummins Arabia in ${ct}` +
+      `${spec.length ? "◉ " : "◎ "}${rs.length} rival${rs.length === 1 ? "" : "s"} overlap ${clientShort()} in ${ct}` +
       `${spec.length ? "" : " - none confirmed on specs"}</span>` +
-      `<span class="geo-ov-sp">Cummins Arabia ${geoSpanText(k.span)}</span></div>`;
+      `<span class="geo-ov-sp">${clientShort()} ${geoSpanText(k.span)}</span></div>`;
     h +=
       '<table class="geo-ov-tbl"><tr><th>Rival</th><th>Overlapping categories</th><th class="n">Matched pairs</th>' +
       "<th>Datasheet outcome</th><th>Presence</th></tr>";
@@ -533,7 +534,7 @@ export function createGeo(d) {
           if (r.rival > r.koel)
             out = `<span class="gv-bad">rival leads ${r.rival} of ${r.graded}</span>`;
           else if (r.koel > r.rival)
-            out = `<span class="gv-good">Cummins Arabia leads ${r.koel} of ${r.graded}</span>`;
+            out = `<span class="gv-good">${clientShort()} leads ${r.koel} of ${r.graded}</span>`;
           else out = '<span class="gv-mid">level</span>';
         }
         // bands its catalogue actually reaches, then the ones only its stated range claims
@@ -549,7 +550,7 @@ export function createGeo(d) {
           "</td></tr>";
       });
     h += "</table>";
-    h += '<div class="geo-ov-why"><span class="gw-l">What this means for Cummins Arabia</span><ul>';
+    h += `<div class="geo-ov-why"><span class="gw-l">What this means for ${clientShort()}</span><ul>`;
     h +=
       rs.length === 1
         ? `<li><b>The single overlap here is ${spec.length ? "confirmed at spec level" : "unconfirmed"}.</b> ` +
@@ -562,11 +563,11 @@ export function createGeo(d) {
             " confirmed at spec level</b> - same country, same product class, overlapping category, and class-matched " +
             "models compared line by line." +
             (rs.length > spec.length
-              ? ` The remaining ${rs.length - spec.length} share a category with Cummins Arabia but have no matched pair on file, so they are leads rather than proven collisions.`
+              ? ` The remaining ${rs.length - spec.length} share a category with ${clientShort()} but have no matched pair on file, so they are leads rather than proven collisions.`
               : "") +
             "</li>"
           : `<li><b>None of the ${rs.length} overlaps is confirmed at spec level.</b> All ${rs.length} sell defence platforms ` +
-            `into ${ct} in a category Cummins Arabia also covers, but no class-matched model pair is on file for any of them, so ` +
+            `into ${ct} in a category ${clientShort()} also covers, but no class-matched model pair is on file for any of them, so ` +
             "every one is a lead to check rather than a measured collision.</li>";
     if (local.length)
       h +=
@@ -577,7 +578,7 @@ export function createGeo(d) {
       h +=
         `<li><b>Sharpest exposure: ${escAll(hardest.comp.name)}.</b> It takes the datasheet in ${hardest.rival}` +
         ` of ${hardest.graded} class-matched pairs across ${hardest.bandsSpec.map(geoBandShort).join(", ")}` +
-        ", so Cummins Arabia is holding that ground on price, financing or service rather than on measured specification.</li>";
+        `, so ${clientShort()} is holding that ground on price, financing or service rather than on measured specification.</li>`;
     // only claim open ground where a category KSSL covers is genuinely reached by no rival
     const contested = {};
     rs.forEach((r) =>
@@ -587,15 +588,15 @@ export function createGeo(d) {
     );
     const open = geoBandsOf(k.span).filter((b) => !contested[b]);
     h += open.length
-      ? `<li><b>Open ground: ${open.map(geoBandShort).join(", ")}.</b> Cummins Arabia’s portfolio covers ` +
+      ? `<li><b>Open ground: ${open.map(geoBandShort).join(", ")}.</b> ${clientShort()}’s portfolio covers ` +
         `${open.length === 1 ? "this category" : "these categories"} in ${ct} and no rival here reaches ` +
-        `${open.length === 1 ? "it" : "them"}, so Cummins Arabia quotes unopposed within the tracked set - the highest-margin volume ` +
+        `${open.length === 1 ? "it" : "them"}, so ${clientShort()} quotes unopposed within the tracked set - the highest-margin volume ` +
         "in this market.</li>"
-      : `<li><b>No open ground here.</b> Every category Cummins Arabia’s portfolio covers in ${ct} is reached by at least one rival, ` +
-        "so there is no category in this market where Cummins Arabia quotes unopposed.</li>";
+      : `<li><b>No open ground here.</b> Every category ${clientShort()}’s portfolio covers in ${ct} is reached by at least one rival, ` +
+        `so there is no category in this market where ${clientShort()} quotes unopposed.</li>`;
     h += "</ul></div>";
     h +=
-      '<div class="geo-ov-src">Overlap from the footprint rows on this page · categories from the Cummins Arabia category ' +
+      `<div class="geo-ov-src">Overlap from the footprint rows on this page · categories from the ${clientShort()} category ` +
       "definitions · datasheet outcome from the Positioning comparisons for each rival in the shared categories.</div>";
     return `${h}</div>`;
   }
@@ -609,7 +610,7 @@ export function createGeo(d) {
       return {
         cls: "bf",
         meta: mk,
-        tip: `Cummins Arabia - present in ${n} market${n === 1 ? "" : "s"}`,
+        tip: `${clientShort()} - present in ${n} market${n === 1 ? "" : "s"}`,
       };
     const scope = selCountry ? [selCountry] : countriesForComp(c.id);
     const ovs = scope.map((ct) => geoOverlap(c.id, ct)).filter(Boolean);
@@ -621,13 +622,13 @@ export function createGeo(d) {
       return {
         cls: "ovl-unk",
         meta: mk,
-        tip: `Overlap with Cummins Arabia not assessed${selCountry ? ` in ${selCountry}` : ""} - no Cummins Arabia footprint is on file to compare against`,
+        tip: `Overlap with ${clientShort()} not assessed${selCountry ? ` in ${selCountry}` : ""} - no ${clientShort()} footprint is on file to compare against`,
       };
     if (!ovs.length)
       return {
         cls: "noovl",
         meta: mk,
-        tip: `No overlap with Cummins Arabia${selCountry ? ` in ${selCountry}` : ""} - no overlapping product category on a defence offering`,
+        tip: `No overlap with ${clientShort()}${selCountry ? ` in ${selCountry}` : ""} - no overlapping product category on a defence offering`,
       };
     const spec = ovs.filter((o) => o.tier === "spec");
     const where = selCountry
@@ -637,14 +638,14 @@ export function createGeo(d) {
       ? {
           cls: "ovl",
           meta: mk,
-          tip: `Overlaps Cummins Arabia${where} - confirmed on class-matched models in ${spec
+          tip: `Overlaps ${clientShort()}${where} - confirmed on class-matched models in ${spec
             .map((o) => o.bandsSpec.map(geoBandShort).join(", "))
             .join(" / ")}`,
         }
       : {
           cls: "ovl-cat",
           meta: mk,
-          tip: `Shares a category with Cummins Arabia${where}, but no class-matched model pair is on file`,
+          tip: `Shares a category with ${clientShort()}${where}, but no class-matched model pair is on file`,
         };
   }
 
@@ -672,10 +673,10 @@ export function createGeo(d) {
       "geoBandsOf must return canonical category order",
     );
     const kc = koelCounter({ name: "CAESAR 155mm howitzer" });
-    ok(kc && /ATAGS/.test(kc.p), "a 155mm rival product must be countered by the Cummins Arabia artillery line");
+    ok(kc && /ATAGS/.test(kc.p), `a 155mm rival product must be countered by the ${clientShort()} artillery line`);
     ok(
       koelCounter({ name: "battlefield surveillance radar" }) === null,
-      "a radar row has no like-for-like Cummins Arabia counter",
+      `a radar row has no like-for-like ${clientShort()} counter`,
     );
     ok(GEO_NOTGEN.test("battlefield radar systems"), "radar rows must be excluded from the platform test");
     ok(

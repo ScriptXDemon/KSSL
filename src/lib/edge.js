@@ -42,6 +42,7 @@
    ponytail: no per-dimension weighting — fuel cost probably deserves more than
    footprint, but any weights would be invented here. Equal votes, stated plainly.
    ============================================================================== */
+import { clientShort } from "./client.js";
 
 /* The pairing axes. A 155mm gun is a different product from a 105mm gun, a 30-tonne
    MRAP a different product from a 12-tonne LPV — calibre, take-off weight, length and
@@ -166,9 +167,9 @@ export function computeSpecEdge(m) {
    used 60/48, so an index of 45 read "near parity" on the gauge and "competitor
    holds the edge" three panels over. Symmetric band of +/-8 around parity: a single
    decided dimension needs a ~13% gap to move the verdict off parity. */
-export function edgeVerdict(e, clientName = "Cummins Arabia") {
-  const short = (clientName || "Cummins Arabia").toUpperCase();
-  const name = clientName || "Cummins Arabia";
+export function edgeVerdict(e, clientLabel = clientShort()) {
+  const short = clientLabel.toUpperCase();
+  const name = clientLabel;
   if (e == null)
     return {
       cls: "parity",
@@ -240,8 +241,8 @@ export function edgeSelfCheck() {
     "axis-only specs must yield no index",
   );
   // direction: KSSL shooting shorter must read below 50, further must read above
-  ok(e([CAL(155, 155), MR(48, 40)]) < 50, "Cummins Arabia worse on range must be <50");
-  ok(e([CAL(155, 155), MR(40, 48)]) > 50, "Cummins Arabia better on range must be >50");
+  ok(e([CAL(155, 155), MR(48, 40)]) < 50, "the client worse on range must be <50");
+  ok(e([CAL(155, 155), MR(40, 48)]) > 50, "the client better on range must be >50");
   // symmetry: mirroring the two sides mirrors the index around 50
   ok(
     e([CAL(155, 155), MR(48, 40)]) + e([CAL(155, 155), MR(40, 48)]) === 100,

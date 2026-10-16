@@ -8,6 +8,7 @@
    "17 days left". Parsing `t.deadline` for a date here would find one on zero rows.
    And `bucketTenders`' `t.dl <= 0` is TRUE for the served `null`, so raw rows bucket
    as 100% closed. Wired input is a correctness requirement, not a convention. */
+import { clientShort } from "./client.js";
 import { parseCr, CR_PER_MILLION } from "./gapModel.js";
 import { facetOptionsByName } from "./countryFacet.js";
 import { bucketTenders, marketAttention } from "./overview.js";
@@ -316,7 +317,7 @@ export function marketSelfCheck(tenders, marketCards) {
       `market: ${folded.length} categor${folded.length === 1 ? "y is" : "ies are"} ` +
         `folded into "Other" (${folded.join(", ")}) -- SERIES has ${SERIES.length} ` +
         "hues for them. Add a validated hue (dataviz palette checker, both surfaces) " +
-        "rather than letting a Cummins Arabia line go unnamed.",
+        `rather than letting a ${clientShort()} line go unnamed.`,
     );
 }
 

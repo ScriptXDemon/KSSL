@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { marketNews } from "../../lib/news";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
@@ -37,7 +38,7 @@ export default function Geo() {
   const { data, geo } = useData();
   const { setScope } = useAppState();
   const clientName =
-    (data.client && (data.client.short || data.client.name)) || "Cummins Arabia";
+    clientShort();
   const getSavedGeo = () => {
     try {
       const s = viewState.getItem("kssl_geo_state");
@@ -533,7 +534,7 @@ export default function Geo() {
       const cs = geo.compsInCountry(resolved.country);
       const rivals = cs.filter((c) => !c.isBf).length;
       const ownData = data.geoData
-        ? data.geoData[data.client?.id || data.client?.short || "Cummins Arabia"] ||
+        ? data.geoData[data.client?.id || clientShort()] ||
           data.geoData[data.client?.short] ||
           {}
         : {};
@@ -687,7 +688,7 @@ export default function Geo() {
               countryMenuItems.map((ct) => {
                 const n = geo.compsInCountry(ct).filter((c) => !c.isBf).length;
                 const ownData = data.geoData
-                  ? data.geoData[data.client?.id || data.client?.short || "Cummins Arabia"] ||
+                  ? data.geoData[data.client?.id || clientShort()] ||
                     data.geoData[data.client?.short] ||
                     {}
                   : {};

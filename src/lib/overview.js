@@ -1,3 +1,4 @@
+import { clientShort } from "./client.js";
 import { globalRequirements } from "./globalRequirements.js";
 /* Overview feed: the sequence logic, the group split, and the per-pillar metric
    strip. Pure — it returns data, and the React components render it. */
@@ -677,7 +678,8 @@ export const TILE_LABELS = {
   valued: "published a value",
   opps: "perceived opportunities",
   rival: "competitor advancements",
-  adopt: "advances Cummins Arabia can adopt",
+  // read at use, after the client is set
+  get adopt() { return `advances ${clientShort()} can adopt`; },
   geo: "markets in play",
   positioning: "rating-matched rivals",
   gap: "capability gaps",
@@ -723,7 +725,7 @@ export function navCounts(d, gapModel) {
     });
     counts.positioning = posCompanies.size;
     // Partnerships: competitor profiles (exclude the client's own reference network)
-    counts.partnerships = Object.keys(d.competitors).filter((k) => k !== ((d.client && d.client.id) || "Cummins Arabia")).length;
+    counts.partnerships = Object.keys(d.competitors).filter((k) => k !== ((d.client && d.client.id))).length;
     // Geo: distinct countries across all companies' footprints
     const geoCountries = new Set();
     Object.values(d.geoData).forEach((byCountry) =>
@@ -744,9 +746,9 @@ export function navCounts(d, gapModel) {
        `d.client.id` is the slug by the time this runs; wireDataset resolves it from
        the row whose dir is "client", precisely so this join is not on a display label. */
     counts.profile = Object.keys(d.competitors).filter(
-      (k) => k !== ((d.client && d.client.id) || "Cummins Arabia"),
+      (k) => k !== ((d.client && d.client.id)),
     ).length;
-    counts["threat-analysis"] = Object.entries(d.competitorNews || {}).filter(([k]) => k !== ((d.client && d.client.id) || "Cummins Arabia")).reduce((n, [, v]) => n + (v ? v.length : 0), 0);  // competitor moves on record (competitorNews)
+    counts["threat-analysis"] = Object.entries(d.competitorNews || {}).filter(([k]) => k !== ((d.client && d.client.id))).reduce((n, [, v]) => n + (v ? v.length : 0), 0);  // competitor moves on record (competitorNews)
     counts.projects = PROJECTS_DATA.length;
     counts.finances = 0;
 
@@ -754,7 +756,7 @@ export function navCounts(d, gapModel) {
        comp side of matchups + each competitor's own products), so the badge counts
        those — not KSSL's own SKUs, which is what it used to show (a "1" over a catalog
        of dozens). Same two sources the page reads, deduped by name. */
-    const clientId = (d.client && d.client.id) || "Cummins Arabia";
+    const clientId = (d.client && d.client.id);
     const compProds = new Set();
     Object.values(d.matchups || {}).forEach((m) => {
       const nm = (m.comp || "").replace(/.*·\s*/, "").trim();
@@ -781,7 +783,7 @@ export function navCounts(d, gapModel) {
        lane here put a 141 on a feed that shows the shortlist. */
     /* The Market overview is the tender tables now (Top tenders, Projects): its badge counts their rows. The signal
        cards moved to Global Requirements, whose badge counts them. */
-    const ranked = (d.tenders || []).filter((t) => t.rank && t.cumminsFit !== "poor");
+    const ranked = (d.tenders || []).filter((t) => t.rank && t.clientFit !== "poor");
     counts["m-overview"] =
       Math.min(10, ranked.filter((t) => isTender(t)).length) + Math.min(8, ranked.filter((t) => isProject(t)).length);
     counts["global-requirement"] = globalRequirements(d).length;   // the rows the page lists
@@ -831,7 +833,7 @@ export function viewMetaFor(d) {
   let geoCountries = new Set();
   try {
     Object.entries(competitors).forEach(([k, c]) => {
-      if (k !== ((d.client && d.client.id) || "Cummins Arabia") && c.partners) allianceCount += c.partners.length;
+      if (k !== ((d.client && d.client.id)) && c.partners) allianceCount += c.partners.length;
     });
     Object.values(geoData).forEach((byCountry) =>
       Object.keys(byCountry || {}).forEach((c) => geoCountries.add(c)),
@@ -839,11 +841,11 @@ export function viewMetaFor(d) {
   } catch (e) {
     /* fall through to the static copy below */
   }
-  const partnerCount = Object.keys(competitors).filter((k) => k !== ((d.client && d.client.id) || "Cummins Arabia")).length;
-  const geoCompCount = Object.keys(geoData).filter((k) => k !== ((d.client && d.client.short) || "Cummins Arabia")).length;
+  const partnerCount = Object.keys(competitors).filter((k) => k !== ((d.client && d.client.id))).length;
+  const geoCompCount = Object.keys(geoData).filter((k) => k !== ((d.client && d.client.short))).length;
   const alertCount = (d.competitiveCards || []).length;
   const momentCount = Object.entries(d.competitorNews || {})
-    .filter(([k]) => k !== ((d.client && d.client.id) || "Cummins Arabia"))
+    .filter(([k]) => k !== ((d.client && d.client.id)))
     .reduce((n, [, v]) => n + (v ? v.length : 0), 0);
   return {
     overview: {
@@ -869,7 +871,7 @@ export function viewMetaFor(d) {
     },
     positioning: {
       title: "Product Evaluation",
-      cnt: "Cummins Arabia products mapped to rival products by spec category",
+      cnt: `${clientShort()} products mapped to rival products by spec category`,
       filters: true,
     },
     partnerships: {
@@ -923,7 +925,7 @@ export function viewMetaFor(d) {
     },
     innovation: {
       title: "Innovation Pipeline",
-      cnt: "Technology developments tracked across Cummins Arabia product domains",
+      cnt: `Technology developments tracked across ${clientShort()} product domains`,
       filters: false,
     },
     "patents-comp": {
@@ -933,7 +935,7 @@ export function viewMetaFor(d) {
     },
     "gap-competitive": {
       title: "Gap Analysis",
-      cnt: "Where Cummins Arabia trails rivals, from the Positioning spec comparisons",
+      cnt: `Where ${clientShort()} trails rivals, from the Positioning spec comparisons`,
       filters: false,
     },
   };

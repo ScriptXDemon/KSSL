@@ -20,6 +20,7 @@
  *              breakthrough alone. (No per-card "KSSL was expected to win" signal is
  *              served, so this stays a de-escalation principle, not a raise.)
  */
+import { clientShort } from "./client.js";
 import { partnerKey } from "./overlap.js";
 
 // Subsystems / segments KSSL does NOT manufacture — a signal that is ONLY about these
@@ -62,7 +63,7 @@ export function refineThreat(card, ctx) {
       ...card,
       dir: "watch",
       ...SEV.low,
-      threatWhy: `Cummins Arabia partners with ${card.company}; its advances are co-produced with Cummins Arabia, not a competitive threat.`,
+      threatWhy: `${clientShort()} partners with ${card.company}; its advances are co-produced with ${clientShort()}, not a competitive threat.`,
     };
   }
 
@@ -76,7 +77,7 @@ export function refineThreat(card, ctx) {
       dir: "watch",
       ...SEV.low,
       threatWhy:
-        "Outside Cummins Arabia's product segments (ISR / electro-optics / radar / software / naval subsystems); Cummins Arabia does not build this, so it is watch-only.",
+        `Outside ${clientShort()}'s product segments (ISR / electro-optics / radar / software / naval subsystems); ${clientShort()} does not build this, so it is watch-only.`,
     };
   }
 
@@ -88,7 +89,7 @@ export function refineThreat(card, ctx) {
       return {
         ...card,
         ...SEV.high,
-        threatWhy: "An Indian / MoD procurement in a Cummins Arabia product line — a direct home-market threat.",
+        threatWhy: `An Indian / MoD procurement in a ${clientShort()} product line — a direct home-market threat.`,
       };
     }
     // Foreign export in a KSSL line: real, but it does not touch KSSL's protected
@@ -98,7 +99,7 @@ export function refineThreat(card, ctx) {
         ...card,
         ...SEV.medium,
         threatWhy:
-          "A foreign export win in a Cummins Arabia line — it does not touch Cummins Arabia's protected domestic pipeline, so it ranks below a home-market threat.",
+          `A foreign export win in a ${clientShort()} line — it does not touch ${clientShort()}'s protected domestic pipeline, so it ranks below a home-market threat.`,
       };
     }
   }

@@ -17,8 +17,8 @@ export function productOwner(data, name) {
 }
 
 if (typeof process !== "undefined" && process.argv[1] && process.argv[1].endsWith("productLink.js")) {
-  const d = { competitors: { R: { products: [{ name: "Mtu 12V1600 DS900 (60 Hz)" }] }, A: { products: [{ name: "KD1000" }] }, "Cummins Arabia": { products: [{ name: "C800D6E (S17 Centum Series)" }] } } };
-  const ok = productOwner(d, "KD1000").cid === "A" && productOwner(d, "C800D6E (S17 Centum Series)").cid === "Cummins Arabia"
+  const d = { competitors: { R: { products: [{ name: "Mtu 12V1600 DS900 (60 Hz)" }] }, A: { products: [{ name: "KD1000" }] }, OWN: { products: [{ name: "C800D6E (S17 Centum Series)" }] } } };
+  const ok = productOwner(d, "KD1000").cid === "A" && productOwner(d, "C800D6E (S17 Centum Series)").cid === "OWN"
     && productOwner(d, "mtu 12V1600 DS900 (60 Hz)").cid === "R" && productOwner(d, "mtu 12V1600 DS900 (60 Hz)").productName === "Mtu 12V1600 DS900 (60 Hz)"
     && productOwner(d, "Parts / service job: no set to quote") === null && productOwner(null, "x") === null;
   if (!ok) throw new Error("productLink self-check failed");

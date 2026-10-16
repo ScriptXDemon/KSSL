@@ -7,6 +7,7 @@
 
    Neither calls out to a model. Every sentence they return is assembled from fields
    that are on screen somewhere else, which is what makes them auditable. */
+import { clientShort } from "./client.js";
 import { edgeVerdict } from "./edge.js";
 import { stripTags } from "./html.js";
 import { formatLabel } from "./profile.js";
@@ -24,7 +25,7 @@ const clean = stripTags;
 /* ---- answer engine: answers ONLY from the given scoped context object ---- */
 export function scopedAnswer(d, ctx, question) {
   if (!ctx) return "Select an item in this panel first, then ask me about it.";
-  const clientName = (d && d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+  const clientName = clientShort();
   const q = question.toLowerCase().trim();
   const has = (...ks) => ks.some((k) => q.includes(k));
   const T = ctx.type;
@@ -177,7 +178,7 @@ export function scopedAnswer(d, ctx, question) {
 /* ---- build a compact, grounded knowledge base from the platform's real datasets ---- */
 export function buildKnowledgeBase(d) {
   if (!d) return { competitors: {}, matchups: [], geo: [], tenders: [], technology: [] };
-  const clientName = (d && d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+  const clientName = clientShort();
   const matchupsList = Array.isArray(d.matchups) ? d.matchups : Object.values(d.matchups || {});
   const geoList = Array.isArray(d.geoRows) ? d.geoRows : Object.values(d.geoRows || {});
   const tendersList = Array.isArray(d.tenders) ? d.tenders : Object.values(d.tenders || {});
@@ -224,7 +225,7 @@ export function buildKnowledgeBase(d) {
 /* ---- cross-pillar answer engine: answers across all loaded pillars ---- */
 export function groundedAnswer(d, question, ctx) {
   if (!d) return "No data loaded yet.";
-  const clientName = (d && d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+  const clientName = clientShort();
   const q = question.toLowerCase().trim();
   const kb = buildKnowledgeBase(d);
   const sel = ctx && ctx.data ? ctx.data.title || ctx.data.comp || ctx.data.t || ctx.data.name || null : null;

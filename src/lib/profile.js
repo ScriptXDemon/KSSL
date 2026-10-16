@@ -317,7 +317,7 @@ function nameKey(s) {
 /* The rivals, in the dataset's own order, with a density figure so the list can show
    which companies are actually worth opening. */
 export function rosterOf(d) {
-  const clientCid = (d.client && d.client.id) || "Cummins Arabia";
+  const clientCid = (d.client && d.client.id);
   /* the same country expression the Products and Partnerships sidebars filter on */
   const order = (d.compOrder || []).filter((cid) => d.competitors[cid]);
   const rest = Object.keys(d.competitors).filter(
@@ -452,7 +452,7 @@ export function buildProfile(d, cid) {
 export function profileSelfCheck(d) {
   const roster = rosterOf(d);
   if (!roster.length) throw new Error("profile: empty roster");
-  const clientCid = (d.client && d.client.id) || "Cummins Arabia";
+  const clientCid = (d.client && d.client.id);
   if (roster.some((r) => r.cid === clientCid))
     throw new Error("profile: the client is listed as its own competitor");
   roster.forEach((r) => {

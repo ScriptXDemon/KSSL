@@ -14,6 +14,7 @@ import {
   footprintCountries, countriesNamed, countryVocabulary, indianRivalNames,
   SHORTLIST_MAX, MIN_QUALIFIED,
 } from "./src/lib/shortlist.js";
+import { setClient, clientShort } from "./src/lib/client.js";
 import { tierOf, TIERS, UNRESOLVED, requireGrade, LINES, GRADES, T0, T1, T2, T3 } from "./src/lib/footprint.js";
 
 let fail = 0;
@@ -34,6 +35,7 @@ const base = {
   competitorNews: { hanwha: [{ id: 1, title: "already held", url: "u-old", date: "2026-01-01" }] },
   details: {},
 };
+setClient(base.client);
 
 const ctx = shortlistContext(base);
 
@@ -98,16 +100,16 @@ ck("a critical, on-line, in-market rival move is kept", qualifySignal(card({}), 
 ck("a company that is not on the roster is not a competitive signal",
    qualifySignal(card({ company: "Leonardo" }), ctx).reason === "not a tracked rival");
 ck("a signal that only touches a KSSL line is not a threat to one",
-   qualifySignal(card({ impact: "adjacent" }), ctx).reason === "does not hit a Cummins Arabia line");
+   qualifySignal(card({ impact: "adjacent" }), ctx).reason === `does not hit a ${clientShort()} line`);
 ck("a medium-severity signal from a FOREIGN rival is not critical",
    qualifySignal(card({ severity: "medium" }), ctx).reason === "not critical");
 ck("an unrated signal is not critical either",
    qualifySignal(card({ severity: null }), ctx).reason === "not critical");
 ck("THE OPERATOR'S OWN CASE: a rival's win in Poland is not a threat to KSSL",
-   qualifySignal(card({ title: "Hanwha delivers K9PL howitzers to Poland" }), ctx).reason === "outside Cummins Arabia's markets");
+   qualifySignal(card({ title: "Hanwha delivers K9PL howitzers to Poland" }), ctx).reason === `outside ${clientShort()}'s markets`);
 ck("...nor is one in Germany, Sweden or Ukraine",
    ["Rheinmetall wins German Boxer order", "BAE delivers Archer to Swedish forces", "Rheinmetall supplies Ukraine"]
-     .every((t) => qualifySignal(card({ title: t }), ctx).reason === "outside Cummins Arabia's markets"));
+     .every((t) => qualifySignal(card({ title: t }), ctx).reason === `outside ${clientShort()}'s markets`));
 ck("a rival's move in the HOME market is a threat",
    qualifySignal(card({ title: "Kalashnikov promotes shotguns in India" }), ctx).tier === T0);
 ck("a rival's move in an EVIDENCED EXPORT market is a threat",
@@ -122,7 +124,7 @@ ck("a card naming BOTH takes the STRONGER market",
 ck("a rival's artillery move in a line-scoped market counts",
    qualifySignal(card({ title: "Hanwha builds howitzers in the UAE", tags: "Artillery" }), ctx).keep);
 ck("a rival's DRONE move there does not -- one barrel contract is not a position in every line",
-   qualifySignal(card({ title: "Anduril wins UAE drone contract", tags: "UAVs & Drones" }), ctx).reason === "outside Cummins Arabia's markets");
+   qualifySignal(card({ title: "Anduril wins UAE drone contract", tags: "UAVs & Drones" }), ctx).reason === `outside ${clientShort()}'s markets`);
 ck("A CARD NAMING NO COUNTRY IS KEPT -- silence is not evidence of foreign ground",
    qualifySignal(card({ title: "Rheinmetall wins a large recovery-vehicle order", company: "Rheinmetall" }), ctx).keep);
 ck("...and is NOT credited with a market it never named",
@@ -130,7 +132,7 @@ ck("...and is NOT credited with a market it never named",
 /* "Bundeswehr" IS a country: the demonym table maps it to Germany, which is T3. A card
    that names its customer by service or ministry is not a card that named no country. */
 ck("a service or ministry name counts as naming the country",
-   qualifySignal(card({ title: "Rheinmetall wins a Bundeswehr order", company: "Rheinmetall" }), ctx).reason === "outside Cummins Arabia's markets");
+   qualifySignal(card({ title: "Rheinmetall wins a Bundeswehr order", company: "Rheinmetall" }), ctx).reason === `outside ${clientShort()}'s markets`);
 ck("with an EMPTY footprint the market test cannot run, and does not demote",
    qualifySignal(card({ title: "wins US Army contract" }), { ...ctx, footprint: new Set() }).keep);
 ck("the reason names the FIRST failing test, so the counts mean something",

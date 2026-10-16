@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useRef, useState } from "react";
 import HtmlBlock from "../htmlBlock/HtmlBlock";
 import { specPanelHtml, matchupGapHtml, advantageText } from "../../lib/specs";
@@ -167,7 +168,7 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
               <div className="adv-col bf">
                 <div className="ah">
                   <span className="dot" />
-                  <span>{data.client?.short || "Cummins Arabia"} analytics</span>
+                  <span>{clientShort()} analytics</span>
                 </div>
                 <div>
                   {(m.advBf || []).length || (m.advBfQ || []).length ? null : (

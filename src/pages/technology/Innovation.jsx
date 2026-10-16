@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
 import ScopeChat from "../../components/scopeChat/ScopeChat";
@@ -21,7 +22,7 @@ const EMPTY = [];
 export default function Innovation() {
   const { data, gapModel } = useData();
   const { setScope, jumpTo, takePending, searchQuery } = useAppState();
-  const clientName = (data.client && (data.client.short || data.client.name)) || "Cummins Arabia";
+  const clientName = clientShort();
 
   const GAP_LAB = { behind: `${clientName} behind`, parity: `${clientName} at parity`, ahead: `${clientName} ahead` };
   const GAP_HEAD = {

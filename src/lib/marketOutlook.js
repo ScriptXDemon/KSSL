@@ -42,8 +42,8 @@ export function cardMeta(c) {
   return { kind: p[0] || "", country: p[1] || "", segment: p.length > 3 ? p[2] : "", date };
 }
 const isRealCountry = (c) => !!c && !/^(global|worldwide|international)$/i.test(c) && c.length < 40 && !/[,(]/.test(c);
-const revenueOf = (t) => (t.cumminsFit === "poor" ? 0 : Number(t.revenueMid) || 0);
-const fits = (t) => t.cumminsFit === "strong" || t.cumminsFit === "partial";
+const revenueOf = (t) => (t.clientFit === "poor" ? 0 : Number(t.revenueMid) || 0);
+const fits = (t) => t.clientFit === "strong" || t.clientFit === "partial";
 
 /* winner names differ in case, "Co." and "group": one key per company */
 const winnerKey = (n) => String(n || "").toLowerCase().replace(/\b(co|company|ltd|llc|group|est|establishment|trading)\b\.?/g, "").replace(/[^a-z0-9؀-ۿ]+/g, "");
@@ -154,13 +154,13 @@ const kvaOf = (p) => {
   return m ? Number(m[1]) : null;
 };
 export function sizes(d) {
-  const own = (d.client && (d.client.id || d.client.short)) || "Cummins Arabia";
+  const own = (d.client && (d.client.id || d.client.short));
   const cat = Object.entries(d.competitors || {}).flatMap(([cid, c]) =>
     (c.products || []).map((p) => ({ own: cid === own, name: p.name, hz: Number(p.hz) || null, kva: kvaOf(p) })));
   const byName = new Map(cat.map((p) => [p.name, p]));
   const rows = new Map();
   let named = 0;
-  (d.tenders || []).filter((t) => t.rank && t.cumminsFit !== "poor").forEach((t) => {
+  (d.tenders || []).filter((t) => t.rank && t.clientFit !== "poor").forEach((t) => {
     const rival = (t.competitorFit || [])[0];
     const p = (rival && (rival.products || []).map((n) => byName.get(n)).find((x) => x && x.kva && x.hz))
       || (t.matches || []).map((m) => byName.get(m.n)).find((x) => x && x.kva && x.hz);
@@ -177,7 +177,7 @@ export function sizes(d) {
     const models = cat.filter((p) => p.own && p.hz === r.hz && p.kva && bandOf(p.kva)[0] === r.lo).map((p) => p.name);
     return { ...r, models, covered: models.length > 0 };
   }).sort((a, b) => b.value - a.value);
-  return { named, ranked: (d.tenders || []).filter((t) => t.rank && t.cumminsFit !== "poor").length, rows: out };
+  return { named, ranked: (d.tenders || []).filter((t) => t.rank && t.clientFit !== "poor").length, rows: out };
 }
 
 /* ---- 4. repeat buyers ---- */
@@ -250,7 +250,7 @@ if (typeof process !== "undefined" && process.argv[1] && process.argv[1].endsWit
   const d = {
     client: { id: "C" },
     tenders: [
-      { cat: "Service / Facilities", req: [["Published", "01 Oct 2026"]], rank: 1, cumminsFit: "strong", revenueMid: 1e6, country: "Kuwait", issuer: "KNPC (Kuwait)", competitorFit: [{ products: ["R1"] }] },
+      { cat: "Service / Facilities", req: [["Published", "01 Oct 2026"]], rank: 1, clientFit: "strong", revenueMid: 1e6, country: "Kuwait", issuer: "KNPC (Kuwait)", competitorFit: [{ products: ["R1"] }] },
       { cat: "Service / Facilities", req: [["Published", "01 Aug 2026"]], issuer: "KNPC" },
       { cat: "Healthcare", req: [["Closes", "2026-03-01"]], issuer: "MoH" },
     ],
@@ -262,7 +262,7 @@ if (typeof process !== "undefined" && process.argv[1] && process.argv[1].endsWit
     marketCards: [{ meta: "Pipeline · Saudi Arabia · Service · 02 Oct 2026", title: "S" }, { meta: "Demand shift · Global · Service · 02 Oct 2026", title: "G" }, { meta: "Tender · X · closes 08 Oct 2026", title: "T" }],
     competitors: { C: { products: [{ name: "C1", hz: 50, specs: { "Standby rating": "1,100 kVA" } }] }, R: { products: [{ name: "R1", hz: 50, specs: { "Standby rating": "1,200 kVA" } }] } },
   };
-  const s = segments(d, d.tenders.slice(0, 1), today, [{ cat: "Healthcare", status: "evaluation", cumminsFit: "partial", revenueMid: 5, title: "X" }]);
+  const s = segments(d, d.tenders.slice(0, 1), today, [{ cat: "Healthcare", status: "evaluation", clientFit: "partial", revenueMid: 5, title: "X" }]);
   const svc = s.find((r) => r.segment === "Service");
   const w = winners(d);
   const z = sizes(d).rows[0];

@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useMemo, useState } from "react";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
 import { useData } from "../../state/DataProvider";
@@ -22,7 +23,7 @@ import * as viewState from "../../lib/viewState";
 export default function Patents() {
   const { data } = useData();
   const { setScope, takePending } = useAppState();
-  const clientName = (data.client && (data.client.short || data.client.name)) || "Cummins Arabia";
+  const clientName = clientShort();
   const getSavedPat = () => {
     try {
       const s = viewState.getItem("kssl_pat_state");

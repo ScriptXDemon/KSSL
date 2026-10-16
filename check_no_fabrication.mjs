@@ -21,6 +21,8 @@ import { join } from "node:path";
 const DIST = join(process.cwd(), "dist", "assets");
 
 const BANNED = [
+  // the client is named from data.client, never typed into the UI
+  ["Cummins", "client name hardcoded in UI"],
   // hand-typed people in real roles at real companies
   ["Shailesh Vagerwal", "hand-typed executive roster"],
   ["Sukaran Singh", "hand-typed executive roster"],

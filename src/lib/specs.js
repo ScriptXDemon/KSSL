@@ -1,6 +1,7 @@
 /* Paired-bar spec renderer for the Positioning dossier, plus the gap block that sits
    under the verdict. Kept as string builders because they are dense read-only markup
    with no interaction beyond the container — the same trade the original made. */
+import { clientShort } from "./client.js";
 import { computeSpecEdge, edgeBasis, edgeVerdict, isNumericVal } from "./edge.js";
 import { escAll } from "./html.js";
 import { formatCrore } from "../utils/formatNumber.js";
@@ -53,7 +54,7 @@ function specRow(s, compName) {
     return (
       `<div class="specbar"><div class="sb-label">${s.l}${s.u ? ` <span class="sb-unit">(${s.u})</span>` : ""}</div>` +
       '<div class="sb-pair">' +
-      `<div class="sb-side bf"><span class="sb-who">Cummins Arabia</span><span class="sb-num">${specValueWithUnit(s.kv, s.u) || s.kv}${dot(kpv)}</span></div>` +
+      `<div class="sb-side bf"><span class="sb-who">${clientShort()}</span><span class="sb-num">${specValueWithUnit(s.kv, s.u) || s.kv}${dot(kpv)}</span></div>` +
       `<div class="sb-side comp"><span class="sb-who">${compName || "Competitor"}</span><span class="sb-num">${specValueWithUnit(s.cv, s.u) || s.cv}${dot(cpv)}</span></div>` +
       "</div></div>"
     );
@@ -92,7 +93,7 @@ function specRow(s, compName) {
     '<div class="specbar">' +
     `<div class="sb-label">${s.l}${s.u ? ` <span class="sb-unit">(${s.u})</span>` : ""}${parityTag}${dirNote}</div>` +
     `<div class="sb-cmprow${bfWin ? " win" : ""}">` +
-    '<span class="sb-who bf">Cummins Arabia</span>' +
+    `<span class="sb-who bf">${clientShort()}</span>` +
     `<div class="sb-track"><div class="sb-fill bf${bfWin ? ` win ${tier}` : ""}" style="width:${kw}%"></div></div>` +
     `<span class="sb-val${bfWin ? " win" : ""}">${s.kv}${dot(kpv)}${badge(bfWin)}</span>` +
     "</div>" +
@@ -330,7 +331,7 @@ export function specPanelHtml(m) {
   if (m.edge == null) {
     let h =
       '<div class="edge-gauge undisclosed"><span class="eg-word" style="background:#555;color:#fff;padding:3px 9px;border-radius:3px">NO SPEC-LEVEL EDGE</span><div style="font-size:11px;color:var(--l-txt-3);margin-top:8px;line-height:1.5">No single measured field separates these two products.</div></div>';
-    h += `<div class="sb-legend"><span class="sb-key"><i class="k-comp"></i> ${compName.split(" ")[0]}</span><span class="sb-key"><i class="k-bf"></i> Cummins Arabia</span></div>`;
+    h += `<div class="sb-legend"><span class="sb-key"><i class="k-comp"></i> ${compName.split(" ")[0]}</span><span class="sb-key"><i class="k-bf"></i> ${clientShort()}</span></div>`;
     h += '<div class="sb-sect">Compared specifications <span class="sb-sect-note">published on both sides</span></div>';
     h += compared
       .map((s) => {
@@ -355,10 +356,10 @@ export function specPanelHtml(m) {
     `<div class="edge-gauge ${v.cls}">` +
     `<div class="eg-top"><span class="eg-lab">Competitive edge index <span class="eg-sub">from the quantitative specs below</span></span><span class="eg-word">${v.word}${specEdge != null ? ` · ${specEdge}` : ""}</span></div>` +
     `<div class="eg-track"><div class="eg-mid"></div><div class="eg-marker" style="left:${gPos}%"></div></div>` +
-    '<div class="eg-scale"><span>Competitor stronger</span><span>Parity</span><span>Cummins Arabia stronger</span></div>' +
+    `<div class="eg-scale"><span>Competitor stronger</span><span>Parity</span><span>${clientShort()} stronger</span></div>` +
     edgeBasis(ce) +
     "</div>" +
-    `<div class="sb-legend"><span class="sb-key"><i class="k-comp"></i> ${compName.split(" ")[0]}</span><span class="sb-key"><i class="k-bf"></i> Cummins Arabia</span><span class="sb-key"><i class="k-win"></i> leads metric</span></div>` +
+    `<div class="sb-legend"><span class="sb-key"><i class="k-comp"></i> ${compName.split(" ")[0]}</span><span class="sb-key"><i class="k-bf"></i> ${clientShort()}</span><span class="sb-key"><i class="k-win"></i> leads metric</span></div>` +
     specBars(compared, compName) + hiddenNote
   );
 }
@@ -409,7 +410,7 @@ export function matchupGapHtml(m, model) {
     dir === "behind"
       ? `${mag >= 70 ? "Critical" : mag >= 40 ? "High" : "Moderate"} gap`
       : dir === "ahead"
-        ? "Cummins Arabia leads"
+        ? `${clientShort()} leads`
         : "At parity";
   const sev = rec ? rec.severity_pct : mag;
   const exp = rec ? rec.exposure_value : 0;
@@ -424,7 +425,7 @@ export function matchupGapHtml(m, model) {
   if (dir === "behind") {
     h += `<div class="mug-desc">On the fields both products publish, ${esc(m.comp)} leads by about ${mag}%.</div>`;
   } else if (dir === "ahead") {
-    h += `<div class="mug-desc">Cummins Arabia leads on the fields both products publish. Recorded as an advantage, not a gap.</div>`;
+    h += `<div class="mug-desc">${clientShort()} leads on the fields both products publish. Recorded as an advantage, not a gap.</div>`;
   } else {
     h += `<div class="mug-desc">Near-parity on the fields both products publish. No material gap either way.</div>`;
   }
@@ -435,9 +436,9 @@ export function matchupGapHtml(m, model) {
     if (mktC.length) {
       h += `<div class="mug-corr"><div class="mugc-explain"><b>Why this gap matters now:</b> there ${
         mktC.length === 1 ? "is <b>1 live tender</b>" : `are <b>${mktC.length} live tenders</b>`
-      } in ${esc(m.cat)} that Cummins Arabia can bid on right now. This spec gap directly affects how Cummins Arabia scores on ${
+      } in ${esc(m.cat)} that ${clientShort()} can bid on right now. This spec gap directly affects how ${clientShort()} scores on ${
         mktC.length === 1 ? "it" : "them"
-      }. Click a tender to see its full requirements and Cummins Arabia's fit.</div>`;
+      }. Click a tender to see its full requirements and ${clientShort()}'s fit.</div>`;
       h += '<div class="mugc-chiprow">';
       mktC.forEach((c) => {
         const lbl = (c.label || "").replace(/^(KSSL|Kalyani Strategic Systems) · /, "");
@@ -445,10 +446,10 @@ export function matchupGapHtml(m, model) {
       });
       h += "</div>";
       if (techC.length)
-        h += '<div class="mugc-tech-note">Also a technology-frontier gap in this category - Cummins Arabia trails the state of the art here too.</div>';
+        h += `<div class="mugc-tech-note">Also a technology-frontier gap in this category - ${clientShort()} trails the state of the art here too.</div>`;
       h += "</div>";
     } else if (techC.length) {
-      h += '<div class="mug-corr"><div class="mugc-explain"><b>Why this gap matters:</b> this is also where the technology frontier is moving past Cummins Arabia. It compounds the competitive gap - Cummins Arabia is behind on both current specs and the direction the technology is heading.</div></div>';
+      h += `<div class="mug-corr"><div class="mugc-explain"><b>Why this gap matters:</b> this is also where the technology frontier is moving past ${clientShort()}. It compounds the competitive gap - ${clientShort()} is behind on both current specs and the direction the technology is heading.</div></div>`;
     }
   }
     h += "</div>";

@@ -59,7 +59,7 @@ export function searchDataset(data, query, limits = {}) {
   const base = { query: q, total: 0, groups: [], tooShort: false };
   if (q.length < SEARCH_MIN_CHARS || !tokens.length) return { ...base, tooShort: q.length > 0 };
 
-  const clientId = (d.client && d.client.id) || "Cummins Arabia";
+  const clientId = (d.client && d.client.id);
   const groups = {};
   const add = (key, hit) => {
     (groups[key] = groups[key] || []).push(hit);

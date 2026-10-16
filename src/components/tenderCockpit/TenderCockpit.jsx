@@ -63,7 +63,7 @@ export default function TenderCockpit({ onOpen }) {
                       <span className="ovt-buyer" title={t.issuer}>{[t.country, t.issuer].filter(Boolean).join(" · ")}</span>
                     </td>
                     <td className="num">{t.status === "evaluation" ? "award pending" : est ? "—" : dateOf(date)}</td>
-                    <td><span className={`ti-fit ${t.cumminsFit}`}>{FIT[t.cumminsFit]}</span></td>
+                    <td><span className={`ti-fit ${t.clientFit}`}>{FIT[t.clientFit]}</span></td>
                     <td>{((t.matches || [])[0] || {}).n || "—"}</td>
                     <td>{rival ? `${rival.company}${(rival.products || [])[0] ? ` · ${rival.products[0]}` : ""}` : "—"}</td>
                     <td className="num">{usdM(v)}</td>
@@ -107,7 +107,7 @@ export default function TenderCockpit({ onOpen }) {
                       <td className="ovt-t ti-stage">
                         <span className="ti-title" title={stage(t)}>{stage(t)}</span>
                       </td>
-                      <td><span className={`ti-fit ${t.cumminsFit}`}>{FIT[t.cumminsFit]}</span></td>
+                      <td><span className={`ti-fit ${t.clientFit}`}>{FIT[t.clientFit]}</span></td>
                       <td>{((t.matches || [])[0] || {}).n || "—"}</td>
                       <td>{rival ? `${rival.company}${(rival.products || [])[0] ? ` · ${rival.products[0]}` : ""}` : "—"}</td>
                       <td className="num">{usdM(v)}</td>

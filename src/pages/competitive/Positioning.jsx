@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useMemo, useState } from "react";
 import MatchupList from "../../components/matchupList/MatchupList";
 import MatchupDossier from "../../components/matchupDossier/MatchupDossier";
@@ -135,7 +136,7 @@ export default function Positioning() {
   const m = selected ? data.matchups[selected] : null;
   /* Free comparison of any two products (keys into the product index), or null. Opening
      a matched pair closes it; a comparison closes the matched pair. */
-  const clientShortName = (data.client && data.client.short) || "Cummins Arabia";
+  const clientShortName = clientShort();
   const products = useMemo(() => buildProductIndex(data.matchups, clientShortName), [data.matchups, clientShortName]);
   const [compare, setCompare] = useState(null);
   const byKey = useMemo(() => new Map(products.map((p) => [p.key, p])), [products]);
@@ -145,7 +146,6 @@ export default function Positioning() {
   /* What the header's Copy / Export / Print act on: the open matchup -- its verdict,
      every spec row as served, both advantage lists -- or, with nothing selected, the
      list of pairs that survived the comparability gate. */
-  const clientShort = (data.client && data.client.short) || "Cummins Arabia";
   const report = useMemo(() => {
     if (m) {
       const val = (v) => (v == null || v === "" ? "—" : String(v));
@@ -155,7 +155,7 @@ export default function Positioning() {
         sections: [
           { h: "Verdict", rows: [m.verdict || "No verdict on file."] },
           {
-            h: `Specifications (${m.compBy || "rival"} vs ${clientShort})`,
+            h: `Specifications (${m.compBy || "rival"} vs ${clientShortName})`,
             rows: (m.specs || []).map((s) => [s.l, `${val(s.cv)} vs ${val(s.kv)}${s.u ? ` ${s.u}` : ""}`]),
           },
           /* Copy Summary is DISPLAY, so it follows the panel: the pipeline appends an
@@ -163,7 +163,7 @@ export default function Positioning() {
              no longer shows it. `payload` below is deliberately left raw -- that is the
              JSON export, and stripping provenance out of exported DATA would be a
              different decision from taking it off the screen. */
-          { h: `${clientShort} analytics`, rows: (m.advBf || []).map(advantageText) },
+          { h: `${clientShortName} analytics`, rows: (m.advBf || []).map(advantageText) },
           { h: "Competitor analytics", rows: (m.advComp || []).map(advantageText) },
         ],
         payload: {
@@ -213,7 +213,7 @@ export default function Positioning() {
         })),
       },
     };
-  }, [m, selected, data.matchups, clientShort]);
+  }, [m, selected, data.matchups, clientShortName]);
   useHeaderReport(report);
 
   return (
@@ -250,7 +250,7 @@ export default function Positioning() {
               </div>
               <span className="vsbadge">VS</span>
               <div className="side bf">
-                <div className="pn">{data.client?.short || "Cummins Arabia"} · —</div>
+                <div className="pn">{clientShort()} · —</div>
               </div>
             </div>
           </div>

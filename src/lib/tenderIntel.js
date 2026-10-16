@@ -2,14 +2,15 @@
    Intelligence cockpit. Pure (no React, no window), so test_tender_intel.mjs pins it.
 
    Every figure is built from fields the tenders carry (db/tender_research.py,
-   db/tender_fit.py): revenueMid (an ESTIMATE midpoint), cumminsFit, competitorFit,
+   db/tender_fit.py): revenueMid (an ESTIMATE midpoint), clientFit, competitorFit,
    pursuit, dl / Closes, actions. The assumptions that turn value into a forecast are
    named constants below and are printed on the page beside the numbers they drive. */
+import { clientShort } from "./client.js";
 
 export const ASSUME = {
-  // chance Cummins Arabia books the genset share, by where the tender stands
+  // chance the client books the genset share, by where the tender stands
   pWin: { live: 0.25, evaluation: 0.35, pursuit: 0.1 },
-  // how much of the value a fit grade lets Cummins serve
+  // how much of the value a fit grade lets the client serve
   fitWeight: { strong: 1, partial: 0.5, poor: 0 },
   // decision -> genset purchase order: a direct supply/works tender orders soon after
   // award; a main contract / EPC / PPP buys its gensets a year or so after award
@@ -17,19 +18,19 @@ export const ASSUME = {
   // a pursuit with no bid date is assumed to decide this far out
   pursuitDecisionDays: 270,
   closingSoonDays: 21,
-  // a Cummins set within 12 % of the rival's rating covers it (about one frame step);
+  // a client set within 12 % of the rival's rating covers it (about one frame step);
   // a 2,188 kVA set against a 1,875 kVA rival is a 17 % oversize, i.e. a gap
   gapTolerance: 0.12,
 };
 
 const DAY = 86400000;
 const MAIN_RX = /\b(EPC|design[- ]and[- ]build|design-build|main (contract|construction)|pre-?qualification|PPP|IPP|turnkey)\b/i;
-const OEM_RX = /caterpillar|\bcat\b|zahid|al-?bahar|mtu|rolls-royce|rehlko|kohler|sdmo|mitsubishi|\bmhi\b|mhiet|weichai|baudouin|perkins|fg wilson|generac|volvo|cummins|aggreko|altaaqa|jubaili|kanoo power|w[aä]rtsil[aä]|siemens|\bge\b|general electric|jenbacher|innio|\babb\b|honeywell|john deere|deutz/i;
+const OEM_RX = /caterpillar|\bcat\b|zahid|al-?bahar|mtu|rolls-royce|rehlko|kohler|sdmo|mitsubishi|\bmhi\b|mhiet|weichai|baudouin|perkins|fg wilson|generac|volvo|aggreko|altaaqa|jubaili|kanoo power|w[aä]rtsil[aä]|siemens|\bge\b|general electric|jenbacher|innio|\babb\b|honeywell|john deere|deutz/i;
 /* channels whose genset line is a rival brand: a route, but not a neutral one */
 const TIED = [[/abunay+an/i, "Kohler"], [/galadari/i, "Baudouin"], [/al ?masaood/i, "mtu"], [/kanoo/i, "Perkins"]];
 
 const mid = (t) => Number(t.revenueMid) || 0;
-const fits = (t) => t.cumminsFit && t.cumminsFit !== "poor";
+const fits = (t) => t.clientFit && t.clientFit !== "poor";
 const reqVal = (t, k) => ((t.req || []).find((r) => r[0] === k) || [])[1];
 
 /* THE TWO TABLES ON THE MARKET OVERVIEW, AND WHAT BELONGS IN EACH.
@@ -92,7 +93,7 @@ export function stageOf(t) {
 }
 
 export function winWeighted(t) {
-  return mid(t) * (ASSUME.fitWeight[t.cumminsFit] || 0) * ASSUME.pWin[stageOf(t)];
+  return mid(t) * (ASSUME.fitWeight[t.clientFit] || 0) * ASSUME.pWin[stageOf(t)];
 }
 
 const quarter = (d) => `Q${Math.floor(d.getUTCMonth() / 3) + 1} ${d.getUTCFullYear()}`;
@@ -112,8 +113,8 @@ export function tenderIntel(data, today = new Date()) {
   /* 1. headline + funnel */
   const closingSoon = ok.filter((t) => !t.pursuit && t.dl > 0 && t.dl <= ASSUME.closingSoonDays);
   const funnel = [
-    { k: "Genset revenue in play", v: sum(all.filter((t) => t.cumminsFit !== "poor")), n: ok.length },
-    { k: "Fits a Cummins model today", v: sum(all.filter((t) => t.cumminsFit === "strong")), n: all.filter((t) => t.cumminsFit === "strong").length },
+    { k: "Genset revenue in play", v: sum(all.filter((t) => t.clientFit !== "poor")), n: ok.length },
+    { k: `Fits a ${clientShort()} model today`, v: sum(all.filter((t) => t.clientFit === "strong")), n: all.filter((t) => t.clientFit === "strong").length },
     { k: "Win-weighted (stage × fit)", v: sum(ok, winWeighted), n: ok.length },
   ];
 
@@ -217,7 +218,7 @@ export function tenderIntel(data, today = new Date()) {
   /* 9. the opportunity map: one point per ranked tender */
   const points = all.map((t) => {
     const d = decisionOf(t, today);
-    return { t, date: d.date, est: d.est, fit: t.cumminsFit, v: mid(t), cat: t.cat };
+    return { t, date: d.date, est: d.est, fit: t.clientFit, v: mid(t), cat: t.cat };
   });
 
   return {

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { PROJECTS_DATA, PROJECT_STAGES } from "./competitorProjects.js";
 import { projectFeed, projectMetrics, day } from "./projects.js";
 
-const file = new URL("../../../parallax-cummins-arabia-datapack/dataset.html.json", import.meta.url);
+const file = new URL("../../../datapack/dataset.html.json", import.meta.url);
 const d = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
 
 test("every project belongs to a tracked competitor and says what it is, where it stands and what it means", () => {

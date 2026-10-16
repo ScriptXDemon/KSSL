@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -182,12 +183,12 @@ export default function GeoMap({ data, geo, selectedCountry, onSelectCountry }) 
       const clientRow = (data.geoComps || []).find((c) => c.isBf);
       const ownData =
         (data.geoData &&
-          (data.geoData[clientRow?.id] || data.geoData[data.client?.short || "Cummins Arabia"])) ||
+          (data.geoData[clientRow?.id] || data.geoData[clientShort()])) ||
         {};
       const isKoelPresent = !!ownData[ct];
       const isSelected = selectedCountry === ct;
 
-      const clientLabel = (data.client && (data.client.short || data.client.name)) || "Cummins Arabia";
+      const clientLabel = clientShort();
       /* "Contested" requires an actual rival presence row here — a country with no
          activity on file is reported as exactly that, not as a contested market.
 

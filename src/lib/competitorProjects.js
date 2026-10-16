@@ -6,6 +6,7 @@
  * read from the dataset's own records. Data is as of "2026-10-13".
  */
 
+import { clientShort } from "./client.js";
 export const AS_OF = "2026-10-13";
 
 export const PROJECT_STAGES = ["Planned", "Committed", "In progress", "Delivered"];
@@ -61,7 +62,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "This is the template Cat will bring to Gulf data centre developers: gas gensets as prime power plus BESS in one dealer-led package. Cummins Arabia needs an equivalent prime power gas plus storage story for Saudi and UAE campuses before Cat dealers pitch it."
+        `This is the template Cat will bring to Gulf data centre developers: gas gensets as prime power plus BESS in one dealer-led package. ${clientShort()} needs an equivalent prime power gas plus storage story for Saudi and UAE campuses before Cat dealers pitch it.`
       ]
     },
     "sources": [
@@ -122,7 +123,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Cat's G3516 is being positioned as prime power infrastructure, not standby. If Gulf hyperscale developers such as those building for Humain or Khazna adopt behind-the-meter gas, Cat arrives with a referenceable multi-GW installed base. Cummins Arabia should build its own gas prime power references now."
+        `Cat's G3516 is being positioned as prime power infrastructure, not standby. If Gulf hyperscale developers such as those building for Humain or Khazna adopt behind-the-meter gas, Cat arrives with a referenceable multi-GW installed base. ${clientShort()} should build its own gas prime power references now.`
       ]
     },
     "sources": [
@@ -182,7 +183,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Cat is locking multi-year framework volume with power-as-a-service operators. Gulf equivalents (Altaaqa, Aggreko type players and Saudi IPP developers) are the accounts where Cummins Arabia should propose its own multi-year fleet frameworks before Cat dealers do."
+        `Cat is locking multi-year framework volume with power-as-a-service operators. Gulf equivalents (Altaaqa, Aggreko type players and Saudi IPP developers) are the accounts where ${clientShort()} should propose its own multi-year fleet frameworks before Cat dealers do.`
       ]
     },
     "sources": [
@@ -238,7 +239,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Gas plus carbon capture is a decarbonisation answer Gulf regulators and NEOM-type clients will ask for. Cummins Arabia has no equivalent bundled offer; it should decide whether to partner for capture or lean on HVO and hydrogen-ready messaging."
+        `Gas plus carbon capture is a decarbonisation answer Gulf regulators and NEOM-type clients will ask for. ${clientShort()} has no equivalent bundled offer; it should decide whether to partner for capture or lean on HVO and hydrogen-ready messaging.`
       ]
     },
     "sources": [
@@ -294,7 +295,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Third-party BESS integrators are packaging Cat gensets by default. In the Gulf, Cummins Arabia should court the BESS integrators and EPCs (not just end users) so that Cummins is the default genset in their bills of material."
+        `Third-party BESS integrators are packaging Cat gensets by default. In the Gulf, ${clientShort()} should court the BESS integrators and EPCs (not just end users) so that ${clientShort()} is the default genset in their bills of material.`
       ]
     },
     "sources": [
@@ -345,7 +346,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Cat can offer turbines above the reciprocating band, so in Gulf prime power tenders above 20 MW it can shift the buyer from gensets to turbines. Cummins Arabia should hold the reciprocating advantages (part-load efficiency, modular redundancy, N+1 flexibility) in its bid narrative."
+        `Cat can offer turbines above the reciprocating band, so in Gulf prime power tenders above 20 MW it can shift the buyer from gensets to turbines. ${clientShort()} should hold the reciprocating advantages (part-load efficiency, modular redundancy, N+1 flexibility) in its bid narrative.`
       ]
     },
     "sources": [
@@ -396,7 +397,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Cat dealers are positioning G3500K gas sets for remote prime power, the same pitch Gulf dealers can make for remote oil, gas and mining sites in KSA. Action: confirm Cummins Arabia has a comparable gas-genset reference for remote KSA industrial sites."
+        `Cat dealers are positioning G3500K gas sets for remote prime power, the same pitch Gulf dealers can make for remote oil, gas and mining sites in KSA. Action: confirm ${clientShort()} has a comparable gas-genset reference for remote KSA industrial sites.`
       ]
     },
     "sources": [
@@ -468,8 +469,8 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "The 3512 and 3516 are the engines behind the gensets Cummins Arabia meets most often in Gulf tenders. More 3500 capacity shortens Cat lead times from 2027, which removes one of the few advantages Cummins has held while Cat allocated engines to US hyperscalers.",
-        "This is the structural threat. By 2028 Cat will have far more 3500, C175 and G3500 engine supply than today and will need non-US outlets for it, and the Gulf is the obvious one. Cummins Arabia should lock multi-year supply agreements and service contracts with key Saudi and UAE accounts in 2026 and 2027 while Cat is still capacity constrained."
+        `The 3512 and 3516 are the engines behind the gensets ${clientShort()} meets most often in Gulf tenders. More 3500 capacity shortens Cat lead times from 2027, which removes one of the few advantages ${clientShort()} has held while Cat allocated engines to US hyperscalers.`,
+        `This is the structural threat. By 2028 Cat will have far more 3500, C175 and G3500 engine supply than today and will need non-US outlets for it, and the Gulf is the obvious one. ${clientShort()} should lock multi-year supply agreements and service contracts with key Saudi and UAE accounts in 2026 and 2027 while Cat is still capacity constrained.`
       ]
     },
     "sources": [
@@ -532,7 +533,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Cat holds the incumbent position on the Red Sea giga-project and its renewable fuel narrative. For permanent power phases (hotels, airport), Cummins Arabia should bid with HVO-compatible sets and hybrid microgrid options before the incumbent locks the follow-on."
+        `Cat holds the incumbent position on the Red Sea giga-project and its renewable fuel narrative. For permanent power phases (hotels, airport), ${clientShort()} should bid with HVO-compatible sets and hybrid microgrid options before the incumbent locks the follow-on.`
       ]
     },
     "sources": [
@@ -583,7 +584,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Zahid's machine footprint at NEOM gives it daily access to NEOM procurement. Cummins Arabia should not assume genset packages at NEOM are open competitions; it needs early engagement with NEOM's energy and data centre teams."
+        `Zahid's machine footprint at NEOM gives it daily access to NEOM procurement. ${clientShort()} should not assume genset packages at NEOM are open competitions; it needs early engagement with NEOM's energy and data centre teams.`
       ]
     },
     "sources": [
@@ -634,7 +635,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Every MW Altaaqa deploys is a Cat MW and often becomes a permanent Cat sale. Cummins Arabia should target the rental buyers who want a second OEM for fleet resilience and price competition, and should protect its own rental partner relationships in KSA."
+        `Every MW Altaaqa deploys is a Cat MW and often becomes a permanent Cat sale. ${clientShort()} should target the rental buyers who want a second OEM for fleet resilience and price competition, and should protect its own rental partner relationships in KSA.`
       ]
     },
     "sources": [
@@ -693,7 +694,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Al-Bahar has a live UAE reference for single-supplier solar, genset and storage integration. Cummins Arabia should have a comparable hybrid reference in UAE or KSA to avoid losing agri, industrial and remote-site microgrid tenders on integration credibility."
+        `Al-Bahar has a live UAE reference for single-supplier solar, genset and storage integration. ${clientShort()} should have a comparable hybrid reference in UAE or KSA to avoid losing agri, industrial and remote-site microgrid tenders on integration credibility.`
       ]
     },
     "sources": [
@@ -753,7 +754,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Cat owns the UAE offshore rig power niche through Al-Bahar. Cummins Arabia's marine and drilling engines could target the second rig and future ADNOC Drilling newbuilds if it can show class approvals and local commissioning capacity."
+        `Cat owns the UAE offshore rig power niche through Al-Bahar. ${clientShort()}'s marine and drilling engines could target the second rig and future ADNOC Drilling newbuilds if it can show class approvals and local commissioning capacity.`
       ]
     },
     "sources": [
@@ -774,7 +775,7 @@ export const PROJECTS_DATA = [
     "location": "Dubai, UAE",
     "stage": "Delivered",
     "stageRank": 4,
-    "stageNote": "Delivered for phases 1 and 2 (2009), with a three-year maintenance contract. Caterpillar is the incumbent reference for the Gold Line expansion that Cummins Arabia is tracking.",
+    "stageNote": `Delivered for phases 1 and 2 (2009), with a three-year maintenance contract. Caterpillar is the incumbent reference for the Gold Line expansion that ${clientShort()} is tracking.`,
     "mw": null,
     "specs": [
       {
@@ -808,7 +809,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "fav",
       "read": [
-        "The Dubai Metro fleet is now 15 years old and approaching replacement or major overhaul cycles. Cummins Arabia should position for RTA replacement and Route 2020 extension standby packages where an incumbent-only assumption may be weak."
+        `The Dubai Metro fleet is now 15 years old and approaching replacement or major overhaul cycles. ${clientShort()} should position for RTA replacement and Route 2020 extension standby packages where an incumbent-only assumption may be weak.`
       ]
     },
     "sources": [
@@ -863,7 +864,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Al-Bahar is the direct competitor to Cummins Arabia in UAE and Kuwait for every hospital, metro, oil and gas and data centre standby package. Its rental fleet lets it seed accounts with temporary power and convert to permanent Cat sets, a motion Cummins Arabia should match with its own rental partners."
+        `Al-Bahar is the direct competitor to ${clientShort()} in UAE and Kuwait for every hospital, metro, oil and gas and data centre standby package. Its rental fleet lets it seed accounts with temporary power and convert to permanent Cat sets, a motion ${clientShort()} should match with its own rental partners.`
       ]
     },
     "sources": [
@@ -928,7 +929,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Third-party buyers are now reserving mtu engine slots 15 to 21 months out for AI and hyperscale power, which shows mtu output for 2027 to 2028 is being absorbed by US demand. That limits how much mtu capacity is free for Gulf data-centre bids in the same window, which supports Cummins' delivery-time argument. Action: quote firm Cummins delivery slots in Gulf data-centre proposals and compare them against mtu's 2027 to 2028 availability."
+        `Third-party buyers are now reserving mtu engine slots 15 to 21 months out for AI and hyperscale power, which shows mtu output for 2027 to 2028 is being absorbed by US demand. That limits how much mtu capacity is free for Gulf data-centre bids in the same window, which supports ${clientShort()}' delivery-time argument. Action: quote firm ${clientShort()} delivery slots in Gulf data-centre proposals and compare them against mtu's 2027 to 2028 availability.`
       ]
     },
     "sources": [
@@ -989,7 +990,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "This is mtu's first public Kuwait win through the new Al Mulla channel and it lands in the 3 MVA class where Cummins Arabia sells C3000 and C3500 class sets. A government airport reference plus a Turkish EPC relationship (Limak) gives mtu credibility for the next Kuwait infrastructure packages. Cummins Arabia should map Limak and other Turkish EPC procurement teams active in Kuwait and KSA."
+        `This is mtu's first public Kuwait win through the new Al Mulla channel and it lands in the 3 MVA class where ${clientShort()} sells C3000 and C3500 class sets. A government airport reference plus a Turkish EPC relationship (Limak) gives mtu credibility for the next Kuwait infrastructure packages. ${clientShort()} should map Limak and other Turkish EPC procurement teams active in Kuwait and KSA.`
       ]
     },
     "sources": [
@@ -1045,7 +1046,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Not a genset sale, but it puts 50 plus Series 4000 engines into Saudi Arabia with a service obligation, which strengthens the case for a Makeen Series 4000 parts and MRO base in the Eastern Province. That base would also serve stationary Series 4000 gensets sold against Cummins Arabia's QSK60 and QSK78 range."
+        `Not a genset sale, but it puts 50 plus Series 4000 engines into Saudi Arabia with a service obligation, which strengthens the case for a Makeen Series 4000 parts and MRO base in the Eastern Province. That base would also serve stationary Series 4000 gensets sold against ${clientShort()}'s QSK60 and QSK78 range.`
       ]
     },
     "sources": [
@@ -1110,7 +1111,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "KAUST is the reference mtu uses to prove dynamic UPS works in Saudi heat and in a research data centre. Cummins Arabia has no dynamic UPS product, so in tenders that specify DRUPS it needs a static UPS partner or a battery bridging design."
+        `KAUST is the reference mtu uses to prove dynamic UPS works in Saudi heat and in a research data centre. ${clientShort()} has no dynamic UPS product, so in tenders that specify DRUPS it needs a static UPS partner or a battery bridging design.`
       ]
     },
     "sources": [
@@ -1172,8 +1173,8 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "For the first time mtu gensets have an exclusive Saudi channel owned by Aramco, HD Hyundai and Dussur, with a localisation licence behind it. That combination speaks directly to Aramco, SEC, NEOM and IKTVA-scored buyers that Cummins Arabia sells to. Cummins Arabia's answer is installed base, 60 Hz stock and its own local content record; it should expect Makeen to appear in Eastern Province industrial and data centre tenders within 12 months.",
-        "This is a marine and rail engine licence, not a genset or data-centre deal, so it does not hit Cummins Arabia's standby power sales today. It does show Rolls-Royce building a local-content position with Aramco-linked partners in KSA, which can later help mtu in localisation-scored power tenders. Action: ask the KSA team to track whether MAKEEN's scope extends from Series 2000 to Series 4000 genset engines, and to prepare Cummins' own local-content evidence for Saudi tenders."
+        `For the first time mtu gensets have an exclusive Saudi channel owned by Aramco, HD Hyundai and Dussur, with a localisation licence behind it. That combination speaks directly to Aramco, SEC, NEOM and IKTVA-scored buyers that ${clientShort()} sells to. ${clientShort()}'s answer is installed base, 60 Hz stock and its own local content record; it should expect Makeen to appear in Eastern Province industrial and data centre tenders within 12 months.`,
+        `This is a marine and rail engine licence, not a genset or data-centre deal, so it does not hit ${clientShort()}'s standby power sales today. It does show Rolls-Royce building a local-content position with Aramco-linked partners in KSA, which can later help mtu in localisation-scored power tenders. Action: ask the KSA team to track whether MAKEEN's scope extends from Series 2000 to Series 4000 genset engines, and to prepare ${clientShort()}' own local-content evidence for Saudi tenders.`
       ]
     },
     "sources": [
@@ -1242,7 +1243,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Kuwait gets a factory-standard mtu overhaul centre next to KOC's Ahmadi operations for the first time. That closes the service gap that has favoured Cummins Arabia in Kuwait oil sector and government tenders. Cummins Arabia should lock in multi-year service agreements with Kuwait key accounts before the centre opens."
+        `Kuwait gets a factory-standard mtu overhaul centre next to KOC's Ahmadi operations for the first time. That closes the service gap that has favoured ${clientShort()} in Kuwait oil sector and government tenders. ${clientShort()} should lock in multi-year service agreements with Kuwait key accounts before the centre opens.`
       ]
     },
     "sources": [
@@ -1298,7 +1299,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "mtu's BESS business is grid-scale and utility-led, unlike Cummins' BESS positioning. The relevance for Cummins Arabia is hybrid genset plus storage tenders in KSA and UAE, where mtu can now show half-gigawatt-hour references and its own controller. Cummins Arabia should track EnergyPack quotes into Saudi utility and NEOM-type microgrid work."
+        `mtu's BESS business is grid-scale and utility-led, unlike ${clientShort()}' BESS positioning. The relevance for ${clientShort()} is hybrid genset plus storage tenders in KSA and UAE, where mtu can now show half-gigawatt-hour references and its own controller. ${clientShort()} should track EnergyPack quotes into Saudi utility and NEOM-type microgrid work.`
       ]
     },
     "sources": [
@@ -1353,7 +1354,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Rolls-Royce is pre-selling Series 4000 capacity to European data centre packagers. That is good for Cummins Arabia in the short term because it leaves less uncommitted mtu volume for Gulf distributors, but it also signals mtu will prioritise hyperscaler channel partners; if a Gulf packager gets a similar deal, treat it as a direct threat."
+        `Rolls-Royce is pre-selling Series 4000 capacity to European data centre packagers. That is good for ${clientShort()} in the short term because it leaves less uncommitted mtu volume for Gulf distributors, but it also signals mtu will prioritise hyperscaler channel partners; if a Gulf packager gets a similar deal, treat it as a direct threat.`
       ]
     },
     "sources": [
@@ -1435,7 +1436,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Mankato builds 60 Hz sets, the frequency Saudi Arabia runs on. More 60 Hz Series 4000 capacity shortens the lead times mtu can quote into Saudi data centre and industrial tenders from 2026. Cummins Arabia's 60 Hz lead-time advantage in KSA narrows as this ramps.",
+        `Mankato builds 60 Hz sets, the frequency Saudi Arabia runs on. More 60 Hz Series 4000 capacity shortens the lead times mtu can quote into Saudi data centre and industrial tenders from 2026. ${clientShort()}'s 60 Hz lead-time advantage in KSA narrows as this ramps.`,
         "A second Series 4000 engine source reduces mtu's single-plant dependency on Friedrichshafen, which has historically capped what its Gulf distributors could deliver in a given year. Monitor mtu lead-time quotes in KSA and UAE from 2027."
       ]
     },
@@ -1495,7 +1496,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "This is the most mature mtu channel in Cummins Arabia's territory, with a competence centre in ICAD II, a Dubai Maritime City branch, a certified training centre and an award for power generation performance. It is the channel that will carry mtu into UAE data centre and government tenders against Cummins Arabia's UAE branches."
+        `This is the most mature mtu channel in ${clientShort()}'s territory, with a competence centre in ICAD II, a Dubai Maritime City branch, a certified training centre and an award for power generation performance. It is the channel that will carry mtu into UAE data centre and government tenders against ${clientShort()}'s UAE branches.`
       ]
     },
     "sources": [
@@ -1554,7 +1555,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "An Aramco-linked, PIF-linked (Dussur) owner with a licence to assemble mtu gensets in the Kingdom is the strongest localisation story any genset competitor holds in Saudi Arabia. It gives mtu an IKTVA and Vision 2030 narrative Cummins Arabia must answer with its own local content plan."
+        `An Aramco-linked, PIF-linked (Dussur) owner with a licence to assemble mtu gensets in the Kingdom is the strongest localisation story any genset competitor holds in Saudi Arabia. It gives mtu an IKTVA and Vision 2030 narrative ${clientShort()} must answer with its own local content plan.`
       ]
     },
     "sources": [
@@ -1613,7 +1614,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "An Aramco-linked, PIF-linked (Dussur) owner with a licence to assemble mtu gensets in the Kingdom is the strongest localisation story any genset competitor holds in Saudi Arabia. It gives mtu an IKTVA and Vision 2030 narrative Cummins Arabia must answer with its own local content plan."
+        `An Aramco-linked, PIF-linked (Dussur) owner with a licence to assemble mtu gensets in the Kingdom is the strongest localisation story any genset competitor holds in Saudi Arabia. It gives mtu an IKTVA and Vision 2030 narrative ${clientShort()} must answer with its own local content plan.`
       ]
     },
     "sources": [
@@ -1677,7 +1678,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "fav",
       "read": [
-        "The agreement is confined to Clarke Energy territories, and Clarke Energy lists no office in KSA, UAE or Kuwait. Gulf gas genset demand from data centres and grid constrained sites therefore has no Rehlko gas channel today. Cummins Arabia should push HSK78G and gas genset packages into Gulf data centre and utility bids before Rehlko or another INNIO packager fills that gap."
+        `The agreement is confined to Clarke Energy territories, and Clarke Energy lists no office in KSA, UAE or Kuwait. Gulf gas genset demand from data centres and grid constrained sites therefore has no Rehlko gas channel today. ${clientShort()} should push HSK78G and gas genset packages into Gulf data centre and utility bids before Rehlko or another INNIO packager fills that gap.`
       ]
     },
     "sources": [
@@ -1728,7 +1729,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Rehlko is converting its data centre strategy into gigawatt scale orders and will carry those hyperscaler relationships into the Gulf as the same operators build in KSA and UAE. Cummins Arabia should map which hyperscalers have standardised on Rehlko in North America and pre-empt their Gulf procurement with local stock, 60 Hz KSA references and service coverage."
+        `Rehlko is converting its data centre strategy into gigawatt scale orders and will carry those hyperscaler relationships into the Gulf as the same operators build in KSA and UAE. ${clientShort()} should map which hyperscalers have standardised on Rehlko in North America and pre-empt their Gulf procurement with local stock, 60 Hz KSA references and service coverage.`
       ]
     },
     "sources": [
@@ -1835,7 +1836,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Changzhou explicitly serves EMEA, so Gulf distributors can now source KD Series up to 4,000 kW from a plant with 11 GW annual capacity. This is a direct supply and price lever against Cummins Arabia in KSA, UAE and Kuwait data centre and industrial tenders. Cummins Arabia should benchmark Changzhou-sourced pricing on 1.5 MW to 3 MW sets and reinforce total cost of ownership and local service arguments."
+        `Changzhou explicitly serves EMEA, so Gulf distributors can now source KD Series up to 4,000 kW from a plant with 11 GW annual capacity. This is a direct supply and price lever against ${clientShort()} in KSA, UAE and Kuwait data centre and industrial tenders. ${clientShort()} should benchmark Changzhou-sourced pricing on 1.5 MW to 3 MW sets and reinforce total cost of ownership and local service arguments.`
       ]
     },
     "sources": [
@@ -1886,7 +1887,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Engine supply was the constraint on KD Series volume. Doubling it removes a lead time argument Cummins Arabia could previously use in the 2 MW to 4 MW band. Expect more aggressive KD availability quotes into Gulf data centre projects from 2027."
+        `Engine supply was the constraint on KD Series volume. Doubling it removes a lead time argument ${clientShort()} could previously use in the 2 MW to 4 MW band. Expect more aggressive KD availability quotes into Gulf data centre projects from 2027.`
       ]
     },
     "sources": [
@@ -1947,7 +1948,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Capacity is being added for enclosed 4 MW packages, the format hyperscalers specify. This is North American capacity, so lead time relief for Gulf orders would come from Brest and Changzhou instead. Cummins Arabia should track quoted lead times from Rehlko distributors on 2.5 MW to 4 MW enclosed sets."
+        `Capacity is being added for enclosed 4 MW packages, the format hyperscalers specify. This is North American capacity, so lead time relief for Gulf orders would come from Brest and Changzhou instead. ${clientShort()} should track quoted lead times from Rehlko distributors on 2.5 MW to 4 MW enclosed sets.`
       ]
     },
     "sources": [
@@ -2007,7 +2008,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Rehlko is shortening lead times on the paralleling switchgear that ships with large genset packages to EMEA including the Gulf. Cummins Arabia should quantify its own switchgear lead times and partner capacity so it is not outpaced on complete package delivery."
+        `Rehlko is shortening lead times on the paralleling switchgear that ships with large genset packages to EMEA including the Gulf. ${clientShort()} should quantify its own switchgear lead times and partner capacity so it is not outpaced on complete package delivery.`
       ]
     },
     "sources": [
@@ -2054,7 +2055,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three Cummins Arabia countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). Cummins Arabia should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle."
+        `Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three ${clientShort()} countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). ${clientShort()} should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle.`
       ]
     },
     "sources": [
@@ -2105,7 +2106,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three Cummins Arabia countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). Cummins Arabia should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle."
+        `Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three ${clientShort()} countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). ${clientShort()} should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle.`
       ]
     },
     "sources": [
@@ -2156,7 +2157,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three Cummins Arabia countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). Cummins Arabia should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle."
+        `Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three ${clientShort()} countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). ${clientShort()} should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle.`
       ]
     },
     "sources": [
@@ -2207,7 +2208,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three Cummins Arabia countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). Cummins Arabia should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle."
+        `Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three ${clientShort()} countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). ${clientShort()} should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle.`
       ]
     },
     "sources": [
@@ -2258,7 +2259,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three Cummins Arabia countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). Cummins Arabia should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle."
+        `Midis bundles Rehlko gensets with Vertiv UPS and cooling in one data centre proposal across all three ${clientShort()} countries. That single-vendor site package is attractive to colocation and telecom customers (Mobily, Ooredoo, Omantel are listed references). ${clientShort()} should build equivalent alliances with UPS and cooling vendors or partner with data centre integrators to neutralise the bundle.`
       ]
     },
     "sources": [
@@ -2318,7 +2319,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Mitsubishi Power's Saudi localisation is in gas turbines, not gensets, but it gives the Mitsubishi name Vision 2030 credibility with Aramco, SEC and the Eastern Province. If MHIET ever routes MGS assembly or service through Dammam, that would be a direct challenge. Cummins Arabia should keep its own Saudi localisation and IKTVA content visible to the same buyers."
+        `Mitsubishi Power's Saudi localisation is in gas turbines, not gensets, but it gives the Mitsubishi name Vision 2030 credibility with Aramco, SEC and the Eastern Province. If MHIET ever routes MGS assembly or service through Dammam, that would be a direct challenge. ${clientShort()} should keep its own Saudi localisation and IKTVA content visible to the same buyers.`
       ]
     },
     "sources": [
@@ -2374,7 +2375,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Context only: it deepens Mitsubishi's standing with Saudi utility buyers and local EPCs. No genset scope. Cummins Arabia should note that Dar Al Balad and similar EPCs now have a working Mitsubishi relationship that could extend to backup power packages."
+        `Context only: it deepens Mitsubishi's standing with Saudi utility buyers and local EPCs. No genset scope. ${clientShort()} should note that Dar Al Balad and similar EPCs now have a working Mitsubishi relationship that could extend to backup power packages.`
       ]
     },
     "sources": [
@@ -2425,7 +2426,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Multi-brand dealer with ministry project history in Kuwait. It will position MGS on price against Cummins in MEW and government tenders. Cummins Arabia should hold specification advantages (paralleling, data centre ratings, emissions) in the tender text."
+        `Multi-brand dealer with ministry project history in Kuwait. It will position MGS on price against ${clientShort()} in MEW and government tenders. ${clientShort()} should hold specification advantages (paralleling, data centre ratings, emissions) in the tender text.`
       ]
     },
     "sources": [
@@ -2472,7 +2473,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "SDEC is an established Saudi packager with an Eastern Province factory and nationwide offices, so MGS in KSA comes with a credible local assembly and service story. It also carries other engine brands, so its loyalty to Mitsubishi is commercial rather than exclusive. Cummins Arabia should watch SDEC in Aramco and industrial 60 Hz tenders and use its own Saudi branch coverage and parts stock to compete."
+        `SDEC is an established Saudi packager with an Eastern Province factory and nationwide offices, so MGS in KSA comes with a credible local assembly and service story. It also carries other engine brands, so its loyalty to Mitsubishi is commercial rather than exclusive. ${clientShort()} should watch SDEC in Aramco and industrial 60 Hz tenders and use its own Saudi branch coverage and parts stock to compete.`
       ]
     },
     "sources": [
@@ -2527,7 +2528,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Extra MGS capacity in Asia shortens lead times for Gulf orders that ship from Singapore. Cummins Arabia should expect Mitsubishi dealers in KSA and UAE to quote firmer delivery on 1.5 MVA to 2.75 MVA sets."
+        `Extra MGS capacity in Asia shortens lead times for Gulf orders that ship from Singapore. ${clientShort()} should expect Mitsubishi dealers in KSA and UAE to quote firmer delivery on 1.5 MVA to 2.75 MVA sets.`
       ]
     },
     "sources": [
@@ -2591,7 +2592,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Zahid Group is also the Cat dealer in Saudi Arabia, so TAMGO can offer FG Wilson below and Cat above in one Aramco or EPC bid. Cummins Arabia should target the mid band (500 to 2,000 kVA) with the Cummins single-brand argument and Olayan's local presence, and pre-qualify early with EPCs such as Samsung Engineering."
+        `Zahid Group is also the Cat dealer in Saudi Arabia, so TAMGO can offer FG Wilson below and Cat above in one Aramco or EPC bid. ${clientShort()} should target the mid band (500 to 2,000 kVA) with the ${clientShort()} single-brand argument and Olayan's local presence, and pre-qualify early with EPCs such as Samsung Engineering.`
       ]
     },
     "sources": [
@@ -2693,7 +2694,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Perkins gains a large 60 Hz OEM volume base through Generac, which feeds 60 Hz product maturity relevant to Saudi Arabia. If Generac's Gulf dealers (Atlas Power Solutions, Watan Altaqa, Al Mulla) bring these sets to KSA, Cummins Arabia faces Perkins-powered 1,000 to 1,500 kW packages under a second brand."
+        `Perkins gains a large 60 Hz OEM volume base through Generac, which feeds 60 Hz product maturity relevant to Saudi Arabia. If Generac's Gulf dealers (Atlas Power Solutions, Watan Altaqa, Al Mulla) bring these sets to KSA, ${clientShort()} faces Perkins-powered 1,000 to 1,500 kW packages under a second brand.`
       ]
     },
     "sources": [
@@ -2748,7 +2749,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "HVO acceptance is becoming a standard question in data centre tenders in the UAE. FG Wilson now has published trial evidence to cite. Cummins Arabia should have equivalent HVO approval statements for its data centre range ready in tender documents."
+        `HVO acceptance is becoming a standard question in data centre tenders in the UAE. FG Wilson now has published trial evidence to cite. ${clientShort()} should have equivalent HVO approval statements for its data centre range ready in tender documents.`
       ]
     },
     "sources": [
@@ -2811,8 +2812,8 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Generac's 2028 data-centre target of $3.0-3.2bn, with about half from one customer, is mostly a US story and shows limited Gulf exposure. Track whether the share of non-Amazon hyperscalers grows; Cummins Arabia should treat Generac as a Gulf bid rival only once a regional partner is named.",
-        "The $8bn is a warrant-vesting threshold and the $2.4bn is expected initial deliveries, not a committed order, so headlines overstate the near-term threat to other suppliers including Cummins. Brief Cummins Arabia sales not to quote $8bn to customers as committed volume."
+        `Generac's 2028 data-centre target of $3.0-3.2bn, with about half from one customer, is mostly a US story and shows limited Gulf exposure. Track whether the share of non-Amazon hyperscalers grows; ${clientShort()} should treat Generac as a Gulf bid rival only once a regional partner is named.`,
+        `The $8bn is a warrant-vesting threshold and the $2.4bn is expected initial deliveries, not a committed order, so headlines overstate the near-term threat to other suppliers including ${clientShort()}. Brief ${clientShort()} sales not to quote $8bn to customers as committed volume.`
       ]
     },
     "sources": [
@@ -2886,8 +2887,8 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "The Middle East is explicitly in scope, so Gulf hyperscale sites can be supplied from a global frame agreement without a local tender. Cummins Arabia should coordinate with Cummins Inc. global hyperscale account teams to defend Saudi and UAE campuses and make sure local service capability is part of the global pitch.",
-        "Two hyperscale frame agreements in one quarter means Generac is now a standing option for hyperscaler standby fleets. Cummins Arabia's exposure is in Saudi and UAE hyperscale campuses awarded through global procurement."
+        `The Middle East is explicitly in scope, so Gulf hyperscale sites can be supplied from a global frame agreement without a local tender. ${clientShort()} should coordinate with ${clientShort()} Inc. global hyperscale account teams to defend Saudi and UAE campuses and make sure local service capability is part of the global pitch.`,
+        `Two hyperscale frame agreements in one quarter means Generac is now a standing option for hyperscaler standby fleets. ${clientShort()}'s exposure is in Saudi and UAE hyperscale campuses awarded through global procurement.`
       ]
     },
     "sources": [
@@ -2958,8 +2959,8 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "More US packaging capacity shortens Generac lead times for export orders in 2027. Cummins Arabia should expect Generac to quote competitive delivery on Gulf hyperscale sites from 2027.",
-        "Added Generac capacity (Q4 2026 target) will compete for the same large diesel genset and enclosure supply chain, while Amazon takes the first slots through 2028. Cummins Arabia should check allocation and lead times for 2-3.5 MW sets with Cummins supply before Gulf data-centre bids in 2027 and quote firm dates."
+        `More US packaging capacity shortens Generac lead times for export orders in 2027. ${clientShort()} should expect Generac to quote competitive delivery on Gulf hyperscale sites from 2027.`,
+        `Added Generac capacity (Q4 2026 target) will compete for the same large diesel genset and enclosure supply chain, while Amazon takes the first slots through 2028. ${clientShort()} should check allocation and lead times for 2-3.5 MW sets with ${clientShort()} supply before Gulf data-centre bids in 2027 and quote firm dates.`
       ]
     },
     "sources": [
@@ -3031,8 +3032,8 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Weichai now has the volume and cash flow to price aggressively in export markets and to fund Baudouin's Gulf marketing. Growth of this scale in one year also means Weichai capacity is real, which supports the lead-time argument used against Cummins in Gulf tenders.",
-        "Weichai is planning a large step-up in data-centre genset output, with a US focus, which could tighten Baudouin engine availability for others but also builds a volume base for Gulf offers. Cummins Arabia should monitor whether Baudouin quotes shorter Gulf lead times than the 18-24 months seen for large sets and, if so, sharpen Cummins' delivery-slot messaging to hyperscalers."
+        `Weichai now has the volume and cash flow to price aggressively in export markets and to fund Baudouin's Gulf marketing. Growth of this scale in one year also means Weichai capacity is real, which supports the lead-time argument used against ${clientShort()} in Gulf tenders.`,
+        `Weichai is planning a large step-up in data-centre genset output, with a US focus, which could tighten Baudouin engine availability for others but also builds a volume base for Gulf offers. ${clientShort()} should monitor whether Baudouin quotes shorter Gulf lead times than the 18-24 months seen for large sets and, if so, sharpen ${clientShort()}' delivery-slot messaging to hyperscalers.`
       ]
     },
     "sources": [
@@ -3091,7 +3092,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "threat",
       "read": [
-        "Baudouin engines reach the Gulf through two brands at once: Baudouin's own WPG sets and Generac's SDMD sets. In a hyperscale programme awarded globally, Cummins Arabia can lose Saudi or UAE sites without ever seeing a local tender. It should work with Cummins Inc. on global account coverage rather than rely on local bids alone."
+        `Baudouin engines reach the Gulf through two brands at once: Baudouin's own WPG sets and Generac's SDMD sets. In a hyperscale programme awarded globally, ${clientShort()} can lose Saudi or UAE sites without ever seeing a local tender. It should work with ${clientShort()} Inc. on global account coverage rather than rely on local bids alone.`
       ]
     },
     "sources": [
@@ -3146,7 +3147,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Baudouin is still expanding French genset integration, which supports its pitch of shorter lead times and French origin for data-centre buyers. Cummins Arabia should treat this as a minor signal and track whether Baudouin quotes sub-12-month Gulf deliveries in live tenders."
+        `Baudouin is still expanding French genset integration, which supports its pitch of shorter lead times and French origin for data-centre buyers. ${clientShort()} should treat this as a minor signal and track whether Baudouin quotes sub-12-month Gulf deliveries in live tenders.`
       ]
     },
     "sources": [
@@ -3207,7 +3208,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Europe only for now, but SOFC baseload for data centres is the kind of grid-independent offer Gulf hyperscalers will ask about as grid connection queues lengthen. Cummins Arabia should track whether Baudouin brings SOFC to Middle East Energy 2027."
+        `Europe only for now, but SOFC baseload for data centres is the kind of grid-independent offer Gulf hyperscalers will ask about as grid connection queues lengthen. ${clientShort()} should track whether Baudouin brings SOFC to Middle East Energy 2027.`
       ]
     },
     "sources": [
@@ -3258,7 +3259,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "Almajd is multi-brand and also packages Cummins engines, so it is both a channel and a competitor. Cummins Arabia should keep Almajd's Cummins content high and watch its Baudouin share in Saudi government tenders."
+        `Almajd is multi-brand and also packages ${clientShort()} engines, so it is both a channel and a competitor. ${clientShort()} should keep Almajd's ${clientShort()} content high and watch its Baudouin share in Saudi government tenders.`
       ]
     },
     "sources": [
@@ -3330,8 +3331,8 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "KJ Power is a Turkish packager active in Gulf tenders; Volvo BESS subsystems inside packager products would compete with Cummins BESS in rental and hybrid applications.",
-        "Adds a gas option at the 17 litre node for packagers. In the Gulf the relevant overlap is with Cummins gas gensets in the 400 to 700 kW band for oil and gas and utility sites in KSA and Kuwait."
+        `KJ Power is a Turkish packager active in Gulf tenders; Volvo BESS subsystems inside packager products would compete with ${clientShort()} BESS in rental and hybrid applications.`,
+        `Adds a gas option at the 17 litre node for packagers. In the Gulf the relevant overlap is with ${clientShort()} gas gensets in the 400 to 700 kW band for oil and gas and utility sites in KSA and Kuwait.`
       ]
     },
     "sources": [
@@ -3394,7 +3395,7 @@ export const PROJECTS_DATA = [
     "assessment": {
       "stance": "watch",
       "read": [
-        "KJ Power is a Turkish packager active in Gulf tenders; Volvo BESS subsystems inside packager products would compete with Cummins BESS in rental and hybrid applications."
+        `KJ Power is a Turkish packager active in Gulf tenders; Volvo BESS subsystems inside packager products would compete with ${clientShort()} BESS in rental and hybrid applications.`
       ]
     },
     "sources": [

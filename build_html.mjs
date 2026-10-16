@@ -22,7 +22,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));   // a plain path: the project folder has a space in its name
-const OUT = resolve(process.argv[2] || join(HERE, "..", "cummins-arabia-html"));
+const OUT = resolve(process.argv[2] || join(HERE, "..", "parallax-html"));
 const API = process.env.KSSL_API || "http://127.0.0.1:8600";
 const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/svg+xml": "svg", "image/avif": "avif" };
 
@@ -94,7 +94,7 @@ const json = JSON.stringify(data).replace(/</g, "\\u003c");
 html = html
   .replace("</head>", () => `<style>${css}</style>\n</head>`)
   .replace("</body>", () => `<script>window.__EMBEDDED_DATASET__=${json};</script>\n<script type="module">${js}</script>\n</body>`);
-writeFileSync(join(OUT, "cummins-arabia.html"), html);
+writeFileSync(join(OUT, "parallax.html"), html);
 
 const mb = (p) => (statSync(p).size / 1e6).toFixed(1);
-console.log(`done: ${join(OUT, "cummins-arabia.html")} ${mb(join(OUT, "cummins-arabia.html"))} MB, ${readdirSync(join(OUT, "product-images")).length} product photos, ${saved} news images`);
+console.log(`done: ${join(OUT, "parallax.html")} ${mb(join(OUT, "parallax.html"))} MB, ${readdirSync(join(OUT, "product-images")).length} product photos, ${saved} news images`);

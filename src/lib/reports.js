@@ -1,6 +1,7 @@
 /* The two CEO briefings: one for a Positioning matchup, one for an Innovation theme.
    Both are descriptive — they restate what the platform already holds and add the
    cross-pillar exposure, and neither prescribes a move. */
+import { clientShort } from "./client.js";
 import { computeSpecEdge, edgeVerdict } from "./edge.js";
 import { escAll, srcChips, attr, stripTags } from "./html.js";
 import { formatDate } from "../utils/formatDate.js";
@@ -10,12 +11,12 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
   if (edge == null) {
     return (
       '<div class="tech-report"><div class="tr-head"><div class="tr-title">Positioning Briefing · CEO</div>' +
-      `<div class="tr-sub">${escAll(m.comp || "")} vs ${escAll(m.bf || "Cummins Arabia")}</div>` +
+      `<div class="tr-sub">${escAll(m.comp || "")} vs ${escAll(m.bf)}</div>` +
       `<div class="tr-meta">CONFIDENTIAL · KSSL · Prepared ${today} · Category: ${escAll(m.cat || "")}</div></div>` +
-      '<div class="tr-verdict parity"><b>Cummins Arabia specification not publicly disclosed.</b></div>' +
-      `<div class="tr-sec"><div class="tr-sec-h">Assessment</div><div class="tr-body">${escAll(m.comp || "")} is a real, sourced competitor mapped to Cummins Arabia's ${escAll((m.bf || "counterpart").replace(/^KSSL · /, ""))} by role and spec class. Cummins Arabia has not publicly disclosed specifications for this counterpart, The comparison holds at the role and capability-class level.</div></div>` +
+      `<div class="tr-verdict parity"><b>${clientShort()} specification not publicly disclosed.</b></div>` +
+      `<div class="tr-sec"><div class="tr-sec-h">Assessment</div><div class="tr-body">${escAll(m.comp || "")} is a real, sourced competitor mapped to ${clientShort()}'s ${escAll((m.bf || "counterpart").replace(/^KSSL · /, ""))} by role and spec class. ${clientShort()} has not publicly disclosed specifications for this counterpart, The comparison holds at the role and capability-class level.</div></div>` +
       (m.advBf && m.advBf.length
-        ? `<div class="tr-sec"><div class="tr-sec-h">Cummins Arabia Advantages To Press</div><div class="tr-body">${m.advBf.map((a) => `• ${stripTags(a)}`).join("<br>")}</div></div>`
+        ? `<div class="tr-sec"><div class="tr-sec-h">${clientShort()} Advantages To Press</div><div class="tr-body">${m.advBf.map((a) => `• ${stripTags(a)}`).join("<br>")}</div></div>`
         : "") +
       (m.advComp && m.advComp.length
         ? `<div class="tr-sec"><div class="tr-sec-h">Competitor Strengths To Counter</div><div class="tr-body">${m.advComp.map((a) => `• ${stripTags(a)}`).join("<br>")}</div></div>`
@@ -51,25 +52,25 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
   const srcRow = (m.det || []).find((d) => d[0] === "Provenance" || d[0] === "Source");
   return (
     '<div class="tech-report">' +
-    `<div class="trep-head"><div><div class="trep-eyebrow">Positioning Briefing · CEO</div><div class="trep-title">${escAll(m.comp)} vs ${escAll(m.bf)}</div></div><div class="trep-class">CONFIDENTIAL · Cummins Arabia</div></div>` +
+    `<div class="trep-head"><div><div class="trep-eyebrow">Positioning Briefing · CEO</div><div class="trep-title">${escAll(m.comp)} vs ${escAll(m.bf)}</div></div><div class="trep-class">CONFIDENTIAL · ${clientShort()}</div></div>` +
     `<div class="trep-meta">Prepared ${today} · Category: ${escAll(m.cat)} · Competitor: ${escAll(m.compBy)}</div>` +
     `<div class="trep-verdict ${v.cls}">${edgeWord}</div>` +
     `<div class="trep-sec"><div class="trep-h">1 · Bottom line</div><p>${m.verdict.replace(/<b>\[Analysis\]<\/b>\s*/, "")}</p></div>` +
     '<div class="trep-sec"><div class="trep-h">2 · Where each side leads (spec gap)</div>' +
     `<p><b>${escAll((m.compBy || m.comp || "Competitor").split(" ")[0])} leads:</b> ${leads.comp.length ? escAll(leads.comp.join("; ")) : "—"}</p>` +
-    `<p style="margin-top:6px"><b>Cummins Arabia leads:</b> ${leads.bf.length ? escAll(leads.bf.join("; ")) : "—"}</p>` +
+    `<p style="margin-top:6px"><b>${clientShort()} leads:</b> ${leads.bf.length ? escAll(leads.bf.join("; ")) : "—"}</p>` +
     (leads.even.length
       ? `<p style="margin-top:6px"><b>Comparable:</b> ${escAll(leads.even.join("; "))}</p>`
       : "") +
     "</div>" +
-    `<div class="trep-sec"><div class="trep-h">3 · Cummins Arabia advantages to press</div><p>${(m.advBf || []).map((a) => `• ${stripTags(a)}`).join("<br>")}</p></div>` +
+    `<div class="trep-sec"><div class="trep-h">3 · ${clientShort()} advantages to press</div><p>${(m.advBf || []).map((a) => `• ${stripTags(a)}`).join("<br>")}</p></div>` +
     `<div class="trep-sec"><div class="trep-h">4 · Competitor strengths to counter</div><p>${(m.advComp || []).map((a) => `• ${stripTags(a)}`).join("<br>")}</p></div>` +
     (relT.length
       ? `<div class="trep-sec"><div class="trep-h">5 · Where this matchup is live (market exposure)</div><p>Open tenders in ${escAll(m.cat)} where this competition plays out:</p>` +
         relT
           .map(
             (t) =>
-              `<div class="trep-tender"><b>${escAll(t.title)}</b> - ${escAll(t.country)}, ${escAll(t.value)} · Cummins Arabia match: ${
+              `<div class="trep-tender"><b>${escAll(t.title)}</b> - ${escAll(t.country)}, ${escAll(t.value)} · ${clientShort()} match: ${
                 t.matches && t.matches[0]
                   ? `${escAll(t.matches[0].n)} (${escAll(t.matches[0].pct)})`
                   : "—"
@@ -78,7 +79,7 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
           .join("") +
         "</div>"
       : "") +
-    `<div class="trep-sources">Competitor specs: ${srcRow ? escAll(srcRow[1]) : "on file"}. Cummins Arabia specs sourced where marked.</div>` +
+    `<div class="trep-sources">Competitor specs: ${srcRow ? escAll(srcRow[1]) : "on file"}. ${clientShort()} specs sourced where marked.</div>` +
     '<div class="trep-foot"><button class="trep-print" data-print="1">⎙ Print / save as PDF</button></div>' +
     "</div>"
   );
@@ -94,9 +95,9 @@ const MAT_LAB_REPORT = {
 export function techReportHtml(iv, d, techCatId, today = formatDate()) {
   const matLab = MAT_LAB_REPORT[iv.mat] || iv.mat;
   const gapLab = {
-    behind: "Cummins Arabia is BEHIND the leaders",
-    parity: "Cummins Arabia is AT PARITY",
-    ahead: "Cummins Arabia is AHEAD",
+    behind: `${clientShort()} is BEHIND the leaders`,
+    parity: `${clientShort()} is AT PARITY`,
+    ahead: `${clientShort()} is AHEAD`,
   }[iv.gap];
   const catName = (() => {
     const c = d.techCats.filter((x) => x.id === techCatId)[0];
@@ -124,19 +125,19 @@ export function techReportHtml(iv, d, techCatId, today = formatDate()) {
   }
   return (
     '<div class="tech-report">' +
-    `<div class="trep-head"><div><div class="trep-eyebrow">Intelligence Briefing · CEO</div><div class="trep-title">${escAll(iv.t)}</div></div><div class="trep-class">CONFIDENTIAL · Cummins Arabia</div></div>` +
+    `<div class="trep-head"><div><div class="trep-eyebrow">Intelligence Briefing · CEO</div><div class="trep-title">${escAll(iv.t)}</div></div><div class="trep-class">CONFIDENTIAL · ${clientShort()}</div></div>` +
     `<div class="trep-meta">Prepared ${today} · Domain: ${escAll(catName)} · Maturity: ${escAll(matLab)} · Horizon: ${escAll(iv.horizon)}</div>` +
     `<div class="trep-verdict ${iv.gap}">${gapLab}</div>` +
     `<div class="trep-sec"><div class="trep-h">1 · Executive summary</div><p>${iv.body}</p></div>` +
     `<div class="trep-sec"><div class="trep-h">2 · What's new</div><p>${iv.whatsNew}</p></div>` +
-    `<div class="trep-sec"><div class="trep-h">3 · Strategic implication for Cummins Arabia</div><p>${iv.impact.replace(/<b>\[Analysis\][^<]*<\/b>\s*/, "")}</p></div>` +
+    `<div class="trep-sec"><div class="trep-h">3 · Strategic implication for ${clientShort()}</div><p>${iv.impact.replace(/<b>\[Analysis\][^<]*<\/b>\s*/, "")}</p></div>` +
     `<div class="trep-sec"><div class="trep-h">4 · Competitive landscape</div><p>${iv.compNote}</p>` +
     (relComps.length
       ? `<p style="margin-top:8px"><b>Competitor products tracked in ${escAll(catName)}:</b><br>${relComps.map((c) => `• ${escAll(c)}`).join("<br>")}</p>`
       : "") +
     "</div>" +
     (relTenders.length
-      ? "<div class=\"trep-sec\"><div class=\"trep-h\">5 · Live market exposure</div><p>Open tenders in this domain where the technology bears on Cummins Arabia's bid:</p>" +
+      ? `<div class=\"trep-sec\"><div class=\"trep-h\">5 · Live market exposure</div><p>Open tenders in this domain where the technology bears on ${clientShort()}'s bid:</p>` +
         relTenders
           .map(
             (t) =>

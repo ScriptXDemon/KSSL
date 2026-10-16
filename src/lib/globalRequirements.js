@@ -1,7 +1,7 @@
 /* GLOBAL REQUIREMENTS: the worldwide market signals the dataset already carries.
 
    A market card whose meta names "Global" as its country (card.meta = "Category · Global · Segment · date") is a
-   signal about demand, capacity or supply outside any one buyer's country: Cummins Inc.'s data-centre order book,
+   signal about demand, capacity or supply outside any one buyer's country: the client Inc.'s data-centre order book,
    its capacity plan, a rental fleet deal, industry lead times. Nothing is added here: each row is a card the
    market feed serves, its `why` is the card's own read for the client, and its link is the card's source. */
 export const isGlobalCard = (c) => String((c && c.meta) || "").split(" · ").includes("Global");

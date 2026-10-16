@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { useEffect, useMemo, useState } from "react";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
 import { useAppState } from "../../state/AppState";
@@ -30,7 +31,7 @@ export default function GapAnalysis() {
 
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState(getSavedGap);
-  const clientName = (data.client && (data.client.short || data.client.name)) || "Cummins Arabia";
+  const clientName = clientShort();
 
   const cats = useMemo(() => gapCategories(data.matchups), [data.matchups]);
 

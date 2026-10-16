@@ -623,7 +623,7 @@
 .gc { padding: 14px 18px 4px; }
 .gc-blk { font-size: 11.5px; color: var(--l-txt-2); line-height: 1.5; margin: 0 0 8px; padding: 6px 9px; background: var(--l-bg-1); border-left: 3px solid var(--l-line-2); }
 
-/* beside the popup the list column is narrow: Cummins' answer column is shown in the popup, so drop it here */
+/* beside the popup the list column is narrow: the client's answer column is shown in the popup, so drop it here */
 .geo-det-overlay-body.has-prod .geo-ov-tbl th:nth-child(4),
 .geo-det-overlay-body.has-prod .geo-ov-tbl td:nth-child(4) { display: none; }
 

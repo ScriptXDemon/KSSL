@@ -9,6 +9,7 @@
    Built as a factory over the dataset so the shared index memo lives in a closure
    rather than on `window`.
    =================================================================== */
+import { clientShort } from "./client.js";
 import { esc, escAll, escAttr, escRich, joinParts, srcChips } from "./html.js";
 import { canonicalizeLabels } from "./orgident.js";
 import { countryFlagDisc } from "./countryFlags.js";
@@ -655,7 +656,8 @@ const OVERLAP_BADGE = {
   shared: ["var(--overlap-bg)", "var(--overlap)", "var(--overlap-line)", "Overlapping Partner"],
   direct: ["rgba(34, 197, 94, 0.12)", "#16a34a", "rgba(34, 197, 94, 0.3)", "Direct Partner"],
   unchecked: ["rgba(120, 118, 110, 0.10)", "#6b6a63", "rgba(120, 118, 110, 0.28)", "Overlap Unchecked"],
-  none: ["rgba(120, 118, 110, 0.08)", "#6b6a63", "rgba(120, 118, 110, 0.2)", "No Cummins Arabia overlap"],
+  // read at use, after the client is set
+  get none() { return ["rgba(120, 118, 110, 0.08)", "#6b6a63", "rgba(120, 118, 110, 0.2)", `No ${clientShort()} overlap`]; },
 };
 
 /* A BADGE ON EVERY CARD SAYING THE SAME THING IS NOT A BADGE. The overlap flag is an
@@ -682,11 +684,11 @@ export function overlapBadge(p, clientName) {
 
 export function createPartners(d) {
   const { competitors, KSSL_PARTNERS, REL_LABEL, FIELDSYN, COMPSYN, TRACEIDS, sourceRegistry } = d;
-  const CLIENT_CID = (d.client && d.client.id) || "Cummins Arabia";
+  const CLIENT_CID = (d.client && d.client.id);
 
   /* Which rivals each shared company serves. Deduped per rival: the dataset carries
      one peer row per source edge, so one company can appear 2-3 times under a single
-     competitor (Cummins lists Powerica three times). */
+     competitor (the client lists Powerica three times). */
   let _sharedIdx = null;
   function pgSharedIndex() {
     if (_sharedIdx) return _sharedIdx;
@@ -754,7 +756,7 @@ export function createPartners(d) {
 
      Two defects this replaces:
      1. A node per relationship ROW. The dataset records one edge per source, and
-        for a channel partner that means three, so Cummins drew three separate nodes
+        for a channel partner that means three, so the client drew three separate nodes
         all labelled "Powerica Limited". Rows are merged per company here; the drawer
         still lists every row, and c.partners is untouched so counts elsewhere hold.
      2. Concentric rings with `off=(ri%2)*(PI/m)`. With three rings of equal size,
@@ -1730,7 +1732,7 @@ const PG_IMG_ONERROR =
 
   /* the shared-partner read under the graph */
   function overlapHtml(c, cid, open, clientNameOverride) {
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+    const clientName = clientNameOverride || clientShort();
     const keyOf = pgKeyer(c.partners);
     const idx = pgSharedIndex();
     const shared = pgSharedFor(c);
@@ -1824,7 +1826,7 @@ const PG_IMG_ONERROR =
      read. Returns "" when there is no overlap, so the drawer prints nothing rather
      than an empty heading. */
   function overlapDefsHtml(c, cid, clientNameOverride) {
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+    const clientName = clientNameOverride || clientShort();
     if (!c || !pgDistinct(c)) return "";
     const shared = pgSharedFor(c);
     if (!shared.length) return "";
@@ -1855,7 +1857,7 @@ const PG_IMG_ONERROR =
   /* competitor-level drawer: the synthesis read, or the plain relationship list for
      the rivals that carry no synthesis. */
   function compReportHtml(c, cid, clientNameOverride) {
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+    const clientName = clientNameOverride || clientShort();
     /* A competitor id restored from localStorage can outlive the dataset that
        held it, and then `c` is an id with no row behind it. Read the ties through
        one guarded local rather than assuming the array exists. */
@@ -1940,7 +1942,7 @@ const PG_IMG_ONERROR =
 
   /* one relationship row, the drawer's deepest read */
   function tieHtml(c, cid, pid, clientNameOverride, activeRelCardIndex) {
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+    const clientName = clientNameOverride || clientShort();
     const p = (c.partners || []).find((x) => x.id === pid);
     if (!p) return "";
 
@@ -2234,7 +2236,7 @@ const PG_IMG_ONERROR =
 
   function allPartnersRosterHtml(c, cid, clientNameOverride) {
     if (!c) return "";
-    const clientName = clientNameOverride || (d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+    const clientName = clientNameOverride || clientShort();
     /* Ranked (overlaps + evidence first) and capped: the roster surfaces the top
        defensible partners, not the long co-mention tail. */
     const all = pgNodes(c);

@@ -2,6 +2,7 @@
    Everything the three Gap surfaces show is derived here; nothing is stored.
    Takes the wired dataset explicitly instead of reading globals, so a re-fetch
    rebuilds the model rather than leaving a stale one behind. */
+import { clientShort } from "./client.js";
 import { computeSpecEdge } from "./edge.js";
 import { escAll } from "./html.js";
 import { formatCrore } from "../utils/formatNumber.js";
@@ -32,7 +33,7 @@ export function buildGapModel(d) {
      on the next line could ever run -- that guard was dead. */
   if (!d) return [];
   const { matchups, tenders, innovations, techCats, competitors, POS_CATS } = d;
-  const clientName = (d && d.client && (d.client.short || d.client.name)) || "Cummins Arabia";
+  const clientName = clientShort();
   const gaps = [];
   let _id = 0;
   const nid = () => `g${++_id}`;
