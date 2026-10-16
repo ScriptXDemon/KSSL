@@ -1,6 +1,6 @@
 import { proxied, thumbUsable } from "../../components/thumb/Thumb.jsx";
 import { revenueOptions } from "../../lib/revenueFacet";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { buildProfile, rosterOf, formatSectorName } from "../../lib/profile";
@@ -1129,7 +1129,7 @@ export default function Profile() {
                   </div>
                 ) : null}
                 {(showAllNews ? listRows : listRows.slice(0, 20)).map((item, idx) => (
-                  <div key={item.id || `all-${idx}`}>
+                  <Fragment key={item.id || `all-${idx}`}>
                   <ArticleLink
                     article={item}
                     className="ln-all-row"
@@ -1174,7 +1174,7 @@ export default function Profile() {
                     </span>
                   </ArticleLink>
                   <Review src={item._src} style={{ margin: "0 14px 6px" }} />
-                  </div>
+                  </Fragment>
                 ))}
               </div>
               {!showAllNews && listRows.length > 20 ? (

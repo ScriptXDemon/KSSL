@@ -10,7 +10,8 @@ import { test, expect } from "@playwright/test";
      review  KSSL_API_TARGET=http://127.0.0.1:8611 npx vite --mode review --port 5191
      live    KSSL_API_TARGET=http://127.0.0.1:8610 npx vite --port 5190
      npx playwright test -c playwright.review.config.mjs
-   Never point this at :5178/:5180 (the user's servers). */
+   The approve test unpublishes and re-approves a company card, which drops that company's products from the
+   live DB: rebuild the pair (db/make_test_pair.sh) before every run. Never point this at :5178/:5180 (the user's servers). */
 
 const REVIEW_URL = "http://127.0.0.1:5191";
 const LIVE_URL = "http://127.0.0.1:5190";
@@ -22,6 +23,7 @@ const ROUTES = [
   ["competitive", "threat-analysis"],
   ["competitive", "products"],
   ["competitive", "partnerships"],
+  ["competitive", "positioning"],
   ["competitive", "projects"],
   ["competitive", "geo"],
   ["competitive", "patents-comp"],
@@ -39,6 +41,23 @@ const open = async (page, base, pillar, view) => {
   await page.locator(".rail .svc").first().waitFor({ state: "visible", timeout: 20000 });
 };
 
+test.describe("live build", () => {
+  for (const [pillar, view, sel] of [
+    ["competitive", "overview", ".alert"],
+    ["competitive", "products", ".product-card"],
+    ["competitive", "positioning", ".mu-item"],
+    ["market", "tender", ".tcard"],
+  ]) {
+    test(`${view}: no review controls render in the live build`, async ({ page }) => {
+      await open(page, LIVE_URL, pillar, view);
+      await expect(page.locator(sel).first()).toBeVisible({ timeout: 15000 }); // cards are on screen first
+      await expect(page.locator(".rv-bar")).toHaveCount(0);
+      await expect(page.locator(".rv-list")).toHaveCount(0);
+      await expect(page.locator(".rv-banner")).toHaveCount(0);
+    });
+  }
+});
+
 test.describe("review build", () => {
   for (const [pillar, view] of ROUTES) {
     test(`${view}: every card route shows review bars and the banner`, async ({ page }) => {
@@ -53,7 +72,8 @@ test.describe("review build", () => {
   const CARDS = [
     ["competitive", "overview", ".alert"],
     ["competitive", "threat-analysis", ".cm-row"],
-    ["competitive", "products", ".product-card"],
+    ["competitive", "products", ".pat-li"],
+    ["competitive", "positioning", ".mu-item"],
     ["competitive", "projects", ".alert"],
     ["market", "m-overview", "section.ti-simple tr.ti-row-link"],
     ["market", "tender", ".tcard"],
@@ -110,13 +130,5 @@ test.describe("review build", () => {
     expect(resp.status()).toBe(200);
     await expect(bar.locator(".rv-status.rv-live")).toBeVisible();
     await expect(bar.locator(".rv-status")).toHaveText("live");
-  });
-});
-
-test.describe("live build", () => {
-  test("no review controls render in the live build", async ({ page }) => {
-    await open(page, LIVE_URL, "competitive", "overview");
-    await expect(page.locator(".rv-bar")).toHaveCount(0);
-    await expect(page.locator(".rv-banner")).toHaveCount(0);
   });
 });

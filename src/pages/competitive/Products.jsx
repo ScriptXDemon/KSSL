@@ -1,5 +1,5 @@
 import { clientShort, clientName as clientFullName, isPresenceLabel } from "../../lib/client.js";
-import { useState, useMemo, useEffect } from "react";
+import { Fragment, useState, useMemo, useEffect } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { revenueOptions, revenueTierOf } from "../../lib/revenueFacet";
 import { useData } from "../../state/DataProvider";
@@ -1169,7 +1169,7 @@ export default function Products() {
                 {/* Grid of news cards */}
                 <div className="ln-grid">
                   {(filteredProdArticles.length > 0 ? filteredProdArticles.slice(0, 6) : (productMentions.length > 0 ? productMentions.slice(0, 6) : [])).map((item, idx) => (
-                    <div key={item.id || item.url || `pn-${idx}`}>
+                    <Fragment key={item.id || item.url || `pn-${idx}`}>
                     <ArticleLink
                       article={item}
                       className="ln-card"
@@ -1206,7 +1206,7 @@ export default function Products() {
                       </div>
                     </ArticleLink>
                     <Review src={item._src} />
-                    </div>
+                    </Fragment>
                   ))}
                 </div>
               </div>
