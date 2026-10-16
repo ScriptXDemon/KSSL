@@ -19,9 +19,10 @@ export const PILLAR_LABEL = {
 
 /* Which rail item each pillar opens on, and the pillar each rail belongs to. */
 export const RAIL = {
-  /* `awarded-tenders` / `closed-tenders` are ARCHIVED: off the rail (the Market overview
-     carries them as tabs) but still routed, so a saved link still resolves. Gap Analysis
-     (`gap-competitive`) is hidden by decision and no longer routed at all. */
+  /* `gap-competitive` is ARCHIVED, not deleted: it is off the rail but Layout still
+     routes it, so a saved route or a pasted #v=gap-competitive link still resolves.
+     Same for `awarded-tenders` / `closed-tenders`, which the Market overview now
+     carries as tabs. */
   competitive: [
     { view: "overview", label: "Overview", ix: "grid", overview: true },
     { view: "profile", label: "Competitor Profile", ix: "01" },
@@ -51,7 +52,7 @@ export const RAIL = {
 
 /* Views Layout still renders that are on no rail. */
 export const ARCHIVED_VIEWS = {
-  competitive: ["threat_analysis", "project", "finance", "finances"],
+  competitive: ["gap-competitive", "threat_analysis", "project", "finance", "finances"],
   market: ["awarded-tenders", "closed-tenders"],
   technology: [],
 };

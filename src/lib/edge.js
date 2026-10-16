@@ -1,70 +1,285 @@
-/* ============================ COMPETITIVE EDGE: PRESENTATION ============================
-   Nothing in this file decides who is ahead. The edge index (0-100, 50 = parity, higher =
-   KSSL stronger), the ahead / parity / behind decision and every per-spec winner and gap are
-   STORED columns, computed once by the loader from the prompt's per-spec better_side:
+/* ============================ COMPETITIVE EDGE INDEX ============================
+   0-100, 50 = parity. Computed from the quantitative specifications rendered
+   directly below the gauge and from nothing else, so the number and the bars can
+   never disagree.
 
-     competitive_matchup.edge_score, decision_level, comparable_spec_count, sourced_spec_count
-     competitive_matchup_specification.better_side, gap_value, comparability_state
+   The ten comparable spec rows are NOT ten independent facts. Measured across all
+   697 matchups in this dataset:
+       Power Rating (kW)    = Power Rating (kVA) x 0.8000   (sd 0.0009)
+       Engine Output (kW)   = Power Rating (kVA) x 0.8696   (sd 0.0010)
+       Engine Output (BHP)  = Engine Output (kW)  x 1.3410  (sd 0.0003)
+       Fuel Autonomy (hrs)  = Tank Capacity / Fuel Consumption, exactly (sd 0.0003)
+   Treating those as separate evidence multiplied a rating difference by four and
+   fuel efficiency by two, then divided the total by ten. That is why the previous
+   index reported "near parity" for 686 of 697 matchups while 630 of them had at
+   least one spec differing by more than 5%, and why it only ever produced 20
+   distinct values. One vote per independent engineering dimension instead.
 
-   The backend serves them as m.edge, m.decision, m.comparable, m.sourced and, per spec,
-   s.win, s.gap, s.state (backend/areas/b_products.py documents the vocabularies). The browser
-   only labels and draws them; it never recomputes (the old formulas gave the database, the API
-   and the screen three different numbers).
+   RATING is excluded outright. It is the axis matchups are paired on (nearest kVA
+   within 25%), so the residual is a pairing artefact: a 3000 kVA set is a different
+   product from a 2500 kVA set, not a better one. The residual is reported separately
+   as the kVA delta.
 
-   decision_level: 1 = KSSL behind (rival ahead), 2 = near parity, 3 = KSSL ahead, null = no
-   judgement -> nothing is labelled.
-   better_side:    client | competitor | equal.
-   ======================================================================================== */
+   SIZE-DEPENDENT specs are compared per kVA. A 1250 kVA set burns more litres per
+   hour than a 1010 kVA set because it makes more power; per kVA that becomes
+   specific fuel consumption and power density, which is the like-for-like question.
 
-const lc = (v) => String(v == null ? "" : v).trim().toLowerCase();
+   dBA is logarithmic, so noise is compared as a difference scaled against 10 dB
+   (a perceived doubling of loudness), not as a percentage of the dB number.
 
-/* The label for a STORED decision_level. null for "no judgement"; an unknown code is shown
-   as stored (never coerced into one of the three). */
-export function decisionVerdict(level, clientName = "KSSL") {
-  if (level == null || level === "") return null;
-  const short = (clientName || "KSSL").toUpperCase();
-  const name = clientName || "KSSL";
-  const n = Number(level);
-  if (n === 3) return { cls: "ahead", word: `${short} AHEAD`, phrase: `${name} holds the edge` };
-  if (n === 2) return { cls: "parity", word: "NEAR PARITY", phrase: "near parity" };
-  if (n === 1) return { cls: "behind", word: `${short} BEHIND`, phrase: "competitor holds the edge" };
-  return { cls: "parity", word: `DECISION ${level}`, phrase: `decision level ${level}` };
-}
+   Each dimension gives a signed advantage a, symmetric in the two values
+   (|delta| / mean, so which side is larger does not change the magnitude). Below 3%
+   is rounding noise and counts as parity. |a| is clamped to 0.40, the ~90th
+   percentile gap in this corpus, so one lopsided dimension cannot peg the index.
 
-/* A spec row's stored winner: "client" | "competitor" | "equal" | null (not judged). */
-export function specSide(s) {
-  const w = lc(s && s.win);
-  return w === "client" || w === "competitor" || w === "equal" ? w : null;
-}
+   The score averages the DECIDED dimensions, not all of them. A spec where both
+   sides are identical says nothing about who is stronger, and averaging it in as a
+   zero is exactly what manufactured the old all-parity result. Thin evidence is
+   handled by a confidence factor instead: d/(d+1), so a single decided dimension
+   can move the index at most halfway to the rail.
 
-/* Is this row one the loader marked as a like-for-like comparison? Anything but an explicit
-   one_sided / not_comparable counts, so an unknown or empty state is not silently hidden. */
-export function specIsCompared(s) {
-  const st = lc(s && s.state);
-  return st !== "one_sided" && st !== "not_comparable";
-}
+   Physically impossible values are dropped so one bad cell cannot set the verdict.
+   ponytail: no per-dimension weighting — fuel cost probably deserves more than
+   footprint, but any weights would be invented here. Equal votes, stated plainly.
+   ============================================================================== */
 
-/* The stored per-spec gaps, as the dimension list the basis chips draw:
-   a > 0 KSSL leads, a < 0 the rival leads, a = 0 level; `raw` is the stored gap_value as a
-   fraction. Only rows with a stored better_side and gap_value take part. */
-export function storedDims(m) {
+/* The pairing axes. A 155mm gun is a different product from a 105mm gun, a 30-tonne
+   MRAP a different product from a 12-tonne LPV — calibre, take-off weight, length and
+   barrel length are what matchups are paired ON, so their residual is a pairing
+   artefact, not an advantage. Matched by substring so "Calibre" catches
+   "Calibre / barrel" and unit-suffixed variants. */
+const EDGE_AXIS = ["Calibre", "MTOW", "Length", "Barrel"];
+/* Sanity ranges (from the source platform's SPEC_RANGE): a gun crew is 1-15, a
+   vehicle carries at most ~20, no naval/land platform here does over 30 kn/kmph-scale
+   'Speed' units in this corpus. Out-of-range cells are dropped, not voted. */
+const EDGE_RANGE = {
+  Crew: [1, 15],
+  "Crew / pax": [1, 20],
+  Speed: [0.1, 30],
+};
+export const EDGE_DEADBAND = 0.03;
+export const EDGE_CAP = 0.4;
+/* Per-dimension parity thresholds (the source platform's SPEC_DEADBAND). A range
+   figure without projectile type is soft — ±15% is quoting noise, not an edge; rate
+   of fire, endurance and speed carry ±10% between test conditions. */
+const EDGE_DEADBAND_BY = {
+  "Effective range": 0.15,
+  "Rate of fire": 0.1,
+  Endurance: 0.1,
+  Range: 0.1,
+  Speed: 0.1,
+};
+const isAxisSpec = (l) => EDGE_AXIS.some((a) => (l || "").toLowerCase().includes(a.toLowerCase()));
+/* The pipeline decides "level" at a flat 3% (revive_matchups.PARITY_DEADBAND). A
+   softer per-dimension threshold here would make the same pair of numbers a lead
+   in one place and parity in the other — which is how a stored verdict came to sit
+   above a gauge contradicting it. The soft thresholds stay as documentation of
+   which figures are noisy; they no longer change the arithmetic. */
+const deadbandFor = (_l) => EDGE_DEADBAND;
+
+/* Specs that are one measurement seen several ways: fuel at each load point and per kW
+   (and autonomy, which is tank / consumption); weight and power-to-weight; footprint
+   and power density. Any other label is its own group. */
+const EDGE_GROUPS = [
+  ["fuel", /fuel|autonomy/i],
+  ["weight", /weight|mass/i],
+  ["footprint", /footprint|power density|m²|sq\.?\s*m/i],
+];
+const groupOf = (l) => (EDGE_GROUPS.find(([, re]) => re.test(l || "")) || [l])[0];
+
+export function computeSpecEdge(m) {
+  const specs = m.specs || [];
   const dims = [];
-  ((m && m.specs) || []).forEach((s) => {
-    const side = specSide(s);
-    if (!side || !specIsCompared(s) || typeof s.gap !== "number") return;
-    const g = s.gap / 100;
-    dims.push({ l: s.l, a: side === "client" ? g : side === "competitor" ? -g : 0, raw: side === "client" ? g : side === "competitor" ? -g : 0, gap: s.gap, cv: s.cv, kv: s.kv, cn: s.cn, kn: s.kn });
+  specs.forEach((s) => {
+    if (isAxisSpec(s.l)) return;
+    /* A class axis is an axis: `classAxis` says the corpus calls these two products
+       different kinds of machine (a tracked self-propelled howitzer against a towed
+       gun), so their masses differ by what they ARE. Counting it made the ATAGS
+       "beat" the K9 Thunder by 29 tonnes of hull and engine. The number still
+       renders — see the dims list — it just cannot decide the comparison. */
+    if (s.classAxis) return;
+    if (s.cn == null || s.kn == null || s.hi == null) return;
+    const lim = EDGE_RANGE[s.l];
+    if (lim && (s.cn < lim[0] || s.cn > lim[1] || s.kn < lim[0] || s.kn > lim[1]))
+      return; // bad cell
+    const c = s.cn;
+    const k = s.kn;
+    const mean = (c + k) / 2;
+    if (!mean) return;
+    let a = ((k - c) / mean) * (s.hi ? 1 : -1);
+    if (Math.abs(a) < deadbandFor(s.l)) a = 0;
+    // `a` is clamped for the index so one lopsided dimension cannot peg it. `raw` keeps
+    // the true signed gap, because a report that says "worst 40%" when the real deficit
+    // is 140% is just showing you the clamp.
+    dims.push({
+      l: s.l,
+      a: Math.max(-EDGE_CAP, Math.min(EDGE_CAP, a)),
+      raw: a,
+      perKva: false,
+      /* The two figures this advantage was computed from. Gap Analysis could say a
+         rival led on weight but never what the two weights were, so the eleven
+         head-to-head comparisons its own subtitle counted were nowhere on the page. */
+      cn: c,
+      kn: k,
+      cv: s.cv,
+      kv: s.kv,
+    });
   });
-  return dims;
+  if (!dims.length) return { edge: null, n: 0, decided: 0, dims: [] };
+  /* ONE VOTE PER INDEPENDENT FACT, POSITIONED BY HOW BIG THE GAP IS.
+
+     The index is derived here and only here (dataset.js overwrites matchup.edge with
+     this result on load), so the marker, the badge, the chips and every downstream
+     report read the same number.
+
+     It used to count the dimensions each side led. That put a rival that is 7% better
+     on fuel at the same 7/100 as one that is 37% lighter, and it counted fuel four
+     times (L/h at 100/75/50% load, L/h per 100 kW) and weight twice (weight,
+     kW/tonne): six "votes" for two facts. Now correlated specs are collapsed into one
+     group whose advantage is the mean of its members, and the index is the mean
+     advantage over the DECIDED groups against the +/-CAP rail:
+         edge = 50 + 50 * mean(a) / CAP * d/(d+1)
+     A group both machines match on separates nobody, so it does not vote. */
+  const groups = new Map();
+  dims.forEach((d) => {
+    const g = groupOf(d.l);
+    d.group = g;
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(d.a);
+  });
+  const votes = [...groups.values()]
+    .map((v) => v.reduce((x, y) => x + y, 0) / v.length)
+    .map((a) => (Math.abs(a) < EDGE_DEADBAND ? 0 : a))
+    .filter((a) => a !== 0);
+  if (!votes.length) return { edge: null, n: dims.length, decided: 0, dims };
+  const mean = votes.reduce((x, y) => x + y, 0) / votes.length;
+  const edge = Math.round(50 + ((50 * mean) / EDGE_CAP) * (votes.length / (votes.length + 1)));
+  return {
+    edge: Math.max(2, Math.min(98, edge)),
+    n: dims.length,
+    decided: dims.filter((d) => d.a !== 0).length,
+    dims,
+  };
 }
 
-/* The chips under the gauge: the specs the loader judged, widest stored gap first. */
-export function edgeBasis(m) {
+/* One verdict per index value. The gauge used 58/42 while the report and the chat
+   used 60/48, so an index of 45 read "near parity" on the gauge and "competitor
+   holds the edge" three panels over. Symmetric band of +/-8 around parity: a single
+   decided dimension needs a ~13% gap to move the verdict off parity. */
+export function edgeVerdict(e, clientName = "Cummins Arabia") {
+  const short = (clientName || "Cummins Arabia").toUpperCase();
+  const name = clientName || "Cummins Arabia";
+  if (e == null)
+    return {
+      cls: "parity",
+      word: "INSUFFICIENT MEASURED DATA",
+      phrase: "no measured basis",
+    };
+  if (e >= 58) return { cls: "ahead", word: `${short} AHEAD`, phrase: `${name} holds the edge` };
+  if (e >= 42) return { cls: "parity", word: "NEAR PARITY", phrase: "near parity" };
+  return { cls: "behind", word: `${short} BEHIND`, phrase: "competitor holds the edge" };
+}
+
+/* Show exactly which dimensions produced the number, so the gauge is auditable
+   against the bars underneath it. */
+export function edgeBasis(ce) {
+  /* Client-facing: which fields lead, and by how much. The method behind the index
+     (averaging, confidence shrink, excluded axes) is not shown. */
   const esc = (s) =>
     `${s == null ? "" : s}`.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const dec = storedDims(m).filter((d) => d.a !== 0).sort((a, b) => b.gap - a.gap);
+  if (ce.edge == null) return "";
+  const dec = ce.dims.filter((d) => d.a !== 0).sort((a, b) => Math.abs(b.a) - Math.abs(a.a));
   if (!dec.length) return "";
   return `<div class="eg-dims">${dec
-    .map((d) => `<span class="eg-dim ${d.a > 0 ? "up" : "down"}">${d.a > 0 ? "▲" : "▼"} ${esc(d.l)} <i>${+d.gap.toFixed(1)}%</i></span>`)
+    .map((d) => {
+      const pct = Math.round(Math.abs(d.a) * 100);
+      return (
+        `<span class="eg-dim ${d.a > 0 ? "up" : "down"}">${d.a > 0 ? "▲" : "▼"} ` +
+        `${esc(d.l.replace(/\s*\(.*\)$/, ""))}` +
+        ` <i>${pct}%${Math.abs(d.a) >= EDGE_CAP ? "+" : ""}</i></span>`
+      );
+    })
     .join("")}</div>`;
+}
+
+/* shared: a value is a real statistic only if its displayed value leads with a number */
+export function isNumericVal(v) {
+  if (v == null) return false;
+  const t = String(v).trim();
+  if (!/\d/.test(t)) return false;
+  return /^[~$<>]?\s*\d/.test(t);
+}
+
+/* One runnable check on the logic above: symmetry, the parity floor, direction, the
+   dedupe, and the confidence ordering. Runs on load; logs only on failure. */
+export function edgeSelfCheck() {
+  const S = (l, cn, kn, hi) => ({ l, cn, kn, hi });
+  const CAL = (a, b) => S("Calibre", a, b, true); // pairing axis — must never vote
+  const MR = (a, b) => S("Max range", a, b, true);
+  const W = (a, b) => S("Combat weight", a, b, false);
+  const RF = (a, b) => S("Rate of fire", a, b, true);
+  const CR = (a, b) => S("Crew", a, b, false);
+  const e = (sp) => computeSpecEdge({ specs: sp }).edge;
+  const fail = [];
+  const ok = (c, msg) => {
+    if (!c) fail.push(msg);
+  };
+  // identical specs -> exact parity
+  // identical specs decide nothing, so there is no index to assert -- the same
+  // answer the pipeline stores, and the dossier says "level on every field"
+  ok(e([CAL(155, 155), MR(40, 40), W(30, 30)]) === null, "identical specs decide nothing");
+  // a class axis is excluded like the pairing axis: the corpus says these two are
+  // different kinds of machine, so their masses are not a comparison
+  ok(
+    e([{ l: "Weight", cn: 47000, kn: 18000, hi: false, classAxis: "towed vs SP" }]) === null,
+    "a class axis must not decide a comparison",
+  );
+  // the pairing axes alone must not move the index
+  ok(
+    e([CAL(155, 105), S("MTOW (kg)", 450, 380, true)]) === null,
+    "axis-only specs must yield no index",
+  );
+  // direction: KSSL shooting shorter must read below 50, further must read above
+  ok(e([CAL(155, 155), MR(48, 40)]) < 50, "Cummins Arabia worse on range must be <50");
+  ok(e([CAL(155, 155), MR(40, 48)]) > 50, "Cummins Arabia better on range must be >50");
+  // symmetry: mirroring the two sides mirrors the index around 50
+  ok(
+    e([CAL(155, 155), MR(48, 40)]) + e([CAL(155, 155), MR(40, 48)]) === 100,
+    "index must be symmetric about 50",
+  );
+  // deadband: a sub-3% difference is noise, and noise decides nothing
+  ok(e([CAL(155, 155), W(30, 30.5)]) === null, "a sub-3% gap decides nothing");
+  /* ONE deadband, the pipeline's 3%. A softer per-dimension threshold here made
+     the same two numbers a lead in the database and parity on the screen; a 10%
+     range difference now counts on both sides of that line. The soft bands remain
+     documented in EDGE_DEADBAND_BY as a note about which figures are noisy. */
+  ok(e([CAL(155, 155), S("Effective range", 40, 36, true)]) !== null,
+     "a 10% range gap decides, as it does in the pipeline");
+  ok(e([CAL(155, 155), S("Effective range", 48, 36, true)]) < 50, "a 28% range gap must vote");
+  // confidence: two dimensions agreeing must read further from parity than one alone
+  ok(
+    e([CAL(155, 155), MR(48, 40), W(28, 33)]) < e([CAL(155, 155), MR(48, 40)]),
+    "more agreeing evidence must move further",
+  );
+  // padding with level dimensions must not dilute a real gap into "near parity"
+  ok(
+    e([CAL(155, 155), MR(48, 40), W(30, 30), RF(6, 6)]) < 42,
+    "level dimensions must not dilute a decided gap",
+  );
+  ok(
+    e([CAL(155, 155), MR(48, 40), W(30, 30), RF(6, 6)]) === e([CAL(155, 155), MR(48, 40)]),
+    "adding level dimensions must not change the index at all",
+  );
+  // correlated specs are one fact: four fuel rows weigh like one fuel row
+  const FU = (l, a, b) => S(l, a, b, false);
+  const fuel4 = [FU("Fuel Consumption @100% Load", 154, 144), FU("Fuel Consumption @75% Load", 116, 106.6),
+    FU("Fuel Consumption @50% Load", 80, 72.2), FU("Specific Fuel @100%", 27.26, 25.21)];
+  ok(Math.abs(e(fuel4) - e([fuel4[0]])) <= 1, "four fuel rows must weigh like one fuel fact");
+  // size matters: a 37% deficit reads further from parity than a 7% one
+  ok(e([W(30, 41)]) < e([W(30, 32.5)]) || e([W(30, 32.5)]) === null, "a bigger gap must sit further out");
+  ok(e([W(30, 50), MR(40, 40)]) === 25, "one capped fact moves the index halfway to the rail, no further");
+  // impossible values are dropped rather than driving the verdict
+  ok(e([CAL(155, 155), CR(45, 5)]) === null, "implausible crew count must be dropped");
+  if (fail.length) console.error("computeSpecEdge self-check FAILED:", fail);
+  return fail;
 }

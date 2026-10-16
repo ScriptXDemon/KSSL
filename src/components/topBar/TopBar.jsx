@@ -15,7 +15,6 @@ import { searchDataset, SEARCH_MIN_CHARS } from "../../lib/search";
 export default function TopBar() {
   const { pillar, setPillar, searchQuery, setSearchQuery, jumpTo } = useAppState();
   const { data } = useData();
-  const clientLabel = data.client && (data.client.short || data.client.name);
   const [open, setOpen] = useState(false);
   const searchRef = useRef(null);
 
@@ -200,7 +199,7 @@ export default function TopBar() {
 
       <div className="topright">
         <div className="statusbox client">
-          {clientLabel ? <span className="v">{clientLabel}</span> : null}
+          <span className="v">{(data.client && (data.client.short || data.client.name)) || "Cummins Arabia"}</span>
         </div>
         {/* The Feed / Live box is off at the operator's request. It was never a liveness
             READING: the dot animated on a CSS keyframe from the moment the bundle

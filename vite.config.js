@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { fetchTrending } from "./src/lib/pulseFetch.js";
+import { fetchTrending, fetchStockHistory } from "./src/lib/pulseFetch.js";
+import { tickerFor } from "./src/lib/tickers.js";
 
 const apiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8600";
 const reviewApiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8601";
@@ -35,6 +36,26 @@ async function apiMiddleware(req, res, next) {
     } catch (e) {
       res.statusCode = 404;
       return res.end("img fetch failed");
+    }
+  }
+  if (req.url && req.url.startsWith("/api/dataset")) {
+    return next(); // forwarded to the FastAPI backend by the /api proxy
+  }
+  if (req.url && req.url.startsWith("/api/pulse/history")) {
+    /* Cummins stock-history lane (hidden:stock for KSSL; Task 10 strips it). No mock fallback:
+       an unknown ticker or a failed fetch answers with an empty series. */
+    const q = new URL(req.url, "http://localhost").searchParams;
+    const cid = q.get("cid") || "";
+    const name = q.get("name") || "";
+    const range = q.get("range") || "1y";
+    const ticker = tickerFor(cid);
+    res.setHeader("Content-Type", "application/json");
+    try {
+      const data = ticker ? await fetchStockHistory({ ticker, range, name }) : null;
+      if (data && data.points && data.points.length) res.setHeader("Cache-Control", "public, max-age=300");
+      return res.end(JSON.stringify(data && data.points && data.points.length ? data : { points: [] }));
+    } catch (e) {
+      return res.end(JSON.stringify({ points: [] }));
     }
   }
   if (req.url && req.url.startsWith("/api/pulse")) {

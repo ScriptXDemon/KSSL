@@ -1,5 +1,5 @@
-/* SERVER-SIDE company pulse: "trending" headlines (Google News RSS, keyless). Stock quotes
- * were removed by decision (stock is hidden). Runs on the server (vite dev/preview
+/* SERVER-SIDE company pulse: live stock quote (Yahoo Finance chart API, keyless) and
+ * "trending" headlines (Google News RSS, keyless). Runs on the server (vite dev/preview
  * middleware locally, the FastAPI backend in production) — never in the browser, because
  * the page's CSP forbids cross-origin fetches and these hosts would block them anyway.
  * It fetches, parses and normalises; it invents nothing — a source that returns nothing
@@ -10,6 +10,43 @@
  */
 const UA = "Mozilla/5.0 (compatible; ParallaxPulse/1.0)";
 
+export async function fetchStock(ticker) {
+  if (!ticker) return null;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1mo`;
+  const r = await fetch(url, { headers: { "User-Agent": UA } });
+  if (!r.ok) return null;
+  const j = await r.json();
+  const res = j && j.chart && j.chart.result && j.chart.result[0];
+  const m = res && res.meta;
+  if (!m || typeof m.regularMarketPrice !== "number") return null;
+  const price = m.regularMarketPrice;
+  // series for the sparkline: valid closes over the 1-month window
+  let series = [];
+  try {
+    series = (res.indicators.quote[0].close || []).filter((x) => typeof x === "number");
+  } catch { series = []; }
+  /* DAILY change: use the previous CLOSE, i.e. the second-to-last close in the series.
+     meta.chartPreviousClose over a 1-month range is the pre-window (month-ago) close,
+     which would report a monthly move as if it were today's -- so it is NOT used here. */
+  const prev = series.length >= 2 ? series[series.length - 2]
+    : (typeof m.chartPreviousClose === "number" ? m.chartPreviousClose : m.previousClose);
+  const change = typeof prev === "number" ? price - prev : null;
+  const pct = typeof prev === "number" && prev ? (change / prev) * 100 : null;
+  return {
+    symbol: m.symbol || ticker,
+    name: m.longName || m.shortName || null,
+    price,
+    previousClose: typeof prev === "number" ? prev : null,
+    change,
+    changePct: pct == null ? null : Math.round(pct * 100) / 100,
+    currency: m.currency || null,
+    exchange: m.fullExchangeName || m.exchangeName || null,
+    asOf: m.regularMarketTime ? new Date(m.regularMarketTime * 1000).toISOString() : null,
+    series: series.slice(-22),
+  };
+}
+
+/* Decode the handful of XML/HTML entities an RSS title carries. */
 function unent(s) {
   return String(s || "")
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
@@ -110,4 +147,108 @@ export async function fetchTrending(name, product = "") {
     if (items.length) return items;
   }
   return [];
+}
+
+export async function fetchPulse({ name, ticker, product }) {
+  const [stock, trending] = await Promise.all([
+    fetchStock(ticker).catch(() => null),
+    fetchTrending(name, product).catch(() => []),
+  ]);
+  return { stock, trending, fetchedAt: new Date().toISOString() };
+}
+
+/* ===================== STOCK HISTORY + THE NEWS AROUND EACH BIG MOVE =====================
+ * The Stock card's page. Prices are Yahoo's daily (weekly for 5y) closes. A "move" is a day
+ * whose change is unusually large for THIS stock (>= 2 standard deviations of its own daily
+ * changes, and at least 2%). For each move we list headlines Google News dates to around
+ * that day. That is CONTEXT, not a proven cause -- the page says so; nothing here claims why
+ * a price moved. Cached 30 min per (ticker, range). Mirrors backend /api/pulse/history. */
+const RANGES = { "1mo": "1d", "6mo": "1d", "1y": "1d", "5y": "1wk" };
+const _histCache = new Map();
+
+export function findMoves(points, max = 8) {
+  const rets = [];
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1].c, b = points[i].c;
+    if (a > 0 && b > 0) rets.push({ i, r: (b - a) / a });
+  }
+  if (rets.length < 5) return [];
+  const mean = rets.reduce((s, x) => s + x.r, 0) / rets.length;
+  const sd = Math.sqrt(rets.reduce((s, x) => s + (x.r - mean) ** 2, 0) / rets.length);
+  const cut = Math.max(0.02, 2 * sd);
+  return rets
+    .filter((x) => Math.abs(x.r) >= cut)
+    .sort((x, y) => Math.abs(y.r) - Math.abs(x.r))
+    .slice(0, max)
+    .map(({ i, r }) => ({
+      date: points[i].t, from: points[i - 1].c, to: points[i].c,
+      pct: Math.round(r * 10000) / 100, dir: r < 0 ? "drop" : "rise",
+    }))
+    .sort((x, y) => (x.date < y.date ? 1 : -1));
+}
+
+/* Google News for a date window, WITHOUT per-article resolution (the page lists up to 8
+   moves x 3 headlines; resolving each is ~3 requests). Links open through Google News. */
+async function _rssLite(query, max = 3) {
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+  const r = await fetch(url, { headers: { "User-Agent": UA } });
+  if (!r.ok) return [];
+  const out = [];
+  for (const it of (await r.text()).split("<item>").slice(1)) {
+    const title = unent((it.match(/<title>([\s\S]*?)<\/title>/) || [])[1]);
+    const link = unent((it.match(/<link>([\s\S]*?)<\/link>/) || [])[1]);
+    const date = unent((it.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1]);
+    const source = unent((it.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1]);
+    if (!title) continue;
+    const clean = source && title.endsWith(" - " + source) ? title.slice(0, -(source.length + 3)) : title;
+    out.push({ title: clean, url: link || null, source: source || null, date: date ? new Date(date).toISOString() : null });
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+const _day = (iso, add) => {
+  const d = new Date(iso);
+  d.setUTCDate(d.getUTCDate() + add);
+  return d.toISOString().slice(0, 10);
+};
+// "Larsen & Toubro Limited" -> "Larsen & Toubro": the listed name, minus the legal suffix
+export const searchName = (n) =>
+  String(n || "").replace(/\b(Limited|Ltd\.?|Inc\.?|Corporation|Corp\.?|plc|PLC|S\.A\.|AG|SE)\b\.?/g, "").replace(/\s+/g, " ").trim();
+
+export async function fetchStockHistory({ ticker, range = "1y", name = "" }) {
+  if (!ticker) return null;
+  const rg = RANGES[range] ? range : "1y";
+  const key = `${ticker}|${rg}`;
+  const hit = _histCache.get(key);
+  if (hit && hit.exp > Date.now()) return hit.val;
+  const r = await fetch(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=${RANGES[rg]}&range=${rg}`,
+    { headers: { "User-Agent": UA } });
+  if (!r.ok) return null;
+  const res = (((await r.json()) || {}).chart || {}).result;
+  const x = res && res[0];
+  if (!x || !x.meta) return null;
+  const ts = x.timestamp || [];
+  const closes = ((x.indicators || {}).quote || [{}])[0].close || [];
+  const points = ts.map((t, i) => ({ t: new Date(t * 1000).toISOString().slice(0, 10), c: closes[i] }))
+    .filter((p) => typeof p.c === "number");
+  const listed = searchName(x.meta.longName || x.meta.shortName || name) || name;
+  const moves = findMoves(points);
+  // headlines published from 3 days before to 2 days after each move
+  await Promise.all(moves.map(async (m) => {
+    m.news = await _rssLite(`"${listed}" after:${_day(m.date, -3)} before:${_day(m.date, 3)}`).catch(() => []);
+  }));
+  const first = points[0], last = points[points.length - 1];
+  const val = {
+    symbol: x.meta.symbol || ticker, name: x.meta.longName || x.meta.shortName || null, searchedAs: listed,
+    currency: x.meta.currency || null, exchange: x.meta.fullExchangeName || x.meta.exchangeName || null,
+    price: x.meta.regularMarketPrice ?? (last && last.c), range: rg,
+    rangeChangePct: first && last && first.c ? Math.round(((last.c - first.c) / first.c) * 10000) / 100 : null,
+    high: points.length ? Math.max(...points.map((p) => p.c)) : null,
+    low: points.length ? Math.min(...points.map((p) => p.c)) : null,
+    points, moves, fetchedAt: new Date().toISOString(),
+  };
+  _histCache.set(key, { val, exp: Date.now() + 30 * 60 * 1000 });
+  return val;
 }
