@@ -10,6 +10,7 @@ export default defineConfig({
   expect: { timeout: 15000 },
   fullyParallel: false,
   workers: 1,
+  retries: 1, // Windows can answer a navigation with ERR_NO_BUFFER_SPACE under a burst of sockets
   reporter: [["list"]],
   use: { baseURL: "http://127.0.0.1:5191", headless: true, actionTimeout: 10000 },
 });

@@ -48,18 +48,47 @@ test.describe("review build", () => {
     });
   }
 
-  /* Approve one card: the POST answers 200 and its status turns "live" */
+  /* The card lists: every card that renders carries its own bar, not just one per page.
+     [pillar, view, card selector] */
+  const CARDS = [
+    ["competitive", "overview", ".alert"],
+    ["competitive", "threat-analysis", ".cm-row"],
+    ["competitive", "products", ".product-card"],
+    ["competitive", "projects", ".alert"],
+    ["market", "m-overview", "section.ti-simple tr.ti-row-link"],
+    ["market", "tender", ".tcard"],
+    ["market", "global-requirement", ".alert"],
+    ["technology", "t-overview", ".alert"],
+    ["technology", "innovation", ".innov"],
+  ];
+  for (const [pillar, view, sel] of CARDS) {
+    test(`${view}: every ${sel} carries a review bar`, async ({ page }) => {
+      await open(page, REVIEW_URL, pillar, view);
+      const cards = page.locator(sel);
+      await expect(cards.first()).toBeVisible({ timeout: 15000 });
+      const n = await cards.count();
+      const withBar = await cards.filter({ has: page.locator(".rv-bar") }).count();
+      expect(withBar, `${withBar} of ${n} ${sel} carry a .rv-bar`).toBe(n);
+    });
+  }
+
+  /* Approve one card: the POST answers 200 and its status turns "live". The company card on the
+     Competitor Profile has no parent card to approve first (a signal needs its competitor live). */
   test("approve returns 200 and the card turns live", async ({ page }) => {
-    await open(page, REVIEW_URL, "competitive", "overview");
-    const bar = page.locator(".rv-bar", { has: page.locator(".rv-status.rv-new") }).first();
+    await open(page, REVIEW_URL, "competitive", "profile");
+    const bar = page.locator(".cp-head .rv-bar").first();
     await expect(bar).toBeVisible({ timeout: 15000 });
-    const [resp] = await Promise.all([
-      page.waitForResponse((r) => r.url().includes("/api/review") && r.request().method() === "POST"),
-      bar.getByRole("button", { name: "Approve", exact: true }).click(),
-    ]);
+    const post = () => page.waitForResponse((r) => r.url().includes("/api/review") && r.request().method() === "POST");
+    // a previous run left it live: take it off first so the Approve below is a real transition
+    if (await bar.locator(".rv-status.rv-live").count()) {
+      const [off] = await Promise.all([post(), bar.getByRole("button", { name: "Unpublish", exact: true }).click()]);
+      expect(off.status()).toBe(200);
+      await expect(bar.locator(".rv-status.rv-new, .rv-status.rv-changed")).toBeVisible();
+    }
+    const [resp] = await Promise.all([post(), bar.getByRole("button", { name: /^Approve/ }).click()]);
     expect(resp.status()).toBe(200);
-    // the first card of the feed is now live (its bar re-renders with the new status)
-    await expect(page.locator(".rv-bar .rv-status.rv-live").first()).toBeVisible();
+    await expect(bar.locator(".rv-status.rv-live")).toBeVisible();
+    await expect(bar.locator(".rv-status")).toHaveText("live");
   });
 });
 
