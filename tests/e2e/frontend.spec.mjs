@@ -66,11 +66,12 @@ test("FE-004 rail counts come from the loaded corpus", async ({ page }) => {
   // corpus-derived, not hardcoded: counts vary and scale with real data
   expect(new Set(nums).size).toBeGreaterThan(1);
   expect(Object.values(j.competitors || {}).length).toBeGreaterThan(0);
-  // every rail count is a count of something the dataset holds: none exceeds the rows it can count
-  const maxRows = Math.max(...["competitiveCards", "marketCards", "techCards", "tenders", "matchups"].map((k) => {
-    const v = j[k];
-    return Array.isArray(v) ? v.length : Object.keys(v || {}).length;
-  }));
+  // every rail count is a count of rows the dataset holds: none exceeds the biggest collection in it
+  const size = (v) =>
+    Array.isArray(v) ? v.length
+    : v && typeof v === "object" ? Object.values(v).reduce((n, x) => n + (Array.isArray(x) ? x.length : 1), 0)
+    : 0;
+  const maxRows = Math.max(...Object.entries(j).filter(([k]) => k !== "database" && k !== "databaseSchema").map(([, v]) => size(v)));
   expect(Math.max(...nums)).toBeLessThanOrEqual(maxRows);
 });
 

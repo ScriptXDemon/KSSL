@@ -16,9 +16,16 @@ import { Review } from "../../components/review/Review.jsx";
    on the left, what happened on the right; a click opens the analysis in the white panel beside the list. Today / Week / Month (or a From-To range) window them, counted
    back from the newest move on record, so the window reads the same however late it is opened. */
 
-const PILL = { THREAT: "threat", WATCH: "watch", FAV: "opportunity" };
-const LEVEL_WORD = { THREAT: "Threat", WATCH: "Watch", FAV: "" };
-const DIR = { THREAT: "threat", WATCH: "watch", FAV: "fav" };
+/* A moment's stored level (serving.competitive_competitor_moment.grade) is a level_code of
+   ui.competitive_competitor_moment_level, which supplies the word (level_label) and the tag class (tag_class).
+   levelInfo() reads that table; a code the table does not list prints as stored, with no stance class. */
+const DIR_OF_TAG = { threat: "threat", watch: "watch", opportunity: "fav" };
+const levelTable = (data) =>
+  Object.fromEntries(
+    ((data && data.database && data.database.ui && data.database.ui.competitive_competitor_moment_level) || [])
+      .filter((r) => r && r.level_code)
+      .map((r) => [r.level_code, r]),
+  );
 const keyOf = (m) => `${m.cid}|${m.url}|${m.title}`;
 const DAY = 86400000;
 const ALL = "__all";
@@ -82,7 +89,10 @@ export default function ThreatAnalysis() {
     [co, counted],
   );
   const open = sel ? moves.find((m) => keyOf(m) === sel) || null : null;
-  const threats = moves.filter((m) => m.level === "THREAT").length;
+  const levels = useMemo(() => levelTable(data), [data]);
+  const levelWord = (l) => (levels[l] ? levels[l].level_label : l) || "";
+  const levelTag = (l) => (levels[l] && levels[l].tag_class) || "";
+  const threats = moves.filter((m) => levelTag(m.level) === "threat").length;
   const label = co ? co.name : "All competitors";
   const clientName = clientShort();
 
@@ -100,7 +110,7 @@ export default function ThreatAnalysis() {
     subtitle: `${moves.length} move${moves.length === 1 ? "" : "s"} ${range.from ? `from ${range.from} to ${range.to}` : "on record"}`,
     sections: [{
       heading: "Moves, newest first",
-      facts: moves.map((m) => [[m.date, LEVEL_WORD[m.level] ?? m.level].filter(Boolean).join(" · "), `${m.title}. ${m.analysis || ""}`]),
+      facts: moves.map((m) => [[m.date, levelWord(m.level)].filter(Boolean).join(" · "), `${m.title}. ${m.analysis || ""}`]),
     }],
     payload: { competitor: co ? co.cid : null, moves },
   }), [co, label, moves, range]);
@@ -191,7 +201,7 @@ export default function ThreatAnalysis() {
                 <div className="cm-main">
                   <div className="cm-top">
                     <span className="cm-co">{m.company}</span>
-                    {(LEVEL_WORD[m.level] ?? m.level) ? <span className={`proj-tag-pill ${PILL[m.level] || "neutral"}`}>{LEVEL_WORD[m.level] ?? m.level}</span> : null}
+                    {levelWord(m.level) ? <span className={`proj-tag-pill ${levelTag(m.level) || "neutral"}`}>{levelWord(m.level)}</span> : null}
                     <span className="cm-src">{m.source || "Source"}</span>
                   </div>
                   <div className="cm-title">{m.title}</div>
@@ -217,7 +227,7 @@ export default function ThreatAnalysis() {
       {open ? (() => {
         const [meaning] = String(open.analysis || "").split(/\s*Action:\s*/);
         const lenses = Array.isArray(open.lenses) && open.lenses.length ? open.lenses : null;
-        const dir = DIR[open.level];   // no stored level, no stance class
+        const dir = DIR_OF_TAG[levelTag(open.level)];   // no stored level, no stance class
         const chips = srcChips(sourceHref(open.url) ? [{ label: open.source || "Source", url: open.url }] : null);
         return (
           <div className="ctx v-overview revealed">
