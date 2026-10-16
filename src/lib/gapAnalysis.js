@@ -53,7 +53,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [25, 15, 10, 5],
-    note: "A range figure is meaningless without projectile type, charge and calibre-length: the same 155 mm barrel gives about 41 km on base-bleed and 55 km on V-LAP, a 33% swing from ammunition alone.",
   },
   "Artillery|Weight": {
     short: "Weight",
@@ -62,7 +61,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [30, 20, 10, 5],
-    note: "The ladder is set by transport class - C-130J at roughly 19-20 t, A400M at 37 t, CH-47 underslung at 10-12 t - and by bridge Military Load Classification. A 17.7 t against 24 t gap is usually a towed gun against a truck-mounted one, which are different objects rather than a lighter design.",
   },
   Crew: {
     short: "Crew",
@@ -71,7 +69,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [40, 25, 15, 10],
-    note: "Crew count is a proxy for automation, on the ladder 8 → 6 → 4 → 3 → 2 (KNDS RCH 155 fires at 2, Archer at 3-4, conventional towed 155 at 6-8). It is an integer axis, so any whole-person difference is real. OEM figures usually exclude the gun position officer and the ammunition party.",
   },
   "Rate of fire": {
     short: "Rate of fire",
@@ -80,7 +77,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [30, 20, 12, 10],
-    note: "Burst, intense and sustained rates are three different numbers - ATAGS quotes 6 rounds in 30 s burst against a sustained requirement of 60 rounds in 60 minutes. Only sustained rate predicts rounds delivered across a day-long fire plan.",
   },
   "Combat weight": {
     short: "Combat weight",
@@ -89,7 +85,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [40, 25, 15, 5],
-    note: "Only comparable at equal STANAG 4569 protection: a lighter Level 2 hull is not ahead of a heavier Level 4 one. Add-on armour alone is typically 10-20% of combat weight, and the growth margin left for future kit often decides the tender.",
   },
   "Crew / pax": {
     short: "Crew / capacity",
@@ -98,7 +93,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [50, 25, 15, 10],
-    note: "A threshold rather than a magnitude, shown here as a percentage proxy: capacity only pays when it crosses the buyer's section size, because a section that does not fit one hull splits across two and doubles the fleet. Seats beyond it buy nothing, and blast-attenuating seats consume far more volume than bench seating.",
   },
   "Effective range": {
     short: "Effective range",
@@ -107,7 +101,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [50, 30, 20, 15],
-    note: "The widest tolerance on this page, because the term has no single definition - the same 5.56×45 round is quoted at 300, 500, 550, 600 and 800 m depending on barrel, sight and whose manual. The class divides are 300→500 m (carbine to rifle) and 500→800 m (rifle to marksman).",
   },
   "Small Arms|Weight": {
     short: "Weight",
@@ -116,7 +109,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [25, 15, 10, 5],
-    note: "Measured against the doctrinal soldier load - a 48 lb fighting load and 72 lb approach march (ATP 3-21.18). A 0.43 kg rifle delta is about 2% of the fighting load. Optic, laser and loaded magazines add 1.5-2.5 kg, more than any credible difference between two rifles.",
   },
   "UAVs & Drones|Endurance": {
     short: "Endurance",
@@ -125,7 +117,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [50, 30, 20, 10],
-    note: "The step changes are orbit arithmetic, not spec noise: airframes per persistent orbit is ceil((24 h + transit + turnaround) / endurance), so 36 h against 20 h takes a standing orbit from three airframes to two. Quoted figures are clean-configuration and reserve-free; a SATCOM ball, turret and weapons cost 20-40%.",
   },
   "Marine / Naval|Endurance": {
     short: "Endurance",
@@ -134,7 +125,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [50, 30, 20, 10],
-    note: "Days on station decide patrol cycles and therefore hulls per station, but the figure is quoted at economical speed and says nothing about sea-state limit or crew habitability, which are what actually end a patrol.",
   },
   "UAVs & Drones|Range": {
     short: "Range",
@@ -143,7 +133,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [50, 30, 20, 10],
-    note: "Check whether the number is fuel-limited or datalink-limited: line-of-sight control typically walls at 200-250 km, and a SATCOM fit removes that wall entirely - so the figure may be measuring the comms package rather than the aircraft.",
   },
   "Missiles & Air Defence|Range": {
     short: "Range",
@@ -152,7 +141,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [50, 30, 20, 10],
-    note: "Only comparable inside one air-defence layer - VSHORAD 5-10 km, SHORAD 10-25 km, medium 25-70 km, long above 100 km. A 25 km against 100 km pairing spans two layers of the same architecture, not a fourfold lead. Headline range is a kinematic maximum against a non-manoeuvring target; the no-escape zone is a fraction of it.",
   },
   Speed: {
     short: "Speed",
@@ -161,7 +149,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [60, 30, 20, 10],
-    note: 'The real steps are regime boundaries - subsonic, supersonic, and hypersonic above Mach 5, where the defender needs a new interceptor rather than a better one. Quoted Mach is usually peak at burnout, and Mach is altitude-dependent, so two "Mach 2.5" claims can be different absolute speeds.',
   },
   "Annual capacity": {
     short: "Annual capacity",
@@ -170,7 +157,6 @@ export const GAP_DIM = {
     unit: "%",
     scale: 1,
     bins: [100, 50, 25, 10],
-    note: "The defining 155mm metric since 2022: demand outruns supply, so stated annual output - current or funded target - is what wins framework contracts. Announced targets and demonstrated output are different numbers; the year attached to a figure matters as much as the figure.",
   },
 };
 /* Category-scoped resolution, exactly as the source platform did it: 'Weight' means
@@ -556,15 +542,6 @@ function gapDimGrid(rivals, clientName = clientShort()) {
     const topRivalObj = sortedOwned[0];
     const topRival = topRivalObj ? gshort(topRivalObj.co) : row.rivalOwns > 0 ? "—" : "None";
 
-    const whyObj = GAP_WHY[`${_gapMetaCat}|${row.l}`] || GAP_WHY[row.l];
-    let whyText = "";
-    if (whyObj && whyObj.one) {
-      whyText = gesc(whyObj.one);
-    } else if (m.note) {
-      whyText = gesc(m.note);
-    } else {
-      whyText = "Impacts overall competitive positioning in this category.";
-    }
 
     h += `<details class="ga-acc-item"${isOpen}>`;
     h += `<summary class="ga-acc-summary">`;
@@ -595,13 +572,6 @@ function gapDimGrid(rivals, clientName = clientShort()) {
     h += `<span class="ga-acc-label">${clientShort()} owns vs</span><span class="ga-acc-val">${ksslOwnCells} of ${row.cells.filter((c) => c.d && c.d.own !== "nodata").length} rivals</span>`;
     h += `<span class="ga-acc-label">Coverage</span><span class="ga-acc-val">${tot.comparable} matchups publish both sides</span>`;
 
-    h += `<div class="ga-acc-why">`;
-    h += `<span class="ga-acc-label">Why It Matters</span>`;
-    h += `<div class="ga-acc-why-desc">${whyText}</div>`;
-    if (whyObj && whyObj.why) h += `<div class="ga-acc-why-desc" style="margin-top:6px;color:var(--d-txt-3)">${gesc(whyObj.why)}</div>`;
-    if (m.note) h += `<div class="ga-acc-why-desc" style="margin-top:6px;font-size:11px;color:var(--d-txt-3)"><b>How to read it:</b> ${gesc(m.note)}</div>`;
-    if (whyObj && whyObj.not) h += `<div class="ga-acc-why-desc" style="margin-top:6px;font-size:11px;color:var(--d-txt-4)">${gesc(whyObj.not)}</div>`;
-    h += `</div>`;
     h += `</div>`;
     h += `</div>`;
 
@@ -630,183 +600,6 @@ function gapDimGrid(rivals, clientName = clientShort()) {
   });
 
   h += "</div>";
-  return h;
-}
-
-/* What a measured edge actually buys the rival. Interpretation, not measurement,
-   and labelled as such. One entry per dimension, reused across every band. */
-const GAP_WHY = {
-  "Max range": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival shoots from outside the range at which KSSL's gun can reply, so the exchange is one-way.",
-    "why": "It is a step function at the opponent's maximum range rather than a gradient, and the same lead pays twice: it also puts the gun outside the counter-battery envelope and cuts the number of firing positions a fire plan needs.",
-    "seg": "Army artillery directorates, mountain and border formations, export customers facing peer artillery",
-    "seg1": "It is the headline number in a GSQR, so it sells before it is ever fired.",
-    "not": "It barely matters in counter-insurgency and internal security, where rules of engagement and observation cap the engagement well inside the gun's reach."
-  },
-  "Artillery|Weight": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival's gun is lighter, so it can be flown, lifted or driven where the heavier one cannot go at all.",
-    "why": "Deployability appears in an RFP as a hard gate, not a preference - the saving is only banked when it crosses an airlifter, helicopter or bridge class limit, and is nearly worthless inside a band.",
-    "seg": "Rapid-reaction and mountain formations, expeditionary buyers, northern-border requirements",
-    "seg1": "A gun that fits the transport the customer already owns avoids buying new lift alongside the artillery.",
-    "not": "It barely matters to static coastal and garrison artillery moved once by tank transporter."
-  },
-  "Crew": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival's gun fights with fewer soldiers, which is an automation claim and a survivability claim in the same number.",
-    "why": "It compounds unusually hard: the autoloader that removes crew also raises burst rate and cuts emplacement time, so one investment sells three specs. Counter-battery radar produces a firing solution in seconds and return fire arrives inside two minutes, so time into and out of action is survival.",
-    "seg": "Manpower-constrained European, Gulf and East Asian armies, and anyone facing counter-battery radar or loitering munitions",
-    "seg1": "Personnel dominate a regiment's whole-life cost - three fewer crew across a hundred guns is three hundred trained soldiers, which is why it wins lifecycle-scored tenders.",
-    "not": "It matters least to conscript-manned, manpower-rich armies, and it cuts the other way when the autoloader fails: a small crew has no manual fallback and no relief for 24-hour operations."
-  },
-  "Rate of fire": {
-    "kind": "tech",
-    "k1": "Technology",
-    "one": "The rival puts more rounds on the target per exposure, which is what makes shoot-and-scoot viable rather than just louder.",
-    "why": "The genuine steps are the burst counts written into the qualitative requirement - three rounds in fifteen seconds, six in thirty - and multiple-rounds-simultaneous-impact capability, which is binary rather than incremental.",
-    "seg": "Manoeuvre-support artillery, counter-battery and MRSI missions",
-    "seg1": "Rounds per exposure is survivability arithmetic: the gun that empties its mission faster spends less time where the radar can see it.",
-    "not": "It barely matters in sustained interdiction, where the ammunition resupply chain binds long before the gun's cyclic rate does."
-  },
-  "Combat weight": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "At the same protection level the rival carries the same crew for less mass, which buys airlift, bridges and fuel.",
-    "why": "It compounds through growth margin: a vehicle that starts light absorbs ten years of add-on armour, jammers and remote weapon stations, while one already at its gross limit needs a redesign to accept any of them.",
-    "seg": "Airmobile and rapid-deployment forces, expeditionary and UN users, weak-bridge and mountain-road theatres",
-    "seg1": "Landing under an airlift or bridge class limit satisfies a deployability clause that is pass/fail in the RFP.",
-    "not": "Read it with the protection level: below equal STANAG 4569, lower mass is not an advantage, it is less armour."
-  },
-  "Crew / pax": {
-    "kind": "sales",
-    "k1": "Sales",
-    "one": "The rival fits more dismounts in one hull, so the customer needs fewer vehicles to lift the same infantry.",
-    "why": "This is arithmetic on the order book rather than a spec win - if a section does not fit in one vehicle it splits across two, loses cohesion and doubles the fleet. The payoff is a step at the customer's section size and flat either side of it.",
-    "seg": "Mechanised infantry and APC tenders, troop-lift and internal-security fleets",
-    "seg1": "Fleet size sets total contract value, so seats convert into revenue more directly than any other figure here.",
-    "not": "It is meaningless on command, recce and weapon-carrier variants, where the seat count is fixed by the role."
-  },
-  "Effective range": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival's weapon is credited with hitting at a distance where KSSL's is not.",
-    "why": "It only converts if the customer also buys the optic and the marksmanship training; without them it is a datasheet number that never appears in the field. The real step is a section-wide move from red-dot to low-power variable optic.",
-    "seg": "Infantry rifle tenders in open terrain, desert and high-altitude formations, designated-marksman requirements",
-    "seg1": "Treat the figure with suspicion - it is a doctrinal statement about a trained shooter, not a ballistic limit, and every maker picks the flattering definition.",
-    "not": "It barely matters in close-quarter battle, for vehicle crews and for police, where nearly every engagement is inside 100 m."
-  },
-  "Small Arms|Weight": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival's weapon is lighter in the hand, which is where small-arms competitions are actually won.",
-    "why": "It does not compound - it is a perception threshold in user trials, roughly a third of a kilogram on a rifle, and it only becomes decisive when it is the difference between carrying another magazine or another plate.",
-    "seg": "Infantry, airborne and mountain tenders, and paramilitary bulk buys with long foot patrols",
-    "seg1": "Indian and most Western small-arms competitions are decided in endurance-march and ergonomics scoring, not on the datasheet.",
-    "not": "It is irrelevant to vehicle crews and static guards, and it inverts in support roles where mass is wanted for recoil control."
-  },
-  "UAVs & Drones|Endurance": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival keeps an aircraft on station longer, so it covers the same area with fewer airframes.",
-    "why": "It compounds harder than any other figure on this page: fewer airframes per persistent orbit means fewer crews, fewer ground control stations, less basing and less maintenance, so the rival bids a smaller fleet at a lower price for the same claimed coverage.",
-    "seg": "Maritime patrol, exclusive-economic-zone and border surveillance, ISR supporting strike",
-    "seg1": "Crossing 24 hours means one airframe covers a full day, which is the single largest step on the ladder.",
-    "not": "It barely matters for small tactical reconnaissance, artillery spotting and loitering munitions, where the mission lasts minutes."
-  },
-  "Marine / Naval|Endurance": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival's craft stays out longer, so fewer hulls hold the same station.",
-    "why": "Patrol cycles are the unit of account - days on station divided into the required coverage gives hulls, crews and refit slots, and each of those is a line in the bid.",
-    "seg": "Coast guards, EEZ and offshore patrol requirements, long-range surveillance",
-    "seg1": "Fuel and stores endurance also decide how far from a friendly port the customer can operate at all.",
-    "not": "It barely matters for inshore and riverine craft returning to base each day."
-  },
-  "UAVs & Drones|Range": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival reaches targets and patrol boxes that KSSL's aircraft cannot be tasked against.",
-    "why": "Reach is worth checking before it is believed: line-of-sight control walls at roughly 200-250 km and a satellite datalink removes the wall, so a large lead is often a comms fit rather than an airframe.",
-    "seg": "Maritime domain awareness, deep border surveillance, standoff ISR",
-    "seg1": "Range is what decides which basing options the customer needs, and basing is usually the expensive half of the programme.",
-    "not": "It barely matters to short-range tactical users already bound by terrain line-of-sight."
-  },
-  "Missiles & Air Defence|Range": {
-    "kind": "both",
-    "k1": "Technology + sales",
-    "one": "The rival engages from outside the envelope in which it can be engaged back, and defends more ground per fire unit.",
-    "why": "Defended area scales with the square of range, so a 30% reach advantage is roughly a 70% area advantage - that arithmetic, not the kilometres, is what wins the architecture argument and reduces fire units per defended asset.",
-    "seg": "Air-defence architecture buyers, standoff strike, maritime domain awareness",
-    "seg1": "Compare inside one layer: a short-range system and a medium-range system are complements in the same architecture, not competitors.",
-    "not": "It barely matters for point defence of a single asset, where reaction time beats reach."
-  },
-   "Annual capacity": {
-    "kind": "sales",
-    "k1": "Sales",
-    "one": "The rival can commit more rounds per year than KSSL's shell-body line feeds, so framework buyers size contracts around the rival's output.",
-    "why": "Since 2022 artillery ammunition is capacity-constrained, not spec-constrained: multi-year framework agreements go to whoever can guarantee volume, and capacity announcements move orders before a single round is delivered.",
-    "seg": "Framework and stockpile-replenishment buyers, NATO joint procurement, export customers rebuilding warstocks",
-    "seg1": "KSSL's ~500k empty bodies a year feed other fillers' lines - capacity upstream converts only when filling capacity exists downstream.",
-    "not": "It matters least for precision niches (Excalibur, Katana), where integration and seekers bind long before shell volume does."
-  },
-  "Speed": {
-    "kind": "tech",
-    "k1": "Technology",
-    "one": "The rival's round arrives sooner, cutting the time the defender has to detect, decide and shoot.",
-    "why": "It pays as a step the moment time-of-flight falls inside the defender's reaction cycle, and again at the hypersonic boundary, where the defender must field a new interceptor rather than a better one. Inside a regime the returns diminish quickly.",
-    "seg": "Anti-ship and land-attack strike, interceptors chasing fast targets, suppression of enemy air defences",
-    "seg1": "Time-of-flight and available g at intercept drive kill probability far more than headline Mach does.",
-    "not": "It is not an advantage at all for loitering munitions and non-line-of-sight systems, where slow flight is the design intent."
-  }
-};
-
-function gapWhyBlock(rivals, clientName = clientShort()) {
-  const rows = gapDimRows(rivals).filter((r) => r.rivalOwns > 0);
-  if (!rows.length)
-    return '<div class="gd-note">No rival owns a measured dimension in this band, so there is no spec-side advantage to interpret.</div>';
-  let h =
-    '<div class="ws-sec-l">▸ What the edge buys them <span class="ws-sec-note">interpretation - the commercial consequence of each dimension a rival owns</span></div>';
-  h += '<div class="gk-why">';
-  rows.forEach((row) => {
-    const w = GAP_WHY[`${_gapMetaCat}|${row.l}`] || GAP_WHY[row.l];
-    const m = gdmeta(row.l);
-    if (!w) return;
-    const bin = gbin(row.l, row.med);
-    const size =
-      bin >= 4
-        ? "decisive"
-        : bin >= 3
-          ? "notable"
-          : bin >= 2
-            ? "worth watching"
-            : "inside normal tolerance";
-    h +=
-      '<div class="gk-why-row">' +
-      `<div class="gkw-h"><span class="gkw-dim">${gesc(m.short)}</span>` +
-      `<span class="gkw-kind ${w.kind}">${w.k1}</span>` +
-      `<span class="gkw-size b${bin}">${size} at ${gval(row.l, row.med)}</span>` +
-      `<span class="gkw-mag">${row.rivalOwns} of ${rivals.length} rivals own this dimension</span></div>` +
-      `<div class="gkw-b">${gesc(w.one.replace(/KSSL/g, clientName))} <span class="gkw-mut">${gesc(w.why.replace(/KSSL/g, clientName))}</span></div>` +
-      `<div class="gkw-seg"><b>Matters most to:</b> ${w.seg}. ${w.seg1}` +
-      `${w.not ? ` <span class="gkw-mut">${gesc(w.not)}</span>` : ""}` +
-      `${m.note ? ` <span class="gkw-mut">${m.note}</span>` : ""}</div></div>`;
-  });
-  h += "</div>";
-  h +=
-    '<div class="gv-lag-read"><b>Read:</b> these dimensions do not carry equal weight. <b>Deployability figures - artillery weight, ' +
-    "combat weight, UAV endurance - pay out as step functions</b> at an airlift, bridge or orbit boundary, and are " +
-    "worth almost nothing inside a band; check which side of the step the gap actually falls. <b>Crew count is the " +
-    "most under-read number here</b>, because it is an automation proxy that sells as whole-life cost and buys " +
-    "survivability at the same time. <b>Range and speed are worth only what the layer allows</b> - outranging a peer " +
-    "is decisive, outranging a system in a different air-defence layer is a category error. <b>Effective range and " +
-    "seat counts are the softest</b>: one has no agreed definition, the other pays only when it crosses the buyer's " +
-    "section size. And none of it is the order. Indian procurement qualifies on specification and then decides on " +
-    "price among everyone who qualified, after trials in Ladakh and Rajasthan that regularly overturn the datasheet. " +
-    "A spec sheet wins the technical evaluation. It rarely wins the contract.</div>";
   return h;
 }
 
@@ -978,7 +771,6 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
     `<span>⚠ at least one comparison is a clear loss, or fewer than ${GAP_THIN} comparisons</span></div>`;
   h += gapComparisons(rivals, clientName, held);
   h += gapDimGrid(rivals, clientName);
-  h += gapWhyBlock(rivals, clientName);
   h +=
     '<div class="gd-note">The verdict counts dimensions: a rival owns one when it leads in at least ' +
     `${Math.round(GAP_OWN * 100)}% of the matchups where both products publish that spec, with at least ${GAP_MINCMP}` +

@@ -269,7 +269,7 @@ export function qualifySignal(card, ctx) {
      strength of a howitzer-barrel contract, so a rival's artillery move there counts and
      a rival's drone move there does not -- one barrel contract is not evidence of a
      position in every product class. */
-  if (ctx.footprint.size) {
+  if (ctx.footprint.size && tieredCountries().length) {
     const d = ctx.details[card.id] || {};
     const text = `${str(card.title)} ${str(card.sowhat)} ${str(d.what)}`;
     const named = countriesNamed(text, ctx.vocabulary);
