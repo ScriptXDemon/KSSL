@@ -9,6 +9,7 @@ import { formatLabel } from "../../lib/profile";
 import { useData } from "../../state/DataProvider";
 import { useAppState } from "../../state/AppState";
 import { productOwner } from "../../lib/productLink";
+import { Review } from "../review/Review";
 
 const DIR_WORD = { threat: "Threat", watch: "Watch", fav: "" };
 
@@ -116,6 +117,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
           <div className="ct">
             <span dangerouslySetInnerHTML={{ __html: detail.title }} />
           </div>
+          <Review src={detail._src} />
         </div>
 
         {/* The article's own lead image, resolved from its page markup by

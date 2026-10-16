@@ -4,6 +4,7 @@ import { formatTotals } from "../../lib/tenderValue";
 import { formatDate } from "../../utils/formatDate";
 import "../../styles/market-overview.css";
 import "../../styles/tender-intel.css";
+import { Review } from "../review/Review";
 
 /* Market outlook: five tables, each headed with the records it was counted from (lib/marketOutlook), so a reader
    can see what a number rests on. The page passes the computed outlook (open tenders from its own bucketTenders split). */
@@ -93,7 +94,7 @@ export default function MarketOutlook({ data, o }) {
                 <span className="od-none">No past award on record</span>
               )}
             </td>
-            <td>{r.recommendation ? <span className="od-main">{r.recommendation}</span> : "—"}</td>
+            <td>{r.recommendation ? <span className="od-main">{r.recommendation}</span> : "—"}<Review src={r.assessmentSrc} /></td>
             <td>
               {r.latest ? (
                 <>

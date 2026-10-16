@@ -43,9 +43,12 @@ const fits = (t) => t.clientFit === "strong" || t.clientFit === "partial";
 const same = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
 
 /* the stored recommendation for a segment, or null */
-export function recommendationOf(d, segment) {
+export function assessmentOf(d, segment) {
   const rows = (d && d.database && d.database.serving && d.database.serving.market_segment_assessment) || [];
-  const r = rows.find((x) => same(x.segment, segment));
+  return rows.find((x) => same(x.segment, segment)) || null;
+}
+export function recommendationOf(d, segment) {
+  const r = assessmentOf(d, segment);
   return r && r.recommendation != null && String(r.recommendation).trim() ? String(r.recommendation).trim() : null;
 }
 
@@ -109,6 +112,8 @@ export function segments(d, openTenders, today = new Date(), closedTenders = [])
       winner: top ? top.name : null,
       winnerWins: top ? top.n : 0, named: aw.length,
       recommendation: recommendationOf(d, r.segment),
+      /* the assessment row's card key, so the review copy can approve the recommendation */
+      assessmentSrc: (assessmentOf(d, r.segment) || {})._src || null,
       pending: { n: pend.length, totals: valueTotals(pend, TENDER_FIELDS), titles: pend.map((t) => t.title) },
       latest: latestSignal.get(r.segment) || null,
     };

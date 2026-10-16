@@ -19,6 +19,7 @@ import {
   sliceLabel,
   windowOf,
 } from "../../lib/marketOverview";
+import { Review } from "../../components/review/Review";
 
 /* ===== Market Overview =====
    Ported from the sibling JSW EV deployment (its own source, not its bundle) so the two
@@ -357,6 +358,7 @@ export default function MarketOverview() {
         <span title={t.title}>{t.title}</span>
       )}
       <span className="ovt-buyer">{[t.issuer, t.country].filter(Boolean).join(" · ")}</span>
+      <Review src={t._src} />
     </td>
   );
 
@@ -670,6 +672,7 @@ export default function MarketOverview() {
                               <td className="ovt-t">
                                 <span className="ti-title" title={a.title_ar || a.title || a.programme}>{a.programme || a.title}</span>
                                 <span className="ovt-buyer">{[a.buyer, a.site, a.country].filter(Boolean).join(" · ")}</span>
+                                <Review src={a._src} />
                               </td>
                               <td>
                                 {a.winner}

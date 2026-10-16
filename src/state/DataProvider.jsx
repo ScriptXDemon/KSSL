@@ -10,6 +10,7 @@ import { navCounts, viewMetaFor } from "../lib/overview";
 import { marketSelfCheck } from "../lib/marketOverview";
 import { profileSelfCheck } from "../lib/profile";
 import { logger } from "../utils/logger";
+import { ReviewProvider } from "../components/review/Review";
 
 const DataContext = createContext(null);
 
@@ -125,7 +126,11 @@ export function DataProvider({ children }) {
     );
   }
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  return (
+    <DataContext.Provider value={value}>
+      <ReviewProvider initial={raw.review}>{children}</ReviewProvider>
+    </DataContext.Provider>
+  );
 }
 
 export function useData() {

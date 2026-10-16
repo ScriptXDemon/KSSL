@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useAppState } from "../../state/AppState";
 import { titleCaseHeadline } from "../../lib/profile";
 import { companyShort } from "../../lib/companyNames";
+import { Review } from "../review/Review";
 
 /* Split "Maker · Product" the way the dataset stores it (product after the LAST "·"),
    so the row can headline the PRODUCT and drop the maker to a small line beneath it. */
@@ -299,6 +300,7 @@ export default function MatchupList({ data, selected, onSelect, products = [], c
                       >
                         <div className="comp-prod">{product}</div>
                         {company ? <div className="cp-co">{companyShort(company)}</div> : null}
+                        <Review src={m._src} />
                       </div>
                     );
                   })}

@@ -1,6 +1,7 @@
 import { clientShort } from "../../lib/client.js";
 import { useData } from "../../state/DataProvider";
 import { NO_DATE_LABEL } from "../../lib/overview.js";
+import { Review } from "../review/Review";
 
 /* One row in the overview feed. `title` and `sowhat` carry markup from the dataset
    (bolded figures), so they are injected rather than escaped.
@@ -42,6 +43,7 @@ export default function SignalCard({ card, dirWord, badgeClass, selected, fresh,
             <span className="kph-val">{card.match[0].n}</span>
           </div>
         )}
+        <Review src={card._src} />
       </div>
       <div className="aside">
         {/* a Technology card also carries its kind, so ADOPTABLE can read green (k-adopt) */}

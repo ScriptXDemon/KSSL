@@ -475,6 +475,9 @@ def build(database, d):
         if o.get("is_active") is not False:
             options[text(o.get("filter_type")).lower()].append(o.get("option_label"))
     requirements = build_requirements(database)
+    # the segment recommendation is read straight from database.serving (lib/marketOutlook); each row carries its card key
+    for r in table(database, "serving", "market_segment_assessment"):
+        r["_src"] = src("market_segment_assessment", "segment", r.get("segment"))
     d.update({
         "tenders": tenders,
         "tpAllCountries": options.get("country", []),

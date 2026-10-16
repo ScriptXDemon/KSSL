@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import HtmlBlock from "../htmlBlock/HtmlBlock";
 import { specPanelHtml, matchupGapHtml, advantageText } from "../../lib/specs";
 import { isVisible } from "../../lib/visibility";
+import { Review } from "../review/Review";
 
 const TABS = [
   ["adv", "Analytics"],
@@ -79,6 +80,7 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
               <div className="pn">{m.bf}</div>
             </div>
           </div>
+          <Review src={m._src} />
         </div>
 
         {/* verdict always visible */}

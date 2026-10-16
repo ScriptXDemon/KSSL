@@ -4,6 +4,7 @@ import { useAppState } from "../../state/AppState";
 import { cockpit } from "../../lib/tenderIntel.js";
 import "../../styles/market-overview.css";
 import "../../styles/tender-intel.css";
+import { Review } from "../review/Review";
 
 /* Tender Intelligence, at a glance: the stored tables of data.topOpportunities in the platform's own table style
    (the Market Intelligence .ovt table). Rows, their order, the fit word, the model, the rival and the revenue are
@@ -70,6 +71,7 @@ export default function TenderCockpit({ onOpen }) {
                     <td className="ovt-t">
                       <span className="ti-title" title={r.title}>{show(r.title)}</span>
                       <span className="ovt-buyer" title={r.issuer}>{where(r)}</span>
+                      <Review src={r._src} />
                     </td>
                     <td>{show(r.decides)}</td>
                     <td>{fitCell(r)}</td>
@@ -110,6 +112,7 @@ export default function TenderCockpit({ onOpen }) {
                     <td className="ovt-t">
                       <span className="ti-title" title={r.title}>{show(r.title)}</span>
                       <span className="ovt-buyer" title={r.issuer}>{where(r)}</span>
+                      <Review src={r._src} />
                     </td>
                     <td className="ovt-t ti-stage">
                       <span className="ti-title" title={r.stage}>{show(r.stage)}</span>
@@ -146,7 +149,7 @@ export default function TenderCockpit({ onOpen }) {
                   <tr key={m.id} className="ti-row-link" tabIndex={0} onClick={() => openMove(m)} onKeyDown={(e) => rowKey(e, () => openMove(m))}>
                     <td className="num">{show(m.due)}</td>
                     <td>{show(m.action)}</td>
-                    <td className="ovt-t"><span className="ti-title" title={m.tenderTitle}>{show(m.tenderTitle)}</span></td>
+                    <td className="ovt-t"><span className="ti-title" title={m.tenderTitle}>{show(m.tenderTitle)}</span><Review src={m._src} /></td>
                   </tr>
                 ))}
               </tbody>
