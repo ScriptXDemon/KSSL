@@ -36,14 +36,14 @@ const Facts = ({ rows }) => (
 
 function ProjectPanel({ p, steps, regionLabel, onClose }) {
   const stance = p.assessment.stance;
-  const cls = STANCE_CLASS[stance] || "watch";
+  const cls = STANCE_CLASS[stance];   // no stored stance, no stance class
   return (
     <div className="ctx v-overview revealed">
       <div className="ctx-scroll" key={p.id}>
-        <div className={`ctx-h dir-${cls}`}>
+        <div className={cls ? `ctx-h dir-${cls}` : "ctx-h"}>
           <div className="ctx-h-actions">
             <button aria-label="Close" className="col-close" onClick={onClose} title="Close" type="button">✕</button>
-            {STANCE_WORD[stance] ? <span className={`dirpill dir-${cls}`}>{STANCE_WORD[stance]}</span> : null}
+            {STANCE_WORD[stance] ? <span className={cls ? `dirpill dir-${cls}` : "dirpill"}>{STANCE_WORD[stance]}</span> : null}
           </div>
           <div className="ct">{p.name}</div>
         </div>
@@ -204,14 +204,14 @@ export default function Projects({ onSelectionChange }) {
                 return (
                   <div
                     className={`alert${selected === p.id ? " sel" : ""}`}
-                    data-dir={cls || "watch"}
+                    data-dir={cls || undefined}
                     key={p.id}
                     onClick={() => setSelected(p.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelected(p.id); } }}
                     role="button"
                     tabIndex={0}
                   >
-                    <div className="gut"><span className={`sig ${cls || "watch"}`} /><span className="rank">{String(i + 1).padStart(2, "0")}</span></div>
+                    <div className="gut"><span className={cls ? `sig ${cls}` : "sig"} /><span className="rank">{String(i + 1).padStart(2, "0")}</span></div>
                     <div className="body">
                       <div className="ttl">{p.name}</div>
                       <div className="sowhat">{p.stageNote}</div>

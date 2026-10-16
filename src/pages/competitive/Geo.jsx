@@ -8,7 +8,7 @@ import GeoMap, { servedGeoCountries } from "../../components/geoMap/GeoMap";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { geoLookupCompetitors } from "../../lib/geo";
 import { useData } from "../../state/DataProvider";
-import { srcChips, attr, escAll } from "../../lib/html";
+import { srcChips, attr, escAll, cssWord } from "../../lib/html";
 import Thumb from "../../components/thumb/Thumb.jsx";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
    persisted to localStorage, which survives the tab, the browser and the machine's
@@ -285,11 +285,11 @@ export default function Geo() {
         ovPanel +
         prods
           .map((p, i) => {
-            return `<div class="geo-rel-item prod${i === prodIndex ? " active" : ""}" data-pi="${i}"><span class="ri-act ${p.c}"></span><div class="ri-main"><div class="ri-nm">${escAll(p.name)} ${
+            return `<div class="geo-rel-item prod${i === prodIndex ? " active" : ""}" data-pi="${i}"><span class="ri-act ${cssWord(p.c)}"></span><div class="ri-main"><div class="ri-nm">${escAll(p.name)} ${
               p.src === "syn"
                 ? '<span class="syn" title="Illustrative" style="margin-left:4px"></span>'
                 : '<span class="srcbadge" style="margin-left:4px;font-size:7.5px;padding:1px 4px">Sourced</span>'
-            }</div><div class="ri-desc"><span class="ri-actlab ${p.c}">${actOf(p)}</span> · ${escAll(p.qty)}</div><span class="ri-tag">${escAll(p.stage)}${
+            }</div><div class="ri-desc"><span class="ri-actlab ${cssWord(p.c)}">${actOf(p)}</span> · ${escAll(p.qty)}</div><span class="ri-tag">${escAll(p.stage)}${
               p.val && p.val !== "n/d" ? ` · ${escAll(p.val)}` : ""
             }</span></div><span class="ri-chev">›</span></div>`;
           })
@@ -314,7 +314,7 @@ export default function Geo() {
               ? ` ov-${ov.tier}`
               : "";
           const meets = ov && ov.ranges.length ? ` · meets ${clientName} in ${escAll(ov.ranges.join(", "))}` : "";
-          return `<div class="geo-rel-item${cls}" data-country="${attr(ct)}"><span class="ri-act ${rows[0].c}"></span><div class="ri-main"><div class="ri-nm">${badge}${escAll(ct)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actOf(rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">since ${escAll(rows[0].since)}</span></div></div>`;
+          return `<div class="geo-rel-item${cls}" data-country="${attr(ct)}"><span class="ri-act ${cssWord(rows[0].c)}"></span><div class="ri-main"><div class="ri-nm">${badge}${escAll(ct)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actOf(rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">since ${escAll(rows[0].since)}</span></div></div>`;
         })
         .join("");
     }
@@ -325,7 +325,7 @@ export default function Geo() {
           const rows = geo.productsFor(c.id, resolved.country);
           const ov = geo.geoOverlap(c.id, resolved.country);
           const meets = ov && ov.ranges.length ? ` · meets ${clientName} in ${escAll(ov.ranges.join(", "))}` : "";
-          return `<div class="geo-rel-item${ov ? ` ov-${ov.tier}` : ""}" data-comp="${attr(c.id)}"><span class="ri-act ${rows[0].c}"></span><div class="ri-main"><div class="ri-nm">${geo.geoOvBadge(ov)}${escAll(c.name)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actOf(rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">${escAll(rows[0].name)}</span></div></div>`;
+          return `<div class="geo-rel-item${ov ? ` ov-${ov.tier}` : ""}" data-comp="${attr(c.id)}"><span class="ri-act ${cssWord(rows[0].c)}"></span><div class="ri-main"><div class="ri-nm">${geo.geoOvBadge(ov)}${escAll(c.name)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actOf(rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">${escAll(rows[0].name)}</span></div></div>`;
         })
         .join("");
     }
@@ -431,7 +431,7 @@ export default function Geo() {
       const chips = Object.keys(counts)
         .map(
           (k) =>
-            `<span class="geo-mix-chip ${k}"><span class="mc-dot"></span>${counts[k]} ${geo.actLabel[k]}</span>`,
+            `<span class="geo-mix-chip ${cssWord(k)}"><span class="mc-dot"></span>${counts[k]} ${geo.actLabel[k]}</span>`,
         )
         .join("");
       return {

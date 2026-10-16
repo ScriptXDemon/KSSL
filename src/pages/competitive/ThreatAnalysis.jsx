@@ -215,12 +215,12 @@ export default function ThreatAnalysis() {
       {open ? (() => {
         const [meaning] = String(open.analysis || "").split(/\s*Action:\s*/);
         const lenses = Array.isArray(open.lenses) && open.lenses.length ? open.lenses : null;
-        const dir = DIR[open.level] || "watch";
+        const dir = DIR[open.level];   // no stored level, no stance class
         const chips = srcChips(sourceHref(open.url) ? [{ label: open.source || "Source", url: open.url }] : null);
         return (
           <div className="ctx v-overview revealed">
             <div className="ctx-scroll">
-              <div className={`ctx-h dir-${dir}`}>
+              <div className={dir ? `ctx-h dir-${dir}` : "ctx-h"}>
                 <div className="ctx-h-actions">
                   <button aria-label="Close" className="col-close" onClick={() => setSel(null)} title="Close" type="button">✕</button>
                 </div>

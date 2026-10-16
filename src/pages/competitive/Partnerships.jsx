@@ -12,6 +12,7 @@ import { companyCountries, facetOptionsByName } from "../../lib/countryFacet";
    later, on a dashboard whose job is "what is new". Same key/value shape, held in
    memory, cleared on a pillar change. See lib/viewState. */
 import * as viewState from "../../lib/viewState";
+import { isVisible } from "../../lib/visibility";
 
 /* `sector` is escaped at write time ("Defence &amp; Aerospace") and is formatted consistently here. */
 const sectorText = (co) => formatSectorName(co && co.sector);
@@ -236,7 +237,7 @@ export default function Partnerships() {
           ]),
         },
         selCo.threat ? { h: "Threat read", rows: [selCo.threat] } : null,
-        selCo.assess ? { h: "Assessment", rows: [selCo.assess] } : null,
+        selCo.assess && isVisible("parallax-read") ? { h: "Assessment", rows: [selCo.assess] } : null,
       ].filter(Boolean),
       payload: {
         cid,
@@ -244,7 +245,7 @@ export default function Partnerships() {
         partners,
         tie: tp || null,
         threat: selCo.threat || null,
-        assessment: selCo.assess || null,
+        assessment: isVisible("parallax-read") ? selCo.assess || null : null,
       },
     };
   }, [selCo, cid, tie, data]);
@@ -531,7 +532,7 @@ export default function Partnerships() {
                 }}
               >
                 <span className="pli-n" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span className={`wdot ${co.dir || "watch"}`} />
+                  <span className={co.dir ? `wdot ${co.dir}` : "wdot"} />
                   {co.name}
                 </span>
                 <span className="pli-c">{nPartners}</span>

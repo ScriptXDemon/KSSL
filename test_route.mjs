@@ -16,6 +16,7 @@
  * Back, Forward, a pasted link and a saved route all resolve to. */
 import assert from "node:assert/strict";
 import { parseRoute, routeHash, isKnownView, DEFAULT_ROUTE } from "./src/lib/route.js";
+import { setVisibility } from "./src/lib/visibility.js";
 
 /* a valid link resolves as written */
 assert.deepEqual(parseRoute("#p=technology&v=innovation"), { pillar: "technology", view: "innovation", repaired: false });
@@ -25,7 +26,11 @@ assert.deepEqual(parseRoute("#p=market&v=tender"), { pillar: "market", view: "te
 for (const v of ["gap-competitive", "awarded-tenders", "closed-tenders"]) {
   assert.equal(isKnownView(v), true, `${v} should still route`);
 }
+/* gap-competitive routes while ui.section_visibility holds gap-analysis: true, and is repaired when not */
+setVisibility({ "gap-analysis": true });
 assert.equal(parseRoute("#p=competitive&v=gap-competitive").repaired, false);
+setVisibility(null);
+assert.equal(parseRoute("#p=competitive&v=gap-competitive").repaired, true);
 
 /* an unknown view falls back to the PILLAR'S overview, flagged as repaired, so the
    shell never boots into a pane the switch cannot render */

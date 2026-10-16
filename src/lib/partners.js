@@ -10,6 +10,7 @@
    rather than on `window`.
    =================================================================== */
 import { clientShort } from "./client.js";
+import { isVisible } from "./visibility.js";
 import { esc, escAll, escAttr, escRich, joinParts, srcChips } from "./html.js";
 import { canonicalizeLabels } from "./orgident.js";
 import { countryFlagDisc } from "./countryFlags.js";
@@ -1696,7 +1697,7 @@ const PG_IMG_ONERROR =
       b += "</div></div>";
       // a company revived from the archive has no assessment written for it; an
       // empty box under the heading is not an assessment
-      if (c.assess)
+      if (c.assess && isVisible("parallax-read"))
         b += `<div class="pg-assess"><span class="tl">Assessment for ${clientName}</span>${c.assess}</div>`;
       b += sourcesSectionHtml(c);
       return b;

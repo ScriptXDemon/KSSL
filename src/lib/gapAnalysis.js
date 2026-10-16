@@ -249,7 +249,8 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
         parity: n - rivalWins - koelWins,
         worst,
         thin: n < GAP_THIN,
-        masked: k !== "behind" && worst.edge < 42,
+        /* a count, not a grade: the rival wins at least one comparison without owning a dimension */
+        takesOne: k !== "behind" && rivalWins > 0,
         dims: rivalOwns.slice().sort((a, b) => b.med - a.med),
       };
     })
@@ -508,7 +509,7 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
   const ahead = rivals.filter((r) => r.verdict.k === "ahead");
   const traded = rivals.filter((r) => r.verdict.k === "contested");
   const nodata = rivals.filter((r) => r.verdict.k === "nodata");
-  const masked = rivals.filter((r) => r.masked);
+  const takesOne = rivals.filter((r) => r.takesOne);
   const deepest = rivals.reduce((a, b) => (b.worst.edge < a.worst.edge ? b : a), rivals[0]);
 
   let h = '<div class="ga-wrap">';
@@ -521,7 +522,7 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
      statements were true and the pair of them was a lie. When nothing is owned yet,
      the hero reports what the comparisons themselves say, and says which measure it
      is using. */
-  const leadOne = rivals.filter((r) => r.masked);
+  const leadOne = rivals.filter((r) => r.takesOne);
   const useOwn = behind.length > 0 || leadOne.length === 0;
   const heroN = useOwn ? behind.length : leadOne.length;
   h +=
@@ -551,8 +552,8 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
     `<div class="gk-scale">A rival <b>owns</b> a dimension when it leads in at least ${Math.round(GAP_OWN * 100)}` +
     "% of the matchups where both machines publish that spec. Dimensions are counted, never averaged against " +
     "each other." +
-    (masked.length && useOwn
-      ? ` <b>${masked.length}</b> rival${masked.length !== 1 ? "s" : ""}${masked.length === 1 ? " still takes" : " still take"} at least one comparison outright - marked ⚠.`
+    (takesOne.length && useOwn
+      ? ` <b>${takesOne.length}</b> rival${takesOne.length !== 1 ? "s" : ""}${takesOne.length === 1 ? " still takes" : " still take"} at least one comparison outright - marked ⚠.`
       : "") +
     "</div></div></div>";
 
@@ -583,7 +584,7 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
       `<span class="ga-i">${i + 1 < 10 ? "0" : ""}${i + 1}</span>` +
       `<span class="ga-co">${gesc(r.co)}</span>` +
       `<span><i class="ga-chip ${v.k}" title="${r.rivalOwns.length} dimensions to the rival, ${r.koelOwns.length}` +
-      ` to ${clientName}, ${r.contested} split, ${r.nodata} not enough data">${v.k === "nodata" ? "—" : `rival ${r.rivalOwns.length} · ${gesc(clientName)} ${r.koelOwns.length}`}${r.masked ? " ⚠" : ""}</i></span>` +
+      ` to ${clientName}, ${r.contested} split, ${r.nodata} not enough data">${v.k === "nodata" ? "—" : `rival ${r.rivalOwns.length} · ${gesc(clientName)} ${r.koelOwns.length}`}${r.takesOne ? " ⚠" : ""}</i></span>` +
       `<span class="ga-barc">${gapBar(r.balance, r.thin)}</span>` +
       `<span class="num ga-owns"><b class="${v.k}">${r.rivalOwns.length}</b><i>vs ${r.koelOwns.length}</i></span>` +
       `<span class="num ga-worst">${r.worst.edge}<i>/100</i></span>` +
@@ -605,7 +606,7 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
     '<div class="ga-key"><span><i class="k-riv"></i> rival owns more dimensions</span>' +
     `<span><i class="k-koel"></i> ${clientName} owns more</span>` +
     "<span>bar = net dimensions owned, the same count the verdict uses</span>" +
-    `<span>⚠ at least one comparison is a clear loss, or fewer than ${GAP_THIN} comparisons</span></div>`;
+    `<span>⚠ at least one comparison goes to the rival, or fewer than ${GAP_THIN} comparisons</span></div>`;
   h += gapComparisons(rivals, clientName, held);
   h += gapDimGrid(rivals, clientName);
   h +=

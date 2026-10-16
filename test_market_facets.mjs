@@ -59,15 +59,15 @@ const d = wireDataset(raw);
 const cards = d.marketCards || [];
 const by = (dir) => cards.filter((c) => c.dir === dir);
 
-// 1. the facets have members -- the complaint
-if (by("fav").length === 0) fail("Opportunities is still empty");
-if (by("threat").length === 0) fail("Live Bids is still empty");
+// 1. the tender facet has members -- the complaint
+if (by("fav").length === 0) fail("the tender facet is empty");
 
-// 2. partition: exactly the open tenders, split on a published value
-if (by("fav").length !== 2)
-  fail(`Opportunities should be the 2 open tenders with no value, got ${by("fav").length}`);
-if (by("threat").length !== 1)
-  fail(`Live Bids should be the 1 open tender with a value, got ${by("threat").length}`);
+// 2. exactly the open tenders, all in ONE class: whether a tender publishes a price is not a stance,
+//    so the browser no longer splits them into Live Bids and Opportunities on it
+if (by("fav").length !== 3)
+  fail(`the 3 open tenders should all be one class, got ${by("fav").length}`);
+if (by("threat").length !== 0)
+  fail(`no tender may be sorted into a second class on its price, got ${by("threat").length}`);
 const ids = cards.map((c) => c.id);
 if (new Set(ids).size !== ids.length) fail("a tender was promoted twice");
 
@@ -85,8 +85,7 @@ for (const c of cards.filter((x) => x.id.startsWith("tender-"))) {
   if (!det.facts.some((f) => f[0] === "Issuer")) fail(`${c.id} detail lost its issuer`);
   // no fabricated value on a tender that publishes none
   const v = det.facts.find((f) => f[0] === "Value");
-  if (c.dir === "fav" && v) fail(`${c.id} shows a Value but the tender publishes none`);
-  if (c.dir === "threat" && !v) fail(`${c.id} is a Live Bid with no Value fact`);
+  if (!!v !== (c.id === "tender-t-open-val")) fail(`${c.id}: the Value fact must appear exactly when the tender publishes one`);
 }
 
 // 5. the demand cards survive in d.marketCards -- search, news and the top-bar count
@@ -106,6 +105,8 @@ if (oppServed.length === 0)
   fail("the overview feed must carry the Perceived Opportunities stream (watch cards)");
 if (served.length !== tenderServed.length + oppServed.length)
   fail("the feed is the two streams and nothing else -- tenders + opportunities");
+if (/fit|act on/.test(((d.overviewConfig || {}).market || {}).cnt || ""))
+  fail("the subhead claims a fit or an action the data does not hold");
 if (/demand signals/.test(((d.overviewConfig || {}).market || {}).cnt || ""))
   fail("the subhead still calls the feed 'demand signals'");
 
@@ -117,8 +118,8 @@ try {
 }
 // ...which must actually fire when they disagree
 try {
-  marketSelfCheck(d.tenders, cards.filter((c) => c.dir !== "threat"));
-  fail("marketSelfCheck passed when a Live Bid card went missing");
+  marketSelfCheck(d.tenders, cards.filter((c) => c.id !== "tender-t-open-val"));
+  fail("marketSelfCheck passed when a tender card went missing");
 } catch (e) { /* expected */ }
 
 if (bad) { console.log(`\n${bad} failure(s)`); process.exit(1); }

@@ -466,7 +466,7 @@ export function wireDataset(raw) {
              field -- so without this the tender path never fired and every promoted
              tender opened as an "article" with a Favourable/Threat stance pill. */
           id,
-          dir: live ? "threat" : "fav",
+          dir: "fav",   // one class for every tender card: a published price is not a stance
           title: gist,
           facts: [
             ["Issuer", t.issuer],
@@ -487,7 +487,7 @@ export function wireDataset(raw) {
         };
         return {
           id,
-          dir: live ? "threat" : "fav",
+          dir: "fav",   // one class for every tender card: a published price is not a stance
           rank: String(i + 1).padStart(2, "0"),
           title: gist,
           meta: [t.cat, where].filter(Boolean).join(" · "),
@@ -542,7 +542,7 @@ export function wireDataset(raw) {
             cards: marketFeed,
             title: "Top opportunity",
             cnt: marketFeed.length
-              ? `latest tenders that fit ${clientShort()} + perceived opportunities to act on`
+              ? "latest tenders and perceived opportunities"
               : d.overviewConfig.market.cnt,
             /* Card badges: a tender reads "TENDER", an opportunity "OPPORTUNITY". The
                value split still lives on `dir` (fav unpriced / threat priced) but is no

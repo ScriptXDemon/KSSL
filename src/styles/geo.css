@@ -686,3 +686,9 @@
 .geo-pl-hint { font-size: 12.5px; color: var(--l-txt-2); padding: 0 22px 10px; }
 .geo-rel-item[data-cmp-prod] .ri-nm { font-size: 14px; }
 .geo-rel-item[data-cmp-prod] .ri-counter .gc-chip { margin-left: 6px; white-space: nowrap; }
+
+/* The activity word is stored text ("Local production") and its slug is the class: the same four colours the old
+   two-letter codes carried, keyed on the stored words. A word with no rule here is simply unstyled. */
+.geo-rel-item .ri-act.local-production{background:rgba(181,52,31,.85)} .geo-rel-item .ri-act.licensed-production{background:rgba(181,52,31,.42)} .geo-rel-item .ri-act.export{background:rgba(154,106,8,.6)} .geo-rel-item .ri-act.sales-and-service{background:var(--l-bg-3)}
+.ri-actlab.local-production{color:#b5341f}.ri-actlab.licensed-production{color:#9a6a08}.ri-actlab.export{color:#9a6a08}.ri-actlab.sales-and-service{color:var(--l-txt-3)}
+.geo-mix-chip.local-production .mc-dot{background:rgba(181,52,31,.85)}.geo-mix-chip.licensed-production .mc-dot{background:rgba(181,52,31,.42)}.geo-mix-chip.export .mc-dot{background:rgba(154,106,8,.6)}.geo-mix-chip.sales-and-service .mc-dot{background:var(--l-bg-3)}

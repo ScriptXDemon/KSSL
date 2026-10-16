@@ -139,7 +139,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
             grounded in the card's own facts. The eyebrow names the kind so the reader
             knows at a glance whether to worry, act, or note it. */}
         {!isTender && detail.ksslImpact ? (
-          <div className={`ctx-sec cd-kssl kssl-${detail.ksslImpactKind || "watch"}`}>
+          <div className={detail.ksslImpactKind ? `ctx-sec cd-kssl kssl-${detail.ksslImpactKind}` : "ctx-sec cd-kssl"}>
             <span className="eyebrow">
               {{
                 threat: `Threat to ${clientShort()}`,

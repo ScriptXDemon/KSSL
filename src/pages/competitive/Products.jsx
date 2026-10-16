@@ -10,6 +10,7 @@ import { productSpecs, specValueWithUnit } from "../../lib/specs";
 import { unescapeEntities } from "../../lib/html";
 import { companyCountries, facetOptionsByName } from "../../lib/countryFacet";
 import Thumb from "../../components/thumb/Thumb.jsx";
+import { isVisible } from "../../lib/visibility";
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
 
 /* Live web-mentions (/api/pulse) are a slow server-side RSS fetch, so cache the result
@@ -439,7 +440,7 @@ export default function Products() {
     (_coForImg.products || []).forEach((pp) => {
       const o = typeof pp === "string" ? {} : pp || {};
       const nm = o.name || o.n || "";
-      if (o.image && nm) _coImg[prodKey(nm)] = { image: o.image, imageSource: o.imageSource || null };
+      if (isVisible("product-images") && o.image && nm) _coImg[prodKey(nm)] = { image: o.image, imageSource: o.imageSource || null };
     });
     const imgFor = (nm) => {
       const k = prodKey(nm);
@@ -477,8 +478,8 @@ export default function Products() {
           specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
           tier: obj.tier || null,
           reason: mu ? mu.reason || "" : "",
-          image: obj.image || null,
-          imageSource: obj.imageSource || null,
+          image: isVisible("product-images") ? obj.image || null : null,
+          imageSource: isVisible("product-images") ? obj.imageSource || null : null,
         });
       });
       matchups.forEach((m) => {
@@ -553,8 +554,8 @@ export default function Products() {
             specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
             tier: obj.tier || null,
             reason: "",
-            image: obj.image || null,
-            imageSource: obj.imageSource || null,
+            image: isVisible("product-images") ? obj.image || null : null,
+            imageSource: isVisible("product-images") ? obj.imageSource || null : null,
           });
         }
       });
@@ -1190,13 +1191,13 @@ export default function Products() {
                         <div style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "11px", color: "var(--d-txt-3)", fontFamily: "var(--mono)" }}>
                           <span style={{ color: "#f0593c", fontWeight: "600" }}>{item.category || "—"}</span>
                           <span>·</span>
-                          <span>{item.date ? new Date(item.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Recent"}</span>
+                          <span>{item.date ? new Date(item.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span>
                         </div>
                         <div style={{ fontSize: "13px", fontWeight: "600", color: "#ffffff", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                           {item.title}
                         </div>
                         <div style={{ marginTop: "auto", paddingTop: "6px", fontSize: "11px", color: "var(--d-txt-3)", fontFamily: "var(--mono)" }}>
-                          {item.source || "demo · defence-daily.example"}
+                          {item.source || "—"}
                         </div>
                       </div>
                     </ArticleLink>

@@ -17,6 +17,7 @@ import Thumb from "../../components/thumb/Thumb.jsx";
    whole-row link. */
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
 import { tickerFor } from "../../lib/tickers";
+import { isVisible } from "../../lib/visibility";
 import { competitorFullName } from "../../lib/companyNames";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
    persisted to localStorage, which survives the tab, the browser and the machine's
@@ -623,7 +624,7 @@ export default function Profile() {
               companySize: companyMeta.size,
               revenue: companyMeta.revenue,
               sector: companyMeta.sector,
-              assessment: companyMeta.assess || null,
+              assessment: isVisible("parallax-read") ? companyMeta.assess || null : null,
             }
           : null,
         leadership: leadershipList.map((l) => ({ name: l.name, role: l.role, source: l.source || null })),
@@ -761,8 +762,8 @@ export default function Profile() {
       <div className="cp-body" style={{ padding: "24px" }}>
         {!p ? (
           <div className="cp-empty">select a competitor</div>
-        ) : stockOpen ? (
-          <StockPage cid={p.cid} ticker={tickerFor(p.cid, data.competitors)} companyName={displayName} onBack={() => setStockOpen(false)} />
+        ) : stockOpen && isVisible("stock") ? (
+          <StockPage cid={p.cid} companyName={displayName} onBack={() => setStockOpen(false)} />
         ) : selectedLeader ? (
           <LeaderPage
             leader={selectedLeader}
@@ -846,27 +847,30 @@ export default function Profile() {
               )}
             </Sec>
 
-            {/* 2. STRATEGIC POSITIONING */}
-            <Sec title="Strategic Positioning">
-              <p className="cp-prose" style={{ fontSize: "13.5px", lineHeight: "1.65", color: "var(--d-read)", marginBottom: "18px" }}>
-                {p.strategic_positioning || p.assess || "—"}
-              </p>
+            {/* 2. STRATEGIC POSITIONING / PARALLAX READ / STRENGTHS & WEAKNESSES: each is its own
+                ui.section_visibility key; the section itself shows only when one of them does */}
+            {isVisible("strategic-positioning") || isVisible("parallax-read") || isVisible("swot") ? (
+            <Sec title={isVisible("strategic-positioning") ? "Strategic Positioning" : isVisible("parallax-read") ? "Parallax Read" : "Strengths & Weaknesses"}>
+              {isVisible("strategic-positioning") ? (
+                <p className="cp-prose" style={{ fontSize: "13.5px", lineHeight: "1.65", color: "var(--d-read)", marginBottom: "18px" }}>
+                  {p.strategic_positioning || "—"}
+                </p>
+              ) : null}
 
-              {/* PARALLAX READ */}
-              <div style={{ marginTop: "18px", marginBottom: "22px" }}>
-                <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", letterSpacing: ".1em", color: "var(--d-txt-2)", textTransform: "uppercase", marginBottom: "8px" }}>
-                  PARALLAX READ
+              {/* PARALLAX READ: the stored analyst read of the rival, or a dash */}
+              {isVisible("parallax-read") ? (
+                <div style={{ marginTop: "18px", marginBottom: "22px" }}>
+                  <div style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: "700", letterSpacing: ".1em", color: "var(--d-txt-2)", textTransform: "uppercase", marginBottom: "8px" }}>
+                    PARALLAX READ
+                  </div>
+                  <div style={{ padding: "16px 20px", background: "var(--d-bg-1)", border: "1px solid #f0593c", borderRadius: "8px", fontSize: "13.5px", lineHeight: "1.6", color: "var(--d-txt)" }}>
+                    {(p.assess || "").replace(/<[^>]*>/g, "").trim() || "—"}
+                  </div>
                 </div>
-                <div style={{ padding: "16px 20px", background: "var(--d-bg-1)", border: "1px solid #f0593c", borderRadius: "8px", fontSize: "13.5px", lineHeight: "1.6", color: "var(--d-txt)" }}>
-                  {(() => {
-                    const cleanAssess = (p.assess || "").replace(/<[^>]*>/g, "").trim();
-                    if (cleanAssess) return cleanAssess;
-                    return `${displayName} is the incumbent specification across primary domestic defence tenders and tri-services modernisation programmes. Domestic manufacturing clusters and expanding tier-1 supplier integrations absorb military procurement demand before broad public tenders open.`;
-                  })()}
-                </div>
-              </div>
+              ) : null}
 
               {/* STRENGTHS & WEAKNESSES: the competitor record's own lists */}
+              {isVisible("swot") ? (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                 {/* STRENGTHS */}
                 <div style={{ background: "var(--d-bg-1)", border: "1px solid rgba(52, 211, 153, 0.3)", borderTop: "2px solid #34d399", borderRadius: "8px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -906,7 +910,9 @@ export default function Profile() {
                   )}
                 </div>
               </div>
+              ) : null}
             </Sec>
+            ) : null}
 
             {/* 3. LEADERSHIP */}
             <Sec title="Leadership">
@@ -1028,12 +1034,12 @@ export default function Profile() {
             </Sec>
 
             {/* 6. COMPANY STOCKS */}
+            {isVisible("stock") && pulse && pulse.stock ? (
             <Sec title="Company Stocks">
               <div className="ln-widget-row" style={{ marginTop: "4px" }}>
                 {(() => {
-                  const ticker = tickerFor(p.cid, data.competitors) || "—";
-                  const st = pulse && pulse.stock;
-                  if (!st) return null;
+                  const ticker = tickerFor(p.cid, data.competitors);
+                  const st = pulse.stock;
                   const open = () => { setSelectedLeader(null); setStockOpen(true); };
                   return (
                     <div
@@ -1046,7 +1052,7 @@ export default function Profile() {
                       style={{ cursor: "pointer", transition: "border-color 0.15s ease", border: "1px solid var(--d-line)" }}
                     >
                       <div className="ln-widget-h">
-                        <span className="eyebrow">STOCK · {ticker}</span>
+                        <span className="eyebrow">{ticker ? `STOCK · ${ticker}` : "STOCK"}</span>
                       </div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
                         <span style={{ fontSize: "26px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
@@ -1071,6 +1077,7 @@ export default function Profile() {
                 })()}
               </div>
             </Sec>
+            ) : null}
 
             {/* 7. NEWS (LIST / TABULAR FORMAT) */}
             <Sec
@@ -1263,12 +1270,12 @@ function PriceChart({ points, moves, currency }) {
   );
 }
 
-function StockPage({ cid, ticker, companyName, onBack }) {
+function StockPage({ cid, companyName, onBack }) {
   const [range, setRange] = useState("1y");
-  const [hist, setHist] = useState({ loading: true });
+  const [hist, setHist] = useState({});
   useEffect(() => {
     let on = true;
-    setHist({ loading: true });
+    setHist({});
     fetch(`/api/pulse/history?cid=${encodeURIComponent(cid)}&name=${encodeURIComponent(companyName || "")}&range=${range}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -1287,20 +1294,18 @@ function StockPage({ cid, ticker, companyName, onBack }) {
         <div>
           <h1 className="cp-person-name">{companyName} · Stock</h1>
           <div className="cp-person-now">
-            {h ? `${h.symbol}${h.exchange ? ` · ${h.exchange}` : ""}` : ticker || ""}
+            {`${h.symbol}${h.exchange ? ` · ${h.exchange}` : ""}`}
             <span className="cp-person-at"> · Yahoo Finance</span>
           </div>
         </div>
-        {h ? (
-          <div className="cp-stock-price">
-            <span className="cp-stock-now">{fmtMoney(h.price, h.currency)}</span>
-            {typeof h.rangeChangePct === "number" ? (
-              <span className={h.rangeChangePct >= 0 ? "cp-up" : "cp-down"}>
-                {h.rangeChangePct >= 0 ? "+" : ""}{h.rangeChangePct}% over {STOCK_RANGES.find((r) => r[0] === h.range || r[1] === h.range)?.[1] || h.range}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
+        <div className="cp-stock-price">
+          <span className="cp-stock-now">{fmtMoney(h.price, h.currency)}</span>
+          {typeof h.rangeChangePct === "number" ? (
+            <span className={h.rangeChangePct >= 0 ? "cp-up" : "cp-down"}>
+              {h.rangeChangePct >= 0 ? "+" : ""}{h.rangeChangePct}% over {STOCK_RANGES.find((r) => r[0] === h.range || r[1] === h.range)?.[1] || h.range}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="cp-stock-tabs">
@@ -1314,17 +1319,10 @@ function StockPage({ cid, ticker, companyName, onBack }) {
             {l}
           </button>
         ))}
-        {h ? (
-          <span className="cp-stock-hl">High {fmtMoney(h.high, h.currency)} · Low {fmtMoney(h.low, h.currency)}</span>
-        ) : null}
+        <span className="cp-stock-hl">High {fmtMoney(h.high, h.currency)} · Low {fmtMoney(h.low, h.currency)}</span>
       </div>
 
-      {hist.loading ? (
-        <div className="cp-thin" style={{ padding: "40px 0" }}>Loading price history and the news around each move…</div>
-      ) : !h ? (
-        <div className="cp-thin" style={{ padding: "40px 0" }}>Price history unavailable right now.</div>
-      ) : (
-        <>
+      <>
           <div className="cp-stock-chart-wrap">
             <PriceChart points={h.points} moves={h.moves} currency={h.currency} />
           </div>
@@ -1363,8 +1361,7 @@ function StockPage({ cid, ticker, companyName, onBack }) {
               <div className="cp-thin">No unusually large move in this range.</div>
             )}
           </section>
-        </>
-      )}
+      </>
     </div>
   );
 }
