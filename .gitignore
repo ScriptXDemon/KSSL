@@ -23,3 +23,7 @@ db/env
 
 # client Excel load reports (client data - never commit)
 db/excel_reports/
+
+# git worktrees + subagent workspaces
+.worktrees/
+.superpowers/
