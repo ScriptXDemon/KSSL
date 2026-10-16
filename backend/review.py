@@ -117,6 +117,14 @@ GRAPH: dict[str, tuple[str, bool, list[tuple[str, str]]]] = {
     "technology_overview_key_point": ("key_point_id", False, [("overview_article_id", "technology_overview_article")]),
     "technology_overview_company": ("overview_company_id", False, [("overview_article_id", "technology_overview_article")]),
     "technology_overview_source": ("overview_source_id", False, [("overview_article_id", "technology_overview_article")]),
+    # ui-port tables (db/setup/09_ui_port_tables.sql). The synthesis rows ride on the competitor card; the rest are their own cards.
+    "competitive_synthesis": ("competitor_id", False, [("competitor_id", C)]),
+    "competitive_synthesis_vulnerability": ("vulnerability_id", False, [("competitor_id", "competitive_synthesis")]),
+    "competitive_synthesis_vulnerability_trace": ("trace_id", False, [("vulnerability_id", "competitive_synthesis_vulnerability")]),
+    "competitive_field_synthesis": ("synthesis_id", True, []),
+    "market_award": ("award_id", True, []),
+    "market_segment_assessment": ("segment", True, []),
+    "patent_field_assessment": ("area_label", True, []),
 }
 # Not in GRAPH (no page reads them): competitive_product_evaluation, competitive_product_evaluation_spec.
 # A reviewed row whose key column is empty is keyed by its alternate column.
