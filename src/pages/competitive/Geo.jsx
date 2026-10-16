@@ -271,8 +271,8 @@ export default function Geo() {
      `pair` wins over `resolved`: drilling from a country row into its products sets
      the pair without changing the two dropdowns, and the list has to follow the drill
      rather than the dropdowns. The Back button clears the pair to come back out. */
-  /* the activity word of a footprint row: the client's own rows keep the original in `c0` (dataset.js) */
-  const actOf = (p) => escAll(geo.actLabel[p.c0 || p.c]);
+  /* the activity word of a footprint row, as stored */
+  const actOf = (p) => escAll(geo.actLabel[p.c]);
 
   const relList = () => {
     if (pair) {
@@ -336,7 +336,7 @@ export default function Geo() {
     if (!pair || !prod) return "";
     const p = prod;
     const kv = [
-      ["Activity", geo.actLabel[p.c0 || p.c]],
+      ["Activity", geo.actLabel[p.c]],
       ["Quantity", p.qty],
       ...(p.val && p.val !== p.qty ? [["Value", p.val]] : []),
       ["Stage", p.stage],
@@ -424,7 +424,7 @@ export default function Geo() {
       }
       const counts = {};
       prods.forEach((p) => {
-        const k = p.c0 || p.c;
+        const k = p.c;
         counts[k] = (counts[k] || 0) + 1;
       });
       const chips = Object.keys(counts)
@@ -500,7 +500,7 @@ export default function Geo() {
 
   const head = relHeader();
   const co = pair ? data.geoComps.find((x) => x.id === pair.cid) : null;
-  const dir = prod ? geo.dirForAct(prod.c) : "watch";
+  const dir = prod ? (co && co.isBf ? "fav" : "watch") : "watch";
 
   return (
     <div className="geo-view v-geo" ref={rootRef} style={{ position: "relative" }}>
@@ -920,7 +920,7 @@ export default function Geo() {
                           lineHeight: "1.4",
                         }}
                       >
-                        {geo.actLabel[prod.c0 || prod.c]}
+                        {geo.actLabel[prod.c]}
                       </div>
                     </div>
                     {/* No delegated news handler any more: the card IS an anchor, so the

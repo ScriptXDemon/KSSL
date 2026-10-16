@@ -366,25 +366,6 @@ export function wireDataset(raw) {
     logger.warn("wiring:client.id", e);
   }
 
-  // the client's own footprint rows are its own presence, not rival activity:
-  // mark them 'bf' so they read as "KSSL present" and don't get a counter-product line.
-  try {
-    const clientGeoId =
-      (d.client && (d.client.id || d.client.short || d.client.name));
-    const ownGeo = (d.geoData && d.geoData[clientGeoId]) || {};
-    Object.keys(ownGeo).forEach((ct) =>
-      ownGeo[ct].forEach((p) => {
-        // keep the real activity: geoBadge needs it to say "Local production"
-        // instead of nothing once the self-naming "KSSL present" label is gone.
-        if (p.c && p.c !== "bf") p.c0 = p.c;
-        p.c = "bf";
-      }),
-    );
-  // geoData contains client footprint under clientShort key
-  } catch (e) {
-    logger.warn("wiring:geoData", e);
-  }
-
   try {
     adaptPatents(d);
   } catch (e) {

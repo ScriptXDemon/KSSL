@@ -1,22 +1,17 @@
 /* The client's badge must lose the ECHO without losing the ACTIVITY.
  *
- * Measured against production: KSSL has exactly two served geo_presence rows, India
- * and Europe, and BOTH are stored c='lp' ("Local production"). No c='bf' row is
- * served at all -- serving_live filters to origin='pipeline' and every 'bf' row is
- * origin='reference'. The 'bf' the badge sees is created in the BROWSER, by
- * dataset.js stamping p.c='bf' over every client footprint row.
+ * The client's footprint rows keep the activity word they were stored with ("Local production"); the loader
+ * no longer overwrites it with a client code. The badge reads `<client> Present` and then those words, and a word
+ * that only restates the client's name ("KSSL present") is dropped:
  *
- * That is why the badge read "KSSL Present . KSSL present": actLabel.bf is the string
- * "KSSL present", so the template appended the client's own name to a sentence that
- * already said it. Dropping 'bf' from the activity list fixes the echo -- but on its
- * own it also throws away "Local production", because the overwrite had already
- * destroyed the only copy of the real code. Both halves have to hold at once:
- *
- *     wrong (before)      KSSL Present . KSSL present
- *     wrong (echo fix)    KSSL Present
+ *     wrong (echo)        KSSL Present . KSSL present
  *     right               KSSL Present . Local production
+ *
+ *     node test_geo_client_activity.mjs
  */
 import { ownActivityLabels, presenceBadge } from "./src/lib/geoBadge.js";
+import { wireDataset } from "./src/lib/dataset.js";
+import { readFileSync } from "node:fs";
 
 let fails = 0;
 const ck = (name, ok, detail) => {
@@ -24,36 +19,32 @@ const ck = (name, ok, detail) => {
   if (!ok) fails++;
 };
 
-// serving.ui_config's real dictionary, for the two codes that matter here
-const ACT = { bf: "KSSL present", lp: "Local production", ex: "Export / supply", pt: "Licence / partnership" };
+// the activity dictionary: the stored words, plus a label that echoes the client
+const ACT = { "Local production": "Local production", Export: "Export", self: "KSSL present" };
 
-// India exactly as the browser holds it after dataset.js runs: stored 'lp',
-// overwritten to 'bf', original kept in c0
-const india = [{ c: "bf", c0: "lp", country: "India", src: "https://indiandefencereview.com/x" }];
-
+const india = [{ c: "Local production", country: "India", src: "https://example.com/x" }];
 const labels = ownActivityLabels(india, ACT, "KSSL");
-ck("the self-naming 'KSSL present' label is gone", labels.indexOf("KSSL present") < 0, JSON.stringify(labels));
-ck("...but the real activity survives the overwrite", labels.indexOf("Local production") >= 0, JSON.stringify(labels));
-ck("...and it is the only thing said", labels.length === 1, JSON.stringify(labels));
+ck("the stored activity survives", labels.length === 1 && labels[0] === "Local production", JSON.stringify(labels));
+ck("a label that restates the client name is dropped", ownActivityLabels([{ c: "self" }], ACT, "KSSL").length === 0);
+ck("a row with no activity says nothing", ownActivityLabels([{ country: "India" }], ACT, "KSSL").length === 0);
 
-// a row that never had a real code must not invent one
-const bare = ownActivityLabels([{ c: "bf", country: "India" }], ACT, "KSSL");
-ck("a client row with no original code says nothing rather than echoing",
-   bare.length === 0, JSON.stringify(bare));
+const rival = ownActivityLabels([{ c: "Local production" }, { c: "Export" }], ACT, "KSSL");
+ck("a non-client row keeps every one of its activities", rival.length === 2, JSON.stringify(rival));
 
-// a rival's rows are untouched by any of this
-const rival = ownActivityLabels([{ c: "lp" }, { c: "ex" }], ACT, "KSSL");
-ck("a non-client row keeps every one of its activities",
-   rival.length === 2 && rival.indexOf("Local production") >= 0 && rival.indexOf("Export / supply") >= 0,
-   JSON.stringify(rival));
+const badge = presenceBadge({ clientLabel: "KSSL", rows: india, rivalCount: 0, actLabel: ACT });
+ck("the rendered badge says the client once and the activity", badge.text === "KSSL Present · Local production", badge.text);
 
-// and the whole badge, which is what the operator actually reads
-if (typeof presenceBadge === "function") {
-  const badge = presenceBadge(india, ACT, "KSSL");
-  const text = typeof badge === "string" ? badge : JSON.stringify(badge);
-  ck("the rendered badge never says the client's name twice",
-     (text.match(/KSSL present/gi) || []).length <= 1, text);
-}
+// the loader leaves the stored activity on the client's rows (no client code is stamped over it)
+const fx = JSON.parse(readFileSync(new URL("./fixtures/kssl_dataset.json", import.meta.url)));
+const d = wireDataset(JSON.parse(JSON.stringify(fx)));
+const own = d.geoData[d.client.id];
+let changed = 0;
+let n = 0;
+Object.entries(own).forEach(([ct, rows]) => rows.forEach((r, i) => {
+  n += 1;
+  if (r.c !== fx.geoData[d.client.id][ct][i].c || "c0" in r) changed += 1;
+}));
+ck("the client's footprint rows keep their stored activity and gain no c0", n > 0 && changed === 0, `${changed} of ${n}`);
 
-console.log(fails ? `\n${fails} FAILED` : "\nok - the echo is gone and Local production survived");
+console.log(fails ? `\n${fails} FAILED` : "\nok - the echo is gone and the stored activity survives");
 process.exit(fails ? 1 : 0);

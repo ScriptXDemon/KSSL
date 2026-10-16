@@ -59,10 +59,6 @@ const CLIENT = "KSSL";
 /* KSSL's own eight geo_presence rows, as they stand live: five in India, one in
    Saudi Arabia, two under "Europe" (which is not a country and is not plotted). */
 const KSSL_INDIA = [
-  { name: "ATAGS / Bharat 52 (155/52)", c: "bf", val: "offered", src: "src" },
-  { name: "Kalyani M4 / Maverick", c: "bf", val: "in service", src: "src" },
-  { name: "Bharat 150 / Omega", c: "bf", val: "portfolio", src: "src" },
-  { name: "Underwater systems / MRAUV", c: "bf", val: "contracted", src: "src" },
   { name: "Local production", c: "lp", src: "https://example.gov.in/atags" },
 ];
 const KSSL_SAUDI = [
@@ -77,15 +73,15 @@ if (/KSSL present/i.test(india.text.replace(/^KSSL Present/, "")))
   fail(`the badge still repeats the client's name: ${JSON.stringify(india.text)}`);
 eq(india.text, "KSSL Present · Local production", "India badge");
 
-// ...and the informative half is not thrown away with it.
+// ...and the informative half is kept.
 if (!india.text.includes("Local production"))
-  fail("dropping 'bf' also dropped the local-production row, which is the useful half");
+  fail("the badge lost the local-production row, which is the useful half");
 
-// 'bf' alone leaves nothing to add -- the badge is the client's name and stops there.
+// a row whose label only echoes the client leaves nothing to add -- the badge is the client's name and stops there.
 eq(
-  presenceBadge({ clientLabel: CLIENT, rows: KSSL_INDIA.slice(0, 4), rivalCount: 0, actLabel: ACT }).text,
+  presenceBadge({ clientLabel: CLIENT, rows: [{ c: "bf", src: "src" }], rivalCount: 0, actLabel: ACT }).text,
   "KSSL Present",
-  "badge with only bf rows",
+  "badge with only an echoing label",
 );
 eq(ownActivityLabels(KSSL_INDIA, ACT, CLIENT).join(" / "), "Local production", "own activities");
 
@@ -144,7 +140,7 @@ eq(mixed.cls, "present", "mixed evidence keeps the sourced class");
 eq(mixed.note, "1 of 2 rows is an analytical estimate", "mixed evidence note");
 if (india.note !== null) fail("a fully sourced country carried an estimate note");
 const ev = evidenceOf(KSSL_INDIA);
-eq(ev.sourced, 5, "India sourced rows");
+eq(ev.sourced, 1, "India sourced rows");
 eq(ev.estimated, 0, "India estimated rows");
 
 /* ------------------------------------------------------------ 3. the head office --- */

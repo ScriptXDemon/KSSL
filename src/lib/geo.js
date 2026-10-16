@@ -27,8 +27,6 @@ export function createGeo(d) {
   const compsInCountry = (country) =>
     geoComps.filter((c) => geoData[c.id] && geoData[c.id][country]);
   const productsFor = (cid, country) => (geoData[cid] && geoData[cid][country]) || [];
-  // the client's own rows are the favourable ones; every other row is watched
-  const dirForAct = (c) => (c === "bf" ? "fav" : "watch");
 
   /* the stored presence row of one company in one country */
   const presenceOf = (cid, country) =>
@@ -169,7 +167,6 @@ export function createGeo(d) {
     countriesForComp,
     compsInCountry,
     productsFor,
-    dirForAct,
     presenceOf,
     geoOverlap,
     geoRivalsIn,

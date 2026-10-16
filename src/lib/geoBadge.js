@@ -6,25 +6,12 @@
    rows behind it.
 */
 
-/* 'bf' IS A WHO, NOT A WHAT.
+/* THE CLIENT'S OWN ROWS KEEP THEIR STORED ACTIVITY.
 
-   Reported verbatim: "why geo footprint KSSL present KSSL present written 2 time in
-   india". serving.ui_config maps actLabel.bf = "KSSL present", and the badge was built
-   as `${clientLabel} Present` followed by the LABELS of the client's own activity rows.
-   India carries four c='bf' product rows, so the badge rendered
-
-       KSSL Present . KSSL present / Local production
-
-   -- the name of the company, twice, before the one activity that says anything.
-
-   'bf' does not name an activity. It marks the row as the client's, which is the thing
-   the badge's first half already says, so it can never appear in the second half. It is
-   dropped by CODE, and any label that merely restates the client's name is dropped as
-   well, so a later edit to the label dictionary cannot bring the echo back.
-
-   Everything else survives: an 'lp' row still contributes "Local production", which is
-   what a reader learns something from. */
-export const CLIENT_ACT = "bf";
+   The client is identified by the company (geoComps.isBf), not by an activity code: its footprint rows carry the
+   activity word they were stored with ("Local production", "Export"). The badge is built as `<client> Present`
+   followed by those words, and any word that merely restates the client's name is dropped, so a label edit
+   cannot bring an echo ("KSSL Present . KSSL present") back. */
 
 const fold = (v) =>
   String(v == null ? "" : v)
@@ -54,21 +41,9 @@ export function activityLabels(rows, actLabel) {
   return out;
 }
 
-/** The same, for the CLIENT's own rows: 'bf' and any self-naming label removed. */
+/** The same, for the CLIENT's own rows: any label that only restates the client's name removed. */
 export function ownActivityLabels(rows, actLabel, clientLabel) {
-  /* READ THROUGH THE OVERWRITE. dataset.js stamps p.c = 'bf' over EVERY client
-     footprint row, so by the time the badge sees them the real activity code is
-     already gone: India is stored c='lp' ("Local production") and arrives here as
-     'bf'. Dropping 'bf' therefore removes the echo AND the only thing the badge
-     still had to say, leaving a bare "KSSL Present" on a row whose activity we do
-     know. dataset.js now keeps the original in `c0`; prefer it, and fall back to
-     `c` for any caller that did not come through that path. */
-  return activityLabels(
-    (rows || [])
-      .map((r) => (r && r.c === CLIENT_ACT && r.c0 ? { ...r, c: r.c0 } : r))
-      .filter((r) => r && r.c !== CLIENT_ACT),
-    actLabel,
-  ).filter((label) => !echoesPresence(label, clientLabel));
+  return activityLabels(rows, actLabel).filter((label) => !echoesPresence(label, clientLabel));
 }
 
 /* AN ESTIMATE MUST NOT LOOK LIKE A MEASUREMENT.
