@@ -35,28 +35,20 @@ const gmed = (xs) => {
   return p.length ? p[Math.floor(p.length / 2)] : 0;
 };
 
-/* Per-dimension presentation. Every dimension is a spec label exactly as stored; none is special. They share one
-   ladder of lead sizes (percent), because a table of per-label units and ladders would assume a product family. */
-const GAP_BINS = [40, 20, 8, 1];
+/* Per-dimension presentation. Every dimension is a spec label exactly as stored; none is special, and no
+   dimension is graded: the size of a lead is shown as the median percentage gap, never as a severity word. */
 export const gdmeta = (l) => ({
   short: String(l).replace(/\s*\(.*\)$/, ""),
   dir: "",
   arrow: "",
   unit: "%",
   scale: 1,
-  bins: GAP_BINS,
 });
 export const gval = (l, pct) => {
   const m = gdmeta(l);
   const v = pct * m.scale;
   return (m.scale === 1 ? Math.round(v) : Math.round(v * 10) / 10) + m.unit;
 };
-const gbin = (l, pct) => {
-  const b = gdmeta(l).bins;
-  const v = pct * gdmeta(l).scale;
-  return v >= b[0] ? 4 : v >= b[1] ? 3 : v >= b[2] ? 2 : v >= b[3] ? 1 : v > 0 ? 1 : 0;
-};
-
 /* THE TWO FIGURES MUST BE IN THE SAME UNIT.
 
    The comparison line printed "13000 kg vs 18 t" and "4.2 vs < 15 t": both are
@@ -198,7 +190,6 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
       const contested = all.filter((d) => d.own === "contested").length;
       const nodata = all.filter((d) => d.own === "nodata").length;
       let k;
-      let w;
       // Per-matchup outcome also has to come from dimensions. Classifying by the index
       // (lead>8) reintroduced the cancellation: a rival can own more dimensions than the
       // client while its index margin points the other way.
@@ -214,19 +205,14 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
       const balance = rivalOwns.length - koelOwns.length;
       if (nodata === all.length) {
         k = "nodata";
-        w = "Not enough data";
       } else if (rivalOwns.length > koelOwns.length) {
         k = "behind";
-        w = `${clientName} behind`;
       } else if (koelOwns.length > rivalOwns.length) {
         k = "ahead";
-        w = `${clientName} ahead`;
       } else if (!rivalOwns.length && !koelOwns.length) {
         k = "contested";
-        w = "No clear edge";
       } else {
         k = "contested";
-        w = "Traded";
       }
       // A one-dimension ownership margin is weak evidence. If the matchup-by-matchup
       // count points the other way, the two granularities disagree and neither should
@@ -236,7 +222,6 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
         ((balance > 0 && rivalWins < koelWins) || (balance < 0 && rivalWins > koelWins))
       ) {
         k = "contested";
-        w = "Traded";
       }
       // open the matchup where the rival takes the most dimensions outright
       const scored = r.rows.map((x) => ({
@@ -257,7 +242,7 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
         koelOwns,
         contested,
         nodata,
-        verdict: { k, w },
+        verdict: { k },
         balance,
         rivalWins,
         koelWins,
@@ -265,10 +250,7 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
         worst,
         thin: n < GAP_THIN,
         masked: k !== "behind" && worst.edge < 42,
-        severity: rivalOwns.reduce((t, d) => t + gbin(d.l, d.med), 0),
-        dims: rivalOwns
-          .slice()
-          .sort((a, b) => gbin(b.l, b.med) - gbin(a.l, a.med) || b.med - a.med),
+        dims: rivalOwns.slice().sort((a, b) => b.med - a.med),
       };
     })
     .sort((a, b) => {
@@ -278,7 +260,6 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
         b.rivalOwns.length -
           b.koelOwns.length -
           (a.rivalOwns.length - a.koelOwns.length) ||
-        b.severity - a.severity ||
         b.rivalWins - b.koelWins - (a.rivalWins - a.koelWins) ||
         b.n - a.n
       );
@@ -389,19 +370,6 @@ function gapDimGrid(rivals, clientName = clientShort()) {
     const title = gesc(m.short);
     const isOpen = index === 0 ? " open" : "";
 
-    const bin = gbin(row.l, row.med);
-    const sevClass = bin >= 4 ? "crit" : bin >= 3 ? "high" : bin >= 2 ? "med" : "low";
-    const sevName =
-      row.rivalOwns === 0
-        ? "Low"
-        : bin >= 4
-        ? "Critical"
-        : bin >= 3
-        ? "High"
-        : bin >= 2
-        ? "Moderate"
-        : "Low";
-
     const gapVal = row.rivalOwns > 0 ? gval(row.l, row.med) : "—";
     const compCount = row.rivalOwns;
 
@@ -434,7 +402,6 @@ function gapDimGrid(rivals, clientName = clientShort()) {
     h += `<div class="ga-acc-body">`;
     h += `<div class="ga-acc-left">`;
     h += `<div class="ga-acc-grid">`;
-    h += `<span class="ga-acc-label">Severity</span><span class="ga-acc-val ${sevClass}">${sevName}</span>`;
     h += `<span class="ga-acc-label">Gap</span><span class="ga-acc-val">${gapVal}</span>`;
     h += `<span class="ga-acc-label">Competitors</span><span class="ga-acc-val">${compCount}</span>`;
     h += `<span class="ga-acc-label">Top Rival</span><span class="ga-acc-val">${topRival}</span>`;
@@ -558,7 +525,7 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
   const useOwn = behind.length > 0 || leadOne.length === 0;
   const heroN = useOwn ? behind.length : leadOne.length;
   h +=
-    `<div class="gk-hero ${heroN ? (heroN >= rivals.length / 2 ? "crit" : "high") : "even"}">` +
+    `<div class="gk-hero even">` +
     `<div class="gk-hero-l"><div class="gk-big">${heroN}<span>/${rivals.length}</span></div>` +
     `<div class="gk-cap">${useOwn ? "rivals hold<br>an edge" : "rivals win a<br>comparison"}</div></div>` +
     `<div class="gk-hero-r"><div class="gk-line">` +
@@ -607,7 +574,7 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
     const v = r.verdict;
     const tot = r.n || 1;
     const aria =
-      `${gesc(r.co)}. ${v.w} - owns ${r.rivalOwns.length} of ${r.all.length} measured dimensions, ${clientName} owns ` +
+      `${gesc(r.co)}. Owns ${r.rivalOwns.length} of ${r.all.length} measured dimensions, ${clientName} owns ` +
       `${r.koelOwns.length}. Ahead on more dimensions in ${r.rivalWins} of ${r.n}` +
       ` comparisons, behind in ${r.koelWins}. Worst comparison ${r.worst.edge}` +
       ` of 100 across ${r.n} comparisons. Opens the worst comparison.`;
@@ -616,10 +583,10 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
       `<span class="ga-i">${i + 1 < 10 ? "0" : ""}${i + 1}</span>` +
       `<span class="ga-co">${gesc(r.co)}</span>` +
       `<span><i class="ga-chip ${v.k}" title="${r.rivalOwns.length} dimensions to the rival, ${r.koelOwns.length}` +
-      ` to ${clientName}, ${r.contested} split, ${r.nodata} not enough data">${v.w}${r.masked ? " ⚠" : ""}</i></span>` +
+      ` to ${clientName}, ${r.contested} split, ${r.nodata} not enough data">${v.k === "nodata" ? "—" : `rival ${r.rivalOwns.length} · ${gesc(clientName)} ${r.koelOwns.length}`}${r.masked ? " ⚠" : ""}</i></span>` +
       `<span class="ga-barc">${gapBar(r.balance, r.thin)}</span>` +
       `<span class="num ga-owns"><b class="${v.k}">${r.rivalOwns.length}</b><i>vs ${r.koelOwns.length}</i></span>` +
-      `<span class="num ga-worst" data-b="${r.worst.edge < 25 ? 4 : r.worst.edge < 35 ? 3 : r.worst.edge < 42 ? 2 : r.worst.edge < 50 ? 1 : 0}">${r.worst.edge}<i>/100</i></span>` +
+      `<span class="num ga-worst">${r.worst.edge}<i>/100</i></span>` +
       `<span class="ga-rec" title="${r.rivalWins} rival wins · ${r.parity} level · ${r.koelWins} ${clientName} wins">` +
       `<i class="rw" style="width:${(r.rivalWins / tot) * 100}%"></i>` +
       `<i class="pw" style="width:${(r.parity / tot) * 100}%"></i>` +
@@ -648,9 +615,6 @@ export function gapCategoryBody(rivals, clientName = clientShort(), held = 0) {
     "each other, because tonnes and kilometres are not interchangeable. The bar and the record both count dimensions, " +
     "so neither can point against the verdict. <b>Worst</b> is the single hardest comparison on the Positioning index " +
     "(0-100, 50 = parity, below 50 the rival is stronger), read from the same computation the dossier shows. " +
-    "<b>Calibre, MTOW, naval length and barrel length are excluded</b>: each is the class axis the two products were " +
-    "paired on, so scoring it would be circular - 155 against 155 and 5.56 against 5.56 carry no information, and " +
-    "155 against 70 means the products are not comparable at all. "
     "</div></div>";
   return h;
 }

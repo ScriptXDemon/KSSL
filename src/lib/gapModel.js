@@ -1,11 +1,10 @@
-/* ===== GAP ENGINE — descriptive, severity-ranked =====
+/* ===== GAP ENGINE — descriptive =====
    Everything the three Gap surfaces show is derived here; nothing is stored.
    Takes the wired dataset explicitly instead of reading globals, so a re-fetch
    rebuilds the model rather than leaving a stale one behind. */
 import { clientShort, stripClientPrefix } from "./client.js";
 import { computeSpecEdge } from "./edge.js";
 import { escAll } from "./html.js";
-import { formatCrore } from "../utils/formatNumber.js";
 import { logger } from "../utils/logger.js";
 
 export function buildGapModel(d) {
@@ -18,31 +17,6 @@ export function buildGapModel(d) {
   const gaps = [];
   let _id = 0;
   const nid = () => `g${++_id}`;
-  /* "Live" has to mean live. Every category contains an awarded contract with
-     dl:0, which drove urgency to its maximum and printed "tender closes 0d" on
-     gaps whose only tender was a contract already signed — in two cases one
-     KSSL itself had won. Settled programmes still count as tracked context,
-     but they set neither the exposure sum nor the deadline horizon. */
-  function expForCat(cat) {
-    /* no money figure: tender amounts are in their own currencies and are never converted */
-    const val = 0;
-    let cnt = 0;
-    const tracked = 0;
-    let hz = null;
-    try {
-      tenders.forEach((t) => {
-        if ((t.cat || t.category) !== cat) return;
-        const settled = (t.status || "").toLowerCase() === "awarded" || t.isLive === false;
-        if (settled) return;
-        cnt++;
-        const dl = typeof t.dl === "number" ? t.dl : null;
-        if (dl !== null && dl > 0) hz = hz === null ? dl : Math.min(hz, dl);
-      });
-    } catch (e) {
-      /* a dataset without tenders simply has no exposure */
-    }
-    return { value: val, count: cnt, horizon: hz, tracked };
-  }
   function rec(pillar, type, koel, bench, mag, dir, cat, basis, exp, extra) {
     const r = {
       id: nid(),
@@ -54,9 +28,6 @@ export function buildGapModel(d) {
       direction: dir,
       category: cat,
       basis,
-      exposure_value: exp ? exp.value : 0,
-      exposure_count: exp ? exp.count : 0,
-      exposure_horizon: exp ? exp.horizon : null,
       correlates: [],
       source: `derived:${basis}`,
       confidence: 1.0,
@@ -112,7 +83,7 @@ export function buildGapModel(d) {
           dir,
           mu.cat,
           `matchup.edge=${mu.edge}`,
-          expForCat(mu.cat),
+          null,
           {
             lags,
             leads,
@@ -185,7 +156,7 @@ export function buildGapModel(d) {
      "Missiles & AD", "Materials & Forging") while everything else keys off the
      POS_CATS labels ("Protected & Armoured Vehicles", "Marine / Naval", …).
      Mapping id -> techCats.name therefore produced a category string nothing
-     else recognised: 9 of 26 technology gaps carried ₹0 exposure and zero
+     else recognised: 9 of 26 technology gaps carried zero
      cross-pillar correlates, and 214 armoured matchups never showed the
      tech-frontier note. Resolve each domain to a POS_CATS label, by id where
      the two vocabularies agree and by an explicit alias where they do not. */
@@ -224,7 +195,7 @@ export function buildGapModel(d) {
           mag = 0;
           dir = "at_parity";
         }
-        // normalize to shared category vocab so exposure + correlates resolve
+        // normalize to shared category vocab so correlates resolve
         const sharedCat = TECH_CAT[domain] || domain;
         gaps.push(
           rec(
@@ -236,7 +207,7 @@ export function buildGapModel(d) {
             dir,
             sharedCat,
             `innovation.gap=${g}`,
-            expForCat(sharedCat),
+            null,
             {
               techName: iv.t,
               maturity: iv.mat,
@@ -302,7 +273,7 @@ export function buildGapModel(d) {
           "behind",
           cat,
           `partnerships.core_overlap ties=${v.ties}`,
-          expForCat(cat),
+          null,
           { contestTies: v.ties, contestComps: nComp },
         ),
       );
@@ -310,32 +281,6 @@ export function buildGapModel(d) {
   } catch (e) {
     logger.warn("gap:ecosystem", e);
   }
-
-  /* severity — ONLY 'behind' gaps ranked. severity = magnitude x exposure-weight.
-     urgency (nearest tender deadline) is a DESCRIPTIVE tiebreak, kept as its own
-     component so coarse-magnitude ties resolve by imminence without inventing
-     precision. */
-  const behindGaps = gaps.filter((g) => g.direction === "behind");
-  const maxExp = Math.max(1, ...behindGaps.map((g) => g.exposure_value));
-  gaps.forEach((g) => {
-    if (g.direction === "behind") {
-      const expW = 0.35 + 0.65 * (g.exposure_value / maxExp);
-      g.severity = +(g.magnitude * expW).toFixed(3);
-      g.severity_pct = Math.round(g.severity * 100);
-      // urgency: horizon in days -> 0..1 (sooner = higher). >180d or none = 0.
-      const hz = g.exposure_horizon;
-      g.urgency = hz === null || hz > 180 ? 0 : +(1 - hz / 180).toFixed(3);
-      g.urgency_days = hz;
-      // rank_score: severity is primary; urgency only breaks ties
-      g.rank_score = +(g.severity + g.urgency * 0.08).toFixed(4);
-    } else {
-      g.severity = 0;
-      g.severity_pct = 0;
-      g.urgency = 0;
-      g.rank_score = 0;
-      g.advantage_pct = Math.round(g.magnitude * 100);
-    }
-  });
 
   /* correlate chain — link behind-gaps sharing a category across pillars */
   const byCat = {};
@@ -351,7 +296,9 @@ export function buildGapModel(d) {
   const clientPrefix = new RegExp(`^\\s*${clientName}\\s*·\\s*`, "i");
   /* Keep SHORT product names: M4, ATC, LTV, MPV are real designations, and a
      length>2 filter silently dropped "m4" so the M4 dossier never matched the
-     tender scored to the Kalyani M4. */
+     tender scored to the client's M4. */
+  // the client's own name words are not a product designation
+  const clientWords = new Set(String(clientName || "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
   const prodTokens = (entity) =>
     String(entity || "")
       .replace(clientPrefix, "")
@@ -360,8 +307,9 @@ export function buildGapModel(d) {
       .filter(
         (w) =>
           w.length >= 2 &&
-          /* brand and filler words */
-          !/^(the|and|for|kssl|kalyani|bharat|systems|platforms|no|direct|product|from|core|programme)$/.test(w) &&
+          !clientWords.has(w) &&
+          /* filler words */
+          !/^(the|and|for|systems|platforms|no|direct|product|from|core|programme)$/.test(w) &&
           /* GENERIC CLASS NOUNS: sharing "carbine" is not sharing a product — it
              linked the 5.56x30 Protective Carbine to the 5.56x45 CQB tender. A match
              must rest on a designation (atags, marg, m4, ulh, 155, 150), not a class. */
@@ -396,14 +344,13 @@ export function buildGapModel(d) {
       pillar: x.pillar,
       label: x.benchmark_entity,
       mag: x.magnitude,
-      sev: x.severity_pct,
       onProduct: onProduct.includes(x),
     }));
   });
   return gaps;
 }
 
-/* shared: build the cross-pillar correlate + exposure strip for a category.
+/* shared: build the cross-pillar correlate strip for a category.
    `onTenderClick` is a global function NAME, because this returns a string that is
    injected with dangerouslySetInnerHTML — the same trade the original made. */
 export function gapCorrelateStrip(model, pillar, matchLabel) {
@@ -418,12 +365,6 @@ export function gapCorrelateStrip(model, pillar, matchLabel) {
     }
     if (!rec) return "";
     let h = '<div class="gapx-strip">';
-    // exposure line (only if meaningful)
-    if (rec.exposure_value > 0) {
-      h +=
-        `<div class="gapx-exp"><span class="gapx-lbl">₹ exposure</span><span class="gapx-val">${formatCrore(rec.exposure_value)}</span>` +
-        `<span class="gapx-note">live tenders in ${escAll(rec.category)} this gap touches</span></div>`;
-    }
     // cross-pillar correlates
     if (rec.correlates && rec.correlates.length) {
       h += '<div class="gapx-corr"><span class="gapx-lbl">Reinforced across pillars</span>';

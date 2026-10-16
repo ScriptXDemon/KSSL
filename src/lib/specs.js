@@ -4,7 +4,6 @@
 import { clientShort, stripClientPrefix } from "./client.js";
 import { computeSpecEdge, edgeBasis, edgeVerdict, isNumericVal } from "./edge.js";
 import { escAll } from "./html.js";
-import { formatCrore } from "../utils/formatNumber.js";
 
 /* A spec value with the unit the RECORD holds for it -- and never any other.
 
@@ -354,94 +353,37 @@ export function specPanelHtml(m) {
   );
 }
 
-/* GAP BLOCK — this matchup's gap in context, under the verdict. */
+/* GAP BLOCK -- this matchup in context, under the verdict. It states the stored edge score and, where the gap
+   model links them, the tenders and technology fronts in the same category as plain chips. No grade word,
+   exposure figure or explanatory sentence is made here. */
 export function matchupGapHtml(m, model) {
   const edge = m.edge;
   const esc = escAll;
-  if (edge === null || edge === undefined) {
-    /* Was an authored explanation ("No measured gap on this matchup - specs undisclosed
-       ... no gap is asserted."). It editorialised rather than reported a served fact, so
-       it is removed: with no measured edge there is simply no gap block to draw. The
-       spec panel already states, from the data, that specs are undisclosed. */
-    return "";
-  }
-  const behind = (50 - edge) / 50; // >0 KSSL behind
-  // find THIS matchup's gap record (match by koel+bench)
-  const rec = model.find(
+  if (edge === null || edge === undefined) return "";
+  const rec = (model || []).find(
     (g) =>
       g.pillar === "competitive" &&
       g.benchmark_entity === m.comp &&
       g.koel_entity === m.bf,
   );
   const clientProd = stripClientPrefix(m.bf);
-  let dir;
-  let mag;
-  if (behind > 0.02) {
-    dir = "behind";
-    mag = Math.round(behind * 100);
-  } else if (behind < -0.02) {
-    dir = "ahead";
-    mag = Math.round(-behind * 100);
-  } else {
-    dir = "parity";
-    mag = 0;
-  }
-  const band =
-    dir !== "behind"
-      ? dir === "ahead"
-        ? "lead"
-        : "par"
-      : mag >= 70
-        ? "crit"
-        : mag >= 40
-          ? "high"
-          : "med";
-  const word =
-    dir === "behind"
-      ? `${mag >= 70 ? "Critical" : mag >= 40 ? "High" : "Moderate"} gap`
-      : dir === "ahead"
-        ? `${clientShort()} leads`
-        : "At parity";
-  const sev = rec ? rec.severity_pct : mag;
-  const exp = rec ? rec.exposure_value : 0;
-  const urg = rec ? rec.exposure_horizon : null;
-
-  let h = `<div class="mug ${band}">`;
-  h += `<div class="mug-head"><span class="mug-verdict ${band}">${word}${dir === "behind" ? ` · ${sev}` : ""}</span>`;
-  if (dir === "behind" && exp > 0)
-    h += `<span class="mug-exp">${formatCrore(exp)} exposed</span>`;
-  h += "</div>";
+  let h = '<div class="mug">';
+  h += `<div class="mug-head"><span class="mug-verdict">Edge ${esc(String(edge))}/100</span></div>`;
   h += `<div class="mug-line"><b>${esc(clientProd)}</b> vs <b>${esc(m.comp)}</b></div>`;
-  if (dir === "behind") {
-    h += `<div class="mug-desc">On the fields both products publish, ${esc(m.comp)} leads by about ${mag}%.</div>`;
-  } else if (dir === "ahead") {
-    h += `<div class="mug-desc">${clientShort()} leads on the fields both products publish. Recorded as an advantage, not a gap.</div>`;
-  } else {
-    h += `<div class="mug-desc">Near-parity on the fields both products publish. No material gap either way.</div>`;
-  }
-  /* cross-pillar correlates — plain-language, first-time-user friendly */
   if (rec && rec.correlates && rec.correlates.length) {
     const mktC = rec.correlates.filter((c) => c.pillar === "market");
     const techC = rec.correlates.filter((c) => c.pillar === "technology");
-    if (mktC.length) {
-      h += `<div class="mug-corr"><div class="mugc-explain"><b>Why this gap matters now:</b> there ${
-        mktC.length === 1 ? "is <b>1 live tender</b>" : `are <b>${mktC.length} live tenders</b>`
-      } in ${esc(m.cat)} that ${clientShort()} can bid on right now. This spec gap directly affects how ${clientShort()} scores on ${
-        mktC.length === 1 ? "it" : "them"
-      }. Click a tender to see its full requirements and ${clientShort()}'s fit.</div>`;
-      h += '<div class="mugc-chiprow">';
+    if (mktC.length || techC.length) {
+      h += '<div class="mug-corr"><div class="mugc-chiprow">';
       mktC.forEach((c) => {
         const lbl = stripClientPrefix(c.label || "");
         h += `<span class="mugc-chip market clickable" role="button" tabindex="0" data-tender="${esc(lbl).replace(/"/g, "&quot;")}" title="Open this tender in the Market pillar">${esc(lbl.slice(0, 40))} ↗</span>`;
       });
-      h += "</div>";
-      if (techC.length)
-        h += `<div class="mugc-tech-note">Also a technology-frontier gap in this category - ${clientShort()} trails the state of the art here too.</div>`;
-      h += "</div>";
-    } else if (techC.length) {
-      h += `<div class="mug-corr"><div class="mugc-explain"><b>Why this gap matters:</b> this is also where the technology frontier is moving past ${clientShort()}. It compounds the competitive gap - ${clientShort()} is behind on both current specs and the direction the technology is heading.</div></div>`;
+      techC.forEach((c) => {
+        h += `<span class="mugc-chip tech">${esc(stripClientPrefix(c.label || "").slice(0, 40))}</span>`;
+      });
+      h += "</div></div>";
     }
   }
-    h += "</div>";
-  return h;
+  return h + "</div>";
 }
