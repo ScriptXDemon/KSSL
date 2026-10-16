@@ -1039,6 +1039,8 @@ Ruling R2: every on-screen label or config the Cummins UI hardcodes, mapped to a
 | Tender assessment panel headings (Tender Assessment, Tender details, What the tender requires, Matched <client> products, Expected revenue (estimate), Competitor fit, Source) | Tenders.jsx | chrome (ui.market_tender_assessment_view holds one row per tender with the tender title in panel_title, so it is not a label table) |
 | Tender call-to-action ("Open the tender notice", "Open the tender portal", "Read the award announcement", "Pursue this tender") and its note | Tenders.jsx ctaLabel, ctaNote | chrome keyed by the stored url_kind (notice, portal, award) |
 | Tender parameter labels (Buyer, Country, Category, Value, Quantity, Published, Closing date, Status, Source) and "not on record" | tenderRow.js TENDER_PARAMS, NOT_ON_RECORD | chrome |
+| Tender requirement row codes: description, scope_text, requirement_note, equipment_scope, rating_band, use_case, quantity, category_text, source_text, published_date, closing_date -> Description, Scope, Note, Equipment, Rating band, Use case, Quantity, Category, Source, Published, Closing date. A code not in this list is a stored scope_bullet_label and prints as stored | tenderRow.js reqLabel (used by Tenders.jsx, chat.js); marketOutlook.js and tenderRow.js read published_date / closing_date / quantity by code | chrome (the backend writes no English label, ruling R12) |
+| Fit words on the cockpit (strong / partial / weak) and the "What to do" sentence per segment | TenderCockpit.jsx; MarketOutlook.jsx | dataset-field: the stored kssl_fit word and serving.market_segment_assessment.recommendation print as they are (read from data.database.serving.market_segment_assessment); a segment with none shows a dash |
 | Tenders empty state | Tenders.jsx | ui-table ui.market_view.empty_state_text where view_id='tenders' |
 | Top opportunity empty state | Overview.jsx; TenderCockpit.jsx | ui-table ui.market_view.empty_state_text where view_id='top-opportunity' |
 | Market Intelligence empty state | MarketOverview.jsx | ui-table ui.market_view.empty_state_text where view_id='market-intelligence' |
@@ -1127,3 +1129,9 @@ Where they show up in this file:
 - R8: A partners evidence / detail; the geo product-match, tender-match and matchup-source tables stay in the DB without a UI.
 - R9: A tenders value, awards value; B CR_PER_MILLION; C2 market_award (value_amount, value_currency, value_text); E tile units. No FX anywhere, in code or in the loader.
 
+## G. Task 7 notes (remove-genset, judgements read from data)
+
+- Deleted with their features: tenderIntel.js engine (ASSUME, win weights, forecast, channels, gap bands), shortlist.js, footprint.js, threat.js re-grader, marketOutlook sizes()/BANDS/SEG_ALIAS/trend words/next-expected, geo.js band and counter engine and model-compare popup, GAP_DIM table, edge.js assumptions (axes, ranges, groups, per-kVA).
+- Read from data instead: tender fit (`clientFit`), revenue (`revenueMid` or null), cockpit rows (`topOpportunities`, stored order), competitor threat (`threat`), patent crowding (`techAreaMeta[].crowding`) and position note (`reason`), segment recommendation, geo overlap (`geoPresence[].overlap`, `.ranges`), edge (`matchups[].edge`, `specDims`, `specDecided`), lean sentence (`leanTxt`).
+- Global requirements are the rows of `data.globalRequirements`; their feed cards and every cross-link use the `req-` card id. Browser-built tender cards use the `tender-` prefix.
+- Ordering (R5): direction, date, stored `seq`; the Latest Tenders head is the first twenty open tenders by stored `rank`.
