@@ -310,7 +310,7 @@ export function wireDataset(raw) {
         shortlist: slComp,
         groups: cutGroupsByDirection(d.overviewConfig.competitive.groups),
       },
-      market: { ...d.overviewConfig.market, cards: slMkt.cards, shortlist: slMkt, title: "Top opportunity" },
+      market: { ...d.overviewConfig.market, cards: slMkt.cards, shortlist: slMkt },
       technology: {
         ...d.overviewConfig.technology,
         /* TECHNOLOGY IS KNOWLEDGE, NOT A THREAT BOARD. Competitive owns the threat
@@ -323,7 +323,6 @@ export function wireDataset(raw) {
            global search. */
         cards: technologyAttention(d.techCards, isRivalCard),
         shortlist: slTech,
-        title: "Technology Knowledge",
         cnt: "recent defence-tech: competitor advancements + advances KSSL can adopt",
         /* No Gap/Watch/Edge words anywhere. Every card is knowledge. */
         dirWord: { fav: "Advancement", watch: "Advancement", threat: "Advancement" },
@@ -340,13 +339,6 @@ export function wireDataset(raw) {
           { f: "all", l: "All" },
           { f: "rival", l: "Competitor Advancements", tag: "rival", c: "var(--threat)" },
           { f: "adopt", l: "Adoptable Advances", tag: "adopt", c: "var(--watch)" },
-        ],
-        metrics: [
-          { l: "Competitor advances", act: "rival" },
-          { l: "Adoptable advances", act: "adopt" },
-          { l: "Domains tracked", act: "all" },
-          { l: "Analytical lenses", act: "all" },
-          { l: "All signals", act: "all" },
         ],
         /* Groups cut by the tag technologyAttention stamps (buildFeed reads `tags`). */
         groups: [
@@ -637,7 +629,6 @@ export function wireDataset(raw) {
           market: {
             ...d.overviewConfig.market,
             cards: marketFeed,
-            title: "Top opportunity",
             cnt: marketFeed.length
               ? "latest tenders that fit KSSL + perceived opportunities to act on"
               : d.overviewConfig.market.cnt,
@@ -660,15 +651,6 @@ export function wireDataset(raw) {
               { f: "all", l: "All" },
               { f: "tenders", l: "Latest Tenders", dirs: ["fav", "threat"], c: "var(--threat)" },
               { f: "opps", l: "Perceived Opportunities", dirs: ["watch"], c: "var(--watch)" },
-            ],
-            /* Tiles: counted by metricsFor(market) from the served feed. Labels MUST
-               match metricsFor's byLabel keys. */
-            metrics: [
-              { l: "Latest tenders", act: "open" },
-              { l: "Strong fits", act: "fit" },
-              { l: "Tender value", act: "valued", unit: "cr" },
-              { l: "Perceived opportunities", act: "opps" },
-              { l: "All signals", act: "all" },
             ],
             /* The two content groups, cut by direction (buildFeed reads `dirs`). Banners
                are off in the feed, but the order (tenders then opportunities) and the

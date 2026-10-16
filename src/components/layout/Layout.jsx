@@ -23,8 +23,8 @@ import Projects from "../../pages/competitive/Projects";
 import Finances from "../../pages/competitive/Finances";
 import { useAppState, isOverview } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
-import { metricsFor, tilePredicate, filterMatch, readFeedSeq, writeFeedSeq, TILE_LABELS, bucketTenders } from "../../lib/overview";
-import { marketMetrics } from "../../lib/marketOverview";
+import { tilePredicate, filterMatch, readFeedSeq, writeFeedSeq, TILE_LABELS, bucketTenders } from "../../lib/overview";
+import { headerMetrics, pillarHeaderTitle } from "../../lib/uiHeader";
 
 const PILLAR_OF_VIEW = {
   overview: "competitive",
@@ -92,14 +92,6 @@ export default function Layout() {
   const onMarketReport = view === "m-report" || view === "tender" || view === "awarded-tenders" || view === "closed-tenders" || view === "global-requirement" || view === "m-overview";
   const onFeed = isOverview(view) && !onMarketReport;
 
-  const metrics = useMemo(
-    () =>
-      onMarketReport
-        ? marketMetrics(data.tenders)
-        : metricsFor(cfg, overviewPillar, data),
-    [cfg, overviewPillar, data, onMarketReport],
-  );
-
   const meta = viewMeta[isOverview(view) ? "overview" : view] || viewMeta.overview;
   const onOverview = isOverview(view);
   /* The report is not an overview — it has no feed and no selectable card — but it does
@@ -109,13 +101,17 @@ export default function Layout() {
      third column reserved for a drawer that never opens. */
   const wideNoDrawer = onOverview || onMarketReport || view === "innovation";
   const showMetricsStrip = onOverview || onMarketReport;
+  const metrics = useMemo(
+    () => (showMetricsStrip ? headerMetrics(data, overviewPillar) : []),
+    [data, overviewPillar, showMetricsStrip],
+  );
   /* Each pillar's overview carries its own heading ("Market Intelligence"), which lives
      on the served config; viewMeta only has the competitive one. */
   /* onMarketReport gates LAYOUT (metric strip, collapsed third column) and covers
      m-report, tender, awarded-tenders and closed-tenders. It must not also pick the
      title, or all four render as "Market Report". Every heading now comes from
      viewMeta; only a pillar overview overrides it, from its served config. */
-  const headTitle = onOverview ? cfg.title || meta.title : meta.title;
+  const headTitle = onOverview ? pillarHeaderTitle(data, overviewPillar) : meta.title;
 
   /* The count line reflects whichever filter is active — the original rewrote it in
      applyFilter(), with the tile label or the direction word. */

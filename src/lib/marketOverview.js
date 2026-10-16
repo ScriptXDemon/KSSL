@@ -136,65 +136,6 @@ export function hostOf(url) {
   }
 }
 
-/* The four tiles. Each one is counted from the rows on screen; a measure the corpus
-   does not carry returns null so the strip can print "—" rather than 0. */
-export function marketMetrics(tenders) {
-  const list = tenders || [];
-  const { open, awarded, closed } = bucketTenders(list);
-  const countries = new Set(list.map((t) => t.country).filter(Boolean));
-  const portals = new Set(list.map((t) => hostOf(t.url)).filter(Boolean));
-  const priced = list.filter((t) => parseCr(t.value) > 0);
-  const crore = priced.reduce((n, t) => n + parseCr(t.value), 0);
-  /* Stating an amount and being SIZEABLE are two different things. TED publishes
-     defence values in zloty, krone and koruna as well as euro, and parseCr converts
-     only the currencies whose rate this build documents. Those rows print their
-     amount and stay out of the total, so the subtitle has to say so -- counting them
-     as "publish an amount" would promise a total that silently omits them. */
-  const unconverted = list.filter((t) => t.value && parseCr(t.value) <= 0).length;
-  return [
-    {
-      l: "Active tenders",
-      act: "active",
-      v: String(open.length),
-      dot: "var(--fav)",
-      sub: `open of ${list.length} tracked · ${awarded.length} awarded, ${closed.length} closed`,
-    },
-    {
-      l: "Markets",
-      act: "markets",
-      v: String(countries.size),
-      sub: topOf(list, "country"),
-    },
-    {
-      l: "Source portals",
-      act: "portals",
-      v: String(portals.size),
-      sub: `distinct portals feeding this slice`,
-    },
-    {
-      /* An unmeasured total is "—", never 0 — a zero here would read as "these
-         contracts are worth nothing". */
-      l: "Value disclosed",
-      act: "value",
-      v: priced.length ? Math.round(crore).toLocaleString("en-IN") : "—",
-      unit: priced.length ? "cr" : "",
-      sub: priced.length
-        ? `${priced.length} of ${list.length} publish an amount` +
-          (unconverted ? ` · ${unconverted} more in a currency not converted here` : "")
-        : "no tender on record publishes an amount",
-    },
-  ];
-}
-
-function topOf(list, field) {
-  const n = {};
-  list.forEach((t) => {
-    if (t[field]) n[t[field]] = (n[t[field]] || 0) + 1;
-  });
-  const best = Object.entries(n).sort((a, b) => b[1] - a[1])[0];
-  return best ? `${best[0]} leads with ${best[1]}` : "nothing on record";
-}
-
 /* Demand split by category. JSW splits Product / Product+MRO / MRO-only; that
    classification is EV-bus specific and has no defence equivalent in this corpus, so
    the honest split here is the one the rows actually carry — `cat`. */

@@ -3,7 +3,7 @@ import SignalCard from "../../components/signalCard/SignalCard";
 import DetailPanel from "../../components/detailPanel/DetailPanel";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import FeedFilters from "../../components/subHead/FeedFilters";
-import { useAppState, useHeaderReport, PILLAR_LABEL } from "../../state/AppState";
+import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { OVERVIEW_VIEW } from "../../lib/route";
 import {
@@ -138,7 +138,7 @@ export default function Overview({
        said "Competitive / Overview" on all three pillars, so a technology signal was
        announced under a page it is not listed on (FE 18). */
     setScope("signal", { type: "signal", data: detail }, {
-      pillar: PILLAR_LABEL[pillarKey] || "Competitive",
+      pillar: pillarKey,
       view: cfg.title || "Overview",
       selection: detail.title,
     });

@@ -11,12 +11,6 @@
  * that route to localStorage, so it came back on every reload. */
 
 export const PILLARS = ["competitive", "market", "technology"];
-export const PILLAR_LABEL = {
-  competitive: "Competitive",
-  market: "Market",
-  technology: "Technology",
-};
-
 /* Which rail item each pillar opens on, and the pillar each rail belongs to. */
 export const RAIL = {
   /* `gap-competitive` is ARCHIVED, not deleted: it is off the rail but Layout still

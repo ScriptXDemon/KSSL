@@ -1,7 +1,8 @@
 import { useRef, useEffect, useMemo, useState } from "react";
-import { useAppState, PILLARS, PILLAR_LABEL } from "../../state/AppState";
+import { useAppState, PILLARS } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { searchDataset, SEARCH_MIN_CHARS } from "../../lib/search";
+import { pillarNavigationLabels } from "../../lib/uiHeader";
 
 /* The global search.
 
@@ -16,6 +17,7 @@ export default function TopBar() {
   const { pillar, setPillar, searchQuery, setSearchQuery, jumpTo } = useAppState();
   const { data } = useData();
   const clientLabel = data.client && (data.client.short || data.client.name);
+  const pillarLabels = pillarNavigationLabels(data);
   const [open, setOpen] = useState(false);
   const searchRef = useRef(null);
 
@@ -108,7 +110,7 @@ export default function TopBar() {
             }}
           >
             <span className="dot" />
-            {PILLAR_LABEL[p]}
+            {pillarLabels[p] || null}
           </div>
         ))}
       </div>
