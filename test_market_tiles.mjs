@@ -73,7 +73,7 @@ const raw = {
 
 const d = wireDataset(raw);
 const cfg = d.overviewConfig.market;
-const promoted = cfg.cards.filter((c) => c.id.startsWith("tender_"));
+const promoted = cfg.cards.filter((c) => c.id.startsWith("tender-"));
 if (promoted.length !== 3) fail(`expected 3 promoted open tenders, got ${promoted.length}`);
 
 // 1. shape

@@ -33,20 +33,6 @@ export function computeTenderRealDays(tender, referenceDate = new Date()) {
     };
   }
 
-  /* A real programme with a published STAGE (AoN cleared, RFI, FMS approved…)
-     shows the stage, not a manufactured countdown. Far dl keeps it sorted after
-     anything with a genuine closing date and out of the urgency bands. */
-  if (tender.stage) {
-    return {
-      dl: 365,
-      deadline: tender.stage,
-      timing: tender.stage,
-      status: "open",
-      class: "normal",
-      isLive: true,
-    };
-  }
-
   const now = new Date(referenceDate);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -54,14 +40,7 @@ export function computeTenderRealDays(tender, referenceDate = new Date()) {
   let closingStr = tender.closingDate || tender.dueDate || tender.closing_date;
 
   if (!closingStr && Array.isArray(tender.req)) {
-    const pair = tender.req.find(
-      (r) =>
-        r &&
-        r[0] &&
-        (r[0].toLowerCase().includes("closing date") ||
-          r[0].toLowerCase().includes("due date") ||
-          r[0].toLowerCase().includes("deadline"))
-    );
+    const pair = tender.req.find((r) => r && r[0] === "closing_date");
     if (pair && pair[1]) closingStr = pair[1];
   }
 
@@ -75,22 +54,6 @@ export function computeTenderRealDays(tender, referenceDate = new Date()) {
     if (!isNaN(parsed.getTime())) {
       targetDate = parsed;
     }
-  }
-
-  /* A stored dl offset is only meaningful relative to the date the record was
-     created. With no createdAt there is nothing to anchor it to — manufacturing a
-     countdown from an invented anchor date is exactly the lie this module exists
-     to prevent, so the record falls through to "no deadline on record" below. */
-  if (
-    !targetDate &&
-    tender.createdAt &&
-    typeof tender.dl === "number" &&
-    tender.dl > 0 &&
-    tender.dl < 1000
-  ) {
-    const baseDate = new Date(tender.createdAt);
-    if (!isNaN(baseDate.getTime()))
-      targetDate = new Date(baseDate.getTime() + tender.dl * 86400 * 1000);
   }
 
   if (targetDate && !isNaN(targetDate.getTime())) {
@@ -124,7 +87,7 @@ export function computeTenderRealDays(tender, referenceDate = new Date()) {
     };
   }
 
-  /* No createdAt and no resolvable date. Only an explicit "Closed" from the
+  /* No resolvable date. Only an explicit "Closed" from the
      source is treated as closed; otherwise this is an open tender whose deadline
      the record simply does not carry — say so instead of computing days from
      nothing. dl=9999 keeps it in the open bucket (dl<=0 reads as closed) and

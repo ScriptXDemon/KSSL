@@ -3,7 +3,7 @@
    scopedAnswer  — the per-panel bar. Answers ONLY about the item selected in that
                    panel, so it cannot drift into a different pillar's data.
    groundedAnswer— the floating cross-pillar assistant. Resolves a company, country
-                   or kVA band out of the question and answers from the whole corpus.
+                   or product category out of the question and answers from the whole corpus.
 
    Neither calls out to a model. Every sentence they return is assembled from fields
    that are on screen somewhere else, which is what makes them auditable. */
@@ -11,6 +11,7 @@ import { clientShort } from "./client.js";
 import { edgeVerdict } from "./edge.js";
 import { stripTags } from "./html.js";
 import { formatLabel } from "./profile.js";
+import { reqLabel } from "./tenderRow.js";
 
 const fmtList = (arr) => arr.filter(Boolean).map((x) => `• ${x}`).join("<br>");
 const clean = stripTags;
@@ -69,7 +70,7 @@ export function scopedAnswer(d, ctx, question) {
   if (T === "tender") {
     const t = ctx.data;
     if (has("require", "spec", "need", "criteria", "ask"))
-      return `<b>${t.title}</b> requires:<br>${t.req.map((r) => `• ${r[0]}: ${r[1]}`).join("<br>")}`;
+      return `<b>${t.title}</b> requires:<br>${t.req.map((r) => `• ${reqLabel(r[0])}: ${r[1]}`).join("<br>")}`;
     if (has("fit", "match", "kssl", "kssl", "product", "bid", "win", "chance"))
       return (
         `${clientName} match for this tender:<br>${t.matches.map((mt) => `• ${mt.n} - ${mt.pct} fit`).join("<br>")}` +

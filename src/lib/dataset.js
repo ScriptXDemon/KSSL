@@ -496,7 +496,7 @@ export function wireDataset(raw) {
 
       const details = { ...(d.details || {}) };
       const cards = shown.map((t, i) => {
-        const id = `tender_${t.id}`;
+        const id = `tender-${t.id}`;
         const live = hasValue(t);
         const isGo = t.lean === "go";
         const urgent = t.dl >= 1 && t.dl <= ATTENTION_DAYS;
@@ -538,7 +538,7 @@ export function wireDataset(raw) {
           // on `dir`, not in this word.
           rank: `LATEST TENDER · ${String(i + 1).padStart(2, "0")}`,
           /* The detail record must carry its own id: DetailPanel detects a tender by the
-             `tender_` prefix on detail.id (and then glances it through tenderFactRows and
+             `tender-` prefix on detail.id (and then glances it through tenderFactRows and
              drops the stance pill). Nothing else stamps it -- served details have no id
              field -- so without this the tender path never fired and every promoted
              tender opened as an "article" with a Favourable/Threat stance pill. */

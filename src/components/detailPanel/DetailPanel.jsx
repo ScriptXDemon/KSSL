@@ -37,8 +37,8 @@ export default function DetailPanel({ detail, onClose, badge }) {
      `detail.kind` cannot detect this. It is NULL on every served row in every lane, so
      this branch has never once been true and the tender path was dead code. The id
      prefix is what the writer actually sets. */
-  const tenderId = /^tender_/.test(String(detail.id || ""))
-    ? String(detail.id).replace(/^tender_/, "")
+  const tenderId = /^tender-/.test(String(detail.id || ""))
+    ? String(detail.id).replace(/^tender-/, "")
     : null;
   const tenderRec = tenderId
     ? (data.tenders || []).find((t) => String(t.id) === tenderId) || null

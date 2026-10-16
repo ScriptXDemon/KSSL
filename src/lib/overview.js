@@ -3,7 +3,7 @@ import { globalRequirements } from "./globalRequirements.js";
 /* Overview feed: the sequence logic, the group split, and the per-pillar metric
    strip. Pure — it returns data, and the React components render it. */
 import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
-import { isTender, isProject } from "./tenderIntel.js";
+import { cockpit } from "./tenderIntel.js";
 
 export const SEQ_LABEL = {
   recency: "Most Recent First",
@@ -774,9 +774,8 @@ export function navCounts(d, gapModel) {
        lane here put a 141 on a feed that shows the shortlist. */
     /* The Market overview is the tender tables now (Top tenders, Projects): its badge counts their rows. The signal
        cards moved to Global Requirements, whose badge counts them. */
-    const ranked = (d.tenders || []).filter((t) => t.rank && t.clientFit !== "weak");
-    counts["m-overview"] =
-      Math.min(10, ranked.filter((t) => isTender(t)).length) + Math.min(8, ranked.filter((t) => isProject(t)).length);
+    const stored = cockpit(d);
+    counts["m-overview"] = stored.tenders.length + stored.projects.length;   // the rows the two stored tables list
     counts["global-requirement"] = globalRequirements(d).length;   // the rows the page lists
     counts["m-report"] = (d.tenders || []).length;
     counts.tender = open.length;

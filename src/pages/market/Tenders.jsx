@@ -9,7 +9,7 @@ import { productOwner } from "../../lib/productLink";
 import { srcChips } from "../../lib/html";
 import { formatLabel, smartTitleCase } from "../../lib/profile";
 import { facetOptions } from "../../lib/countryFacet";
-import { NOT_ON_RECORD, resolveTenderRow, tenderFactRows } from "../../lib/tenderRow";
+import { NOT_ON_RECORD, reqLabel, resolveTenderRow, tenderFactRows } from "../../lib/tenderRow";
 
 const fitClass = (p) => {
   const n = parseInt(p, 10);
@@ -263,7 +263,7 @@ export default function Tenders({ mode = "tender" }) {
         rows: [["Title", t.title], ...factRows(t).map(([k, v]) => [k, v])],
       });
       if (has(t.reqNote)) sections.push({ h: "Requirement", rows: [t.reqNote] });
-      if (Array.isArray(t.req) && t.req.length) sections.push({ h: "Requirements", rows: t.req });
+      if (Array.isArray(t.req) && t.req.length) sections.push({ h: "Requirements", rows: t.req.map((r) => [reqLabel(r[0]), r[1]]) });
       if (Array.isArray(t.matches) && t.matches.length) {
         sections.push({
           h: `${clientName} match`,
@@ -555,7 +555,7 @@ export default function Tenders({ mode = "tender" }) {
                   ) : null}
                   {(t.req || []).map((r, i) => (
                     <div className="kv" key={`${r[0]}-${i}`}>
-                      <span className="k">{r[0]}</span>
+                      <span className="k">{reqLabel(r[0])}</span>
                       <span className="v" dangerouslySetInnerHTML={{ __html: r[1] }} />
                     </div>
                   ))}

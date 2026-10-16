@@ -34,7 +34,7 @@ const src = readFileSync("./src/components/detailPanel/DetailPanel.jsx", "utf8")
 
 // ---- 1. the panel recognises a tender by its id, not by `kind` -------------------
 ck("a tender is detected from the id prefix, not detail.kind alone", true,
-   /\/\^tender_\/\.test\(/.test(src));
+   /\/\^tender-\/\.test\(/.test(src));
 ck("...and kind is still honoured if it is ever populated", true,
    /detail\.kind === "tender" \|\|/.test(src));
 ck("the tender record is looked up on the dataset", true,

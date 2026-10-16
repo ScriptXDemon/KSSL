@@ -44,32 +44,48 @@ export const TENDER_PARAMS = [
   { key: "source", label: "Source" },
 ];
 
+/* Requirement rows are [code, value]. The code is the source column name; the words below are neutral chrome for
+   those columns. A code not listed here is a stored scope_bullet_label and prints as stored. */
+const REQ_CODE_LABEL = {
+  description: "Description",
+  scope_text: "Scope",
+  requirement_note: "Note",
+  equipment_scope: "Equipment",
+  rating_band: "Rating band",
+  use_case: "Use case",
+  quantity: "Quantity",
+  category_text: "Category",
+  source_text: "Source",
+  published_date: "Published",
+  closing_date: "Closing date",
+};
+export const reqLabel = (code) => (Object.prototype.hasOwnProperty.call(REQ_CODE_LABEL, code) ? REQ_CODE_LABEL[code] : code);
+
 /* "n/d" is the pipeline's placeholder for a figure the notice never published (value
    is stored as "n/d" on every such row) -- it is absence, not a value to print. */
 const has = (v) => v != null && String(v).trim() !== "" && !/^n\/?d$/i.test(String(v).trim());
 const str = (v) => String(v).trim();
 
-/* A requirement row whose LABEL matches -- the reference rows carry [label, value]
-   pairs like ["Closing date", "12 Mar 2027"]. The pipeline rows carry none (0/136),
-   so this link is documented and tested but idle in production today. */
-const reqRow = (t, re) => {
+/* A requirement row by its CODE. The dataset ships requirement rows as [code, value]: the code is the source
+   column name (description, scope_text, quantity, published_date, closing_date, ...) or a stored
+   scope_bullet_label. Only the codes below are read here, by exact match. */
+const reqRow = (t, code) => {
   if (!t || !Array.isArray(t.req)) return null;
-  const pair = t.req.find((r) => Array.isArray(r) && has(r[0]) && re.test(str(r[0])) && has(r[1]));
+  const pair = t.req.find((r) => Array.isArray(r) && r[0] === code && has(r[1]));
   return pair ? str(pair[1]) : null;
 };
 
 /* wireTendersWithRealDays overwrites `deadline` with a countdown and keeps the served
    string on `closingDate`. Before wiring there is no closingDate key and `deadline` IS
    the served string. Read whichever holds the record, and refuse anything that is a
-   computation: a countdown, the "no deadline on record" placeholder, or the stage text
-   the wiring copies into the deadline slot. */
+   computation: a countdown, the "no deadline on record" placeholder, or the milestone text. */
 const COMPUTED_DEADLINE = /days?\s+left|closes in|no deadline on record|closed \/ expired|awarded \/ settled/i;
 const servedDeadline = (t) => {
   if (Object.prototype.hasOwnProperty.call(t, "closingDate")) return has(t.closingDate) ? str(t.closingDate) : null;
   if (!has(t.deadline)) return null;
   const d = str(t.deadline);
   if (COMPUTED_DEADLINE.test(d)) return null;
-  if (has(t.stage) && d === str(t.stage)) return null;
+  if (has(t.milestone) && d === str(t.milestone)) return null;
   return d;
 };
 
@@ -87,34 +103,24 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
    date has passed", which tenderCalc already makes and the Closed tab already relies on.
    The chain order is the documentation. */
 const RESOLVE = {
-  buyer: (t) =>
-    has(t.issuer) ? { value: str(t.issuer), from: "issuer" }
-    : first(reqRow(t, /buyer|issuer|contracting authority|purchaser|procuring/i), "req"),
-  country: (t) =>
-    has(t.country) ? { value: str(t.country), from: "country" }
-    : first(reqRow(t, /^country/i), "req"),
+  buyer: (t) => (has(t.issuer) ? { value: str(t.issuer), from: "issuer" } : none()),
+  country: (t) => (has(t.country) ? { value: str(t.country), from: "country" } : none()),
   category: (t) => (has(t.cat) ? { value: str(t.cat), from: "cat" } : none()),
-  value: (t) =>
-    has(t.value) ? { value: str(t.value), from: "value" }
-    : first(reqRow(t, /value|budget|estimated cost/i), "req"),
+  value: (t) => (has(t.value) ? { value: str(t.value), from: "value" } : none()),
   quantity: (t) =>
     has(t.qty) ? { value: str(t.qty), from: "qty" }
-    : first(reqRow(t, /quantity|qty/i), "req"),
+    : first(reqRow(t, "quantity"), "req"),
   posted: (t) => {
     if (has(t.posted)) return { value: formatDate(str(t.posted)), from: "posted" };
-    // Anchored at the label start: the reference rows also carry
-    // ["Title, as published", "Vane,Large"], and an unanchored /published/ matched
-    // it -- printing the raw title in the Published (date) slot. A publication-date
-    // label BEGINS with published/posted, never "Title, as ...".
-    const r = reqRow(t, /^(date\s+)?(published|posted)\b|^publication date/i);
+    const r = reqRow(t, "published_date");
     return r ? { value: formatDate(r), from: "req" } : none();
   },
   closing: (t) => {
     const d = servedDeadline(t);
     if (d) return { value: formatDate(d), from: "deadline" };
-    const r = reqRow(t, /closing date|due date|deadline|submission/i);
+    const r = reqRow(t, "closing_date");
     if (r) return { value: formatDate(r), from: "req" };
-    if (has(t.stage)) return { value: str(t.stage), from: "stage" };
+    if (has(t.milestone)) return { value: str(t.milestone), from: "milestone" };
     return none();
   },
   status: (t) => {

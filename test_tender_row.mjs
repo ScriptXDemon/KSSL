@@ -96,35 +96,36 @@ const WANT_KEYS = ["buyer", "country", "category", "value", "quantity", "posted"
 /* ---------------------------------------------------- 3. fallback chain ---- */
 const pick = (t, key) => resolveTenderRow(t).params.find((p) => p.key === key);
 {
-  /* buyer: issuer, else a req row that names the buying authority */
+  /* buyer, country, value: the stored field only -- requirement rows are [code, value] and no code names them */
   let p = pick(tender("b1", { issuer: "Direct Buyer", req: [["Buyer", "Req Buyer"]] }), "buyer");
   if (p.value !== "Direct Buyer" || p.from !== "issuer") fail(`buyer: issuer should win, got ${JSON.stringify(p)}`);
   p = pick(tender("b2", { req: [["Contracting authority", "Req Buyer"]] }), "buyer");
-  if (p.value !== "Req Buyer" || p.from !== "req") fail(`buyer: req fallback, got ${JSON.stringify(p)}`);
-  else ok("buyer: issuer, then the requirement row naming the authority");
+  if (p.value !== null) fail(`buyer: a requirement row is not a buyer, got ${JSON.stringify(p)}`);
+  else ok("buyer: the stored issuer, nothing guessed from a requirement label");
 
-  /* country and category */
   p = pick(tender("c1", { req: [["Country", "Norway"]] }), "country");
-  if (p.value !== "Norway" || p.from !== "req") fail(`country: req fallback, got ${JSON.stringify(p)}`);
+  if (p.value !== null) fail(`country: a requirement row is not a country, got ${JSON.stringify(p)}`);
   p = pick(tender("c2", { cat: "Ammunition" }), "category");
   if (p.value !== "Ammunition" || p.from !== "cat") fail(`category: cat, got ${JSON.stringify(p)}`);
-  else ok("country: country, then req; category: cat");
+  else ok("country: the stored country; category: cat");
 
   /* value and quantity */
   p = pick(tender("v1", { value: "EUR 1m", req: [["Estimated value", "EUR 9m"]] }), "value");
   if (p.value !== "EUR 1m" || p.from !== "value") fail(`value: stored value should win, got ${JSON.stringify(p)}`);
   p = pick(tender("v2", { req: [["Estimated value", "EUR 9m"]] }), "value");
-  if (p.value !== "EUR 9m" || p.from !== "req") fail(`value: req fallback, got ${JSON.stringify(p)}`);
-  p = pick(tender("q1", { req: [["Quantity", "12 units"]] }), "quantity");
-  if (p.value !== "12 units" || p.from !== "req") fail(`quantity: req fallback, got ${JSON.stringify(p)}`);
-  else ok("value: value, then req; quantity: qty, then req");
+  if (p.value !== null) fail(`value: a requirement row is not a value, got ${JSON.stringify(p)}`);
+  p = pick(tender("q1", { req: [["quantity", "12 units"]] }), "quantity");
+  if (p.value !== "12 units" || p.from !== "req") fail(`quantity: code fallback, got ${JSON.stringify(p)}`);
+  p = pick(tender("q2", { qty: "5 sets", req: [["quantity", "12 units"]] }), "quantity");
+  if (p.value !== "5 sets" || p.from !== "qty") fail(`quantity: stored qty should win, got ${JSON.stringify(p)}`);
+  else ok("value: the stored value; quantity: qty, then the quantity code");
 
   /* published: the stored posted date, then a req row naming it */
   p = pick(tender("pub1", { posted: "2026-08-15" }), "posted");
   if (p.value !== "15 Aug 2026" || p.from !== "posted") fail(`posted: stored date, got ${JSON.stringify(p)}`);
-  p = pick(tender("pub2", { req: [["Publication date", "1 Sep 2026"]] }), "posted");
+  p = pick(tender("pub2", { req: [["published_date", "1 Sep 2026"]] }), "posted");
   if (p.value !== "01 Sep 2026" || p.from !== "req") fail(`posted: req fallback, got ${JSON.stringify(p)}`);
-  else ok("published: stored posted date, then req");
+  else ok("published: stored posted date, then the published_date code");
 
   /* closing date: served deadline (as closingDate after wiring), then req, then stage;
      one formatter; a computed countdown is NEVER a source */
@@ -138,14 +139,14 @@ const pick = (t, key) => resolveTenderRow(t).params.find((p) => p.key === key);
   if (p.value !== null) fail(`closing: a wired record with no served date resolved to ${JSON.stringify(p.value)} -- that is the computed placeholder, not a record`);
   p = pick(tender("d4", { deadline: "12 days left" }), "closing");
   if (p.value !== null) fail(`closing: a baked countdown was accepted as a date: ${JSON.stringify(p)}`);
-  p = pick(tender("d5", { req: [["Closing date", "1 Sep 2031"]] }), "closing");
+  p = pick(tender("d5", { req: [["closing_date", "1 Sep 2031"]] }), "closing");
   // the one formatter zero-pads the day, so "1 Sep" comes back "01 Sep"
   if (p.value !== "01 Sep 2031" || p.from !== "req") fail(`closing: req fallback, got ${JSON.stringify(p)}`);
-  p = pick(tender("d6", { stage: "AoN cleared" }), "closing");
-  if (p.value !== "AoN cleared" || p.from !== "stage") fail(`closing: stage fallback, got ${JSON.stringify(p)}`);
+  p = pick(tender("d6", { milestone: "AoN cleared" }), "closing");
+  if (p.value !== "AoN cleared" || p.from !== "milestone") fail(`closing: milestone fallback, got ${JSON.stringify(p)}`);
   p = pick(tender("d7", { deadline: "01 Sept 2031" }), "closing");
   if (p.value !== "01 Sep 2031") fail(`closing: not through the one formatter, got ${JSON.stringify(p.value)}`);
-  else ok("closing: served deadline (through formatDate), then req, then stage; countdowns refused");
+  else ok("closing: served deadline (through formatDate), then the closing_date code, then the milestone; countdowns refused");
 
   /* status: awarded (status or urlKind), closed (status, or a served date now passed),
      else the stored status word */
@@ -276,10 +277,10 @@ else ok("rendered: a one-word title is surrounded by the buyer, country and cate
     fail(`posted grabbed the "Title, as published" row: got ${JSON.stringify(posted.text)}`);
   else ok('posted ignores the "Title, as published" requirement row');
   // A genuine publication-date row still resolves.
-  const t2 = tender("pd", { req: [["Publication date", "1 Sep 2026"]] });
+  const t2 = tender("pd", { req: [["published_date", "1 Sep 2026"]] });
   const p2 = resolveTenderRow(t2).params.find((p) => p.key === "posted");
   if (p2.text !== "01 Sep 2026") fail(`publication date row lost: ${JSON.stringify(p2.text)}`);
-  else ok("a real Publication date row still resolves");
+  else ok("a published_date code row still resolves");
 }
 
 /* --------------------------------- gist + summary are grounded readable ---- */

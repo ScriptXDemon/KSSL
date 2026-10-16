@@ -163,12 +163,26 @@ export default function Overview({
   };
 
   /* A Top-tenders / Projects / Next-moves row opens its detail here, beside the table, instead of
-     leaving for the Tender Pipeline. */
-  const openTender = (t) =>
-    select(`tender_${t.id}`, {
-      id: `tender_${t.id}`, dir: "watch", title: t.title, facts: [], summary: "", what: "", why: "",
+     leaving for the Tender Pipeline. A tender row passes the tender; a project row (no tender is
+     issued yet) passes the stored project row, whose facts are its own stored fields. */
+  const openTender = (t, project) => {
+    if (project) {
+      const id = `project-${project.opportunityId}`;
+      const upd = Array.isArray(project.updates) ? project.updates : [];
+      const src = Array.isArray(project.sources) ? project.sources : [];
+      return select(id, {
+        id, dir: "watch", title: project.title,
+        facts: [["Issuer", project.issuer], ["Country", project.country], ["Stage", project.stage]]
+          .filter((f) => f[1] != null && String(f[1]).trim() !== ""),
+        summary: (upd[0] && upd[0].narrative) || "", what: "", why: "",
+        lens: "Market", actions: [], match: null, url: (src[0] && src[0].url) || null,
+      });
+    }
+    return select(`tender-${t.id}`, {
+      id: `tender-${t.id}`, dir: "watch", title: t.title, facts: [], summary: "", what: "", why: "",
       lens: "Market", actions: [], match: t.matches || null, url: t.url,
     });
+  };
 
   /* Opened from global search targeting a specific signal card. The payload is taken
      under THIS pillar's overview view -- it asked for the literal "overview", which is

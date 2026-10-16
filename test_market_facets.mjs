@@ -72,12 +72,12 @@ const ids = cards.map((c) => c.id);
 if (new Set(ids).size !== ids.length) fail("a tender was promoted twice");
 
 // 3. concluded tenders are NOT promoted
-for (const gone of ["tender_t-awarded", "tender_t-closed"]) {
+for (const gone of ["tender-t-awarded", "tender-t-closed"]) {
   if (ids.includes(gone)) fail(`${gone} was promoted -- concluded tenders must not be`);
 }
 
 // 4. every promoted card has a detail, with the tender's real fields
-for (const c of cards.filter((x) => x.id.startsWith("tender_"))) {
+for (const c of cards.filter((x) => x.id.startsWith("tender-"))) {
   const det = (d.details || {})[c.id];
   if (!det) { fail(`${c.id} has no detail -- its drawer would open empty`); continue; }
   if (det.dir !== c.dir) fail(`${c.id} detail dir disagrees with the card`);
@@ -97,8 +97,8 @@ if (by("watch").length !== 2) fail(`the 2 demand cards should be intact, got ${b
 // and the curated Perceived Opportunities (the demand/geopolitical watch lane, no tender
 // required). d.marketCards still carries the whole news lane for search.
 const served = ((d.overviewConfig || {}).market || {}).cards || [];
-const promotedCards = cards.filter((c) => c.id.startsWith("tender_"));
-const tenderServed = served.filter((c) => c.id.startsWith("tender_"));
+const promotedCards = cards.filter((c) => c.id.startsWith("tender-"));
+const tenderServed = served.filter((c) => c.id.startsWith("tender-"));
 if (tenderServed.length !== promotedCards.length)
   fail(`the Latest Tenders stream has ${tenderServed.length}, expected the ${promotedCards.length} promoted tenders`);
 const oppServed = served.filter((c) => c.dir === "watch");

@@ -279,10 +279,10 @@ for (const [which, want] of [["country", WANT.openTenderCountries], ["cat", WANT
 {
   const DATE = /^\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/;
   /* the promoted tender cards in the market feed: the date slot and the Closing fact */
-  const cards = (data.marketCards || []).filter((c) => c.id.startsWith("tender_"));
+  const cards = (data.marketCards || []).filter((c) => c.id.startsWith("tender-"));
   if (!cards.length) fail("no tender was promoted into the market feed");
   for (const c of cards) {
-    const t = data.tenders.find((x) => `tender_${x.id}` === c.id);
+    const t = data.tenders.find((x) => `tender-${x.id}` === c.id);
     const det = data.details[c.id] || {};
     const closing = (det.facts || []).find((f) => f[0] === "Closing");
     if (t.closingDate) {

@@ -1,4 +1,4 @@
-import { globalRequirements, isGlobalCard } from "../../lib/globalRequirements";
+import { globalRequirements, globalCardFilter } from "../../lib/globalRequirements";
 import { useEffect, useMemo, useState } from "react";
 import ErrorBoundary from "../ErrorBoundary";
 import TopBar from "../topBar/TopBar";
@@ -45,6 +45,7 @@ const pageStore = () => {
 export default function Layout() {
   const { pillar, view, chatCtx, setChatCtx, jumpTo } = useAppState();
   const { data, viewMeta } = useData();
+  const isGlobalCard = useMemo(() => globalCardFilter(data), [data]);
 
   /* Overview state lives here because two pieces of chrome above the feed depend on
      it: the subhead's filter row and the shell's third column, which collapses when
