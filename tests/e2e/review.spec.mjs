@@ -44,7 +44,7 @@ const open = async (page, base, pillar, view) => {
 test.describe("live build", () => {
   for (const [pillar, view, sel] of [
     ["competitive", "overview", ".alert"],
-    ["competitive", "products", ".product-card"],
+    ["competitive", "products", ".pat-li"],
     ["competitive", "positioning", ".mu-item"],
     ["market", "tender", ".tcard"],
   ]) {
@@ -72,7 +72,7 @@ test.describe("review build", () => {
   const CARDS = [
     ["competitive", "overview", ".alert"],
     ["competitive", "threat-analysis", ".cm-row"],
-    ["competitive", "products", ".pat-li"],
+    ["competitive", "products", ".product-card"],
     ["competitive", "positioning", ".mu-item"],
     ["competitive", "projects", ".alert"],
     ["market", "m-overview", "section.ti-simple tr.ti-row-link"],
