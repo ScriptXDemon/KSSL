@@ -52,3 +52,13 @@ if (bad.length) {
   process.exit(1);
 }
 console.log(`ok - signalDate, ${ok.length} cases (card and panel cannot disagree)`);
+
+/* a stored ISO day reads in the house style, on the card and in the panel alike */
+{
+  const iso = signalDate({ id: "x", ago: "2026-10-11" }, { details: {} });
+  if (iso !== "11 Oct 2026") { console.log(`  FAIL ISO ago reads "${iso}", want "11 Oct 2026"`); process.exitCode = 1; }
+  else console.log('  ok   an ISO ago reads "11 Oct 2026"');
+  const fact = signalDate({ id: "y", ago: "" }, { details: { y: { facts: [["Date", "2026-09-03"]] } } });
+  if (fact !== "03 Sep 2026") { console.log(`  FAIL ISO Date fact reads "${fact}"`); process.exitCode = 1; }
+  else console.log('  ok   an ISO Date fact reads "03 Sep 2026"');
+}

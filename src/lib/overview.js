@@ -219,7 +219,15 @@ export function signalDate(card, data) {
   for (const row of facts) {
     if (Array.isArray(row) && row[0] === "Date" && row[1]) { raw = String(row[1]); break; }
   }
-  const ago = (card && card.ago) || "";
+  /* a stored ISO day ("2026-10-11") is written in the house style ("11 Oct 2026"), like every other date on screen;
+     inline for the same reason as the padding below */
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const house = (v) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:$|[T\s])/.exec(String(v || ""));
+    return m && MON[Number(m[2]) - 1] ? `${m[3]} ${MON[Number(m[2]) - 1]} ${m[1]}` : String(v || "");
+  };
+  raw = house(raw);
+  const ago = house((card && card.ago) || "");
   if (!raw) raw = ago;
   /* THE VALUE WITH A DAY WINS. The facts "Date" is normally the richer field, but a
      few rows carry it month-only ("Sep 2026") while `ago` was upgraded to the exact day
