@@ -8,8 +8,6 @@ import { formatDate } from "../../utils/formatDate";
 import Thumb from "../../components/thumb/Thumb.jsx";
 import { sourceHref } from "../../components/sourceLink/SourceLink.jsx";
 import { srcChips } from "../../lib/html";
-import { countryFact } from "../../lib/signalCountry";
-import { NEWS_LENSES } from "../../lib/newsLenses";
 
 /* Competitor Moment: what each tracked competitor has just done, newest first, with what it
    means for the client. Every row is one dated, sourced move from `competitorNews` (the same
@@ -43,7 +41,7 @@ export default function ThreatAnalysis() {
     const news = (data && data.competitorNews) || {};
     return (data && data.competitors ? rosterOf(data) : [])
       .map((r) => {
-        const name = competitorFullName(r.cid, r.name) || r.name || r.cid;
+        const name = competitorFullName(r.cid, r.name, data.competitors) || r.name || r.cid;
         const moves = (news[r.cid] || []).map((m) => ({ ...m, cid: r.cid, company: name }));
         return { cid: r.cid, name, threat: r.threat, moves };
       });
@@ -186,7 +184,7 @@ export default function ThreatAnalysis() {
                   <Thumb src={m.image} alt="" className="cm-img" caption={m.source || "No image published"} />
                   <div className="cm-when">
                     <b>{formatDate(m.date)}</b>
-                    {[m.category, (countryFact(m.card, m.country) || [])[1]].filter(Boolean).join(" · ")}
+                    {[m.category, m.country].filter(Boolean).join(" · ")}
                   </div>
                 </div>
                 <div className="cm-main">
@@ -216,7 +214,7 @@ export default function ThreatAnalysis() {
       </div>
       {open ? (() => {
         const [meaning] = String(open.analysis || "").split(/\s*Action:\s*/);
-        const lenses = NEWS_LENSES[open.card] || null;
+        const lenses = Array.isArray(open.lenses) && open.lenses.length ? open.lenses : null;
         const dir = DIR[open.level] || "watch";
         const chips = srcChips(sourceHref(open.url) ? [{ label: open.source || "Source", url: open.url }] : null);
         return (
@@ -237,7 +235,7 @@ export default function ThreatAnalysis() {
               <div className="ctx-sec">
                 <span className="eyebrow">At a glance</span>
                 <div className="cd-facts">
-                  {[["Company", open.company], ["Date", formatDate(open.date)], ["Category", open.category], countryFact(open.card, open.country), ["Source", open.source]]
+                  {[["Company", open.company], ["Date", formatDate(open.date)], ["Category", open.category], ["Country", open.country], ["Source", open.source]]
                     .filter((f) => f && f[1])
                     .map(([k, v]) => (
                       <div className="cd-frow" key={k}>
@@ -257,7 +255,7 @@ export default function ThreatAnalysis() {
               {lenses ? (
                 <div className="ctx-sec">
                   <span className="eyebrow">Deeper analysis · by view</span>
-                  {lenses.lenses.map((l) => (
+                  {lenses.map((l) => (
                     <div key={l.view} style={{ marginTop: "16px" }}>
                       <div style={{ display: "block", width: "100%", fontFamily: "var(--mono)", fontSize: "11px", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--l-txt-2)", margin: "0 0 5px" }}>{l.view}</div>
                       <div className="cd-prose">{l.text}</div>

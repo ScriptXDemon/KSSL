@@ -1,53 +1,33 @@
-/* Check for the serve-time partner identity: junk gate + canonicaliser. Run: node this file. */
+/* Serve-time partner identity: the canonicaliser only. The junk gate, the demonym map and the
+   company aliases are gone: what the database stores is what is shown (MAPPING B, ruling R6). */
 import assert from "node:assert/strict";
-import { isJunkPartner, orgKey, canonicalizeLabels } from "./orgident.js";
+import fs from "node:fs";
+import { orgKey, canonicalizeLabels } from "./orgident.js";
+import * as orgident from "./orgident.js";
 
-// ---- junk gate (§4) ----
-const JUNK = [
-  "1,400 Australian companies", "70 SMEs", "75 British aerospace SMEs", "over 200 suppliers",
-  "several suppliers", "dozens of firms", "30 global companies", "Australian SMEs",
-  "companies", "suppliers", "India", "United Kingdom", "Europe", "MoD", "UK MoD",
-  "Indian Army", "Ministry of Defence", "the unnamed organization likely a technology developer working on the drone",
-];
-JUNK.forEach((l) => assert.equal(isJunkPartner(l), true, `should be junk: ${l}`));
+const src = fs.readFileSync(new URL("./orgident.js", import.meta.url), "utf8");
+assert.ok(!("isJunkPartner" in orgident), "isJunkPartner is gone");
+assert.ok(!/const (NATIONAL|ALIASES|COLLECTIVE|PLACES|FORCE_RX|QTY_RX|VAGUE_RX)\b/.test(src), "no word lists about places, forces or companies");
+assert.ok(!/Hindustan|Hanwha|Rafael/.test(src), "no hand-typed company aliases");
 
-const REAL = [
-  "Lockheed Martin", "Saab", "Rafael Advanced Defense Systems", "IAI", "BAE Systems",
-  "Sea Box International", "Thales", "General Dynamics", "Naval Group", "Elbit Systems",
-  "Turkish Aerospace Industries", "PLR Systems",
-];
-REAL.forEach((l) => assert.equal(isJunkPartner(l), false, `should be real: ${l}`));
-
-// ---- canonical key: national qualifier + legal suffix fold to one identity ----
-assert.equal(orgKey("Lockheed Martin Australia"), orgKey("Lockheed Martin"));
-assert.equal(orgKey("Saab Australia"), orgKey("Saab AB"));
+// ---- canonical key: legal suffix folds to one identity ----
 assert.equal(orgKey("Saab AB"), orgKey("Saab"));
-assert.equal(orgKey("Rafael Advanced Defence Systems"), orgKey("Rafael"));
+assert.equal(orgKey("Acme Works Ltd"), orgKey("Acme Works"));
 // distinct firms stay distinct
 assert.notEqual(orgKey("Israel Aerospace Industries"), orgKey("Israel Weapon Industries"));
 assert.notEqual(orgKey("General Dynamics"), orgKey("General Atomics"));
 assert.notEqual(orgKey("Lockheed Martin"), orgKey("Martin-Baker"));
-// a place must not be a valid identity fold target
-assert.notEqual(orgKey("Israel Aerospace Industries"), orgKey("Israel"));
+// no alias table: the short and long spelling are two names unless one contains the other's distinctive tokens
+assert.notEqual(orgKey("Rafael Advanced Defence Systems"), orgKey("Rafael"));
 
-// ---- containment merge + country attributes ----
+// ---- containment merge ----
 {
-  const labels = [
-    "Lockheed Martin", "Lockheed Martin Australia", "Lockheed Martin UK",
-    "Lockheed Martin Skunk Works", "Saab", "Saab Australia", "Israel Weapon Industries",
-  ];
-  const { keyOf, canon } = canonicalizeLabels(labels);
+  const labels = ["Lockheed Martin", "Lockheed Martin Skunk Works", "Saab", "Israel Weapon Industries"];
+  const { keyOf } = canonicalizeLabels(labels);
   const lm = keyOf("Lockheed Martin");
-  assert.equal(keyOf("Lockheed Martin Australia"), lm);
-  assert.equal(keyOf("Lockheed Martin UK"), lm);
   assert.equal(keyOf("Lockheed Martin Skunk Works"), lm, "Skunk Works folds into Lockheed Martin");
-  assert.deepEqual(canon[lm].countries, ["Australia", "United Kingdom"]);
-  assert.equal(canon[lm].name, "Lockheed Martin");
-  assert.equal(keyOf("Saab Australia"), keyOf("Saab"));
   assert.notEqual(keyOf("Israel Weapon Industries"), lm);
-  // count of distinct companies from 7 labels: Lockheed Martin, Saab, Israel Weapon Industries = 3
-  const distinct = new Set(labels.map(keyOf));
-  assert.equal(distinct.size, 3, `expected 3 distinct, got ${distinct.size}`);
+  assert.equal(new Set(labels.map(keyOf)).size, 3);
 }
 
 console.log("orgident: all assertions passed");

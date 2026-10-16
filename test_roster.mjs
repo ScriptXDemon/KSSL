@@ -1,6 +1,7 @@
-/* The competitive views show the static 45-rival roster, in roster order, and nothing a
- * served row carried is lost by the filter (it runs after the duplicate merge). */
-import { applyRoster, ROSTER, sortCompaniesByName } from "./src/lib/roster.js";
+/* The roster is every competitor row the dataset carries; this module only sorts. */
+import fs from "node:fs";
+import * as roster from "./src/lib/roster.js";
+import { sortCompaniesByName } from "./src/lib/roster.js";
 
 let fail = 0;
 const ck = (name, ok, d) => {
@@ -8,31 +9,9 @@ const ck = (name, ok, d) => {
   if (!ok) fail++;
 };
 
-ck("the roster names 45 companies", ROSTER.length === 45, ROSTER.length);
-ck("no id is listed under two companies", new Set(ROSTER.flat()).size === ROSTER.flat().length);
-
-const d = applyRoster({
-  competitors: {
-    "mahindra-defence": { name: "Mahindra Defence" },
-    rheinmetall: { name: "Rheinmetall", products: ["Skyranger 30"] },
-    kalashnikov: { name: "Kalashnikov" },
-    "elbit-systems": { name: "Elbit Systems" },
-    kssl: { name: "KSSL", dir: "client" },
-  },
-  compOrder: ["kssl", "mahindra-defence", "rheinmetall", "elbit-systems", "kalashnikov"],
-  geoComps: [{ id: "mahindra-defence" }, { id: "rheinmetall" }],
-  competitorNews: { rheinmetall: [1] },
-});
-ck("a served row off the roster is not a competitor", !d.competitors["mahindra-defence"]);
-ck("roster order, client first", JSON.stringify(d.compOrder) === JSON.stringify(["kssl", "kalashnikov", "rheinmetall", "elbit-systems"]), d.compOrder);
-ck("an alias id is kept (elbit-systems when elbit is absent)", !!d.competitors["elbit-systems"]);
-ck("a kept row is untouched", d.competitors.rheinmetall.products[0] === "Skyranger 30");
-ck("geo picker follows the roster", d.geoComps.length === 1 && d.geoComps[0].id === "rheinmetall");
-ck("other stores pass through", d.competitorNews.rheinmetall.length === 1);
-ck("an unserved roster company gets no invented row", !d.competitors.leonardo);
-ck("no competitors -> unchanged", applyRoster({ x: 1 }).x === 1);
-const foreign = { competitors: { "acme-defence": { name: "Acme" } }, compOrder: ["acme-defence"] };
-ck("a dataset with no roster company passes through", applyRoster(foreign) === foreign);
+ck("the hardcoded ROSTER and applyRoster are gone", !("ROSTER" in roster) && !("applyRoster" in roster));
+ck("roster.js carries no company id list", !/rheinmetall|kalashnikov/i.test(fs.readFileSync("./src/lib/roster.js", "utf8")));
+ck("the duplicate-merge module is gone", !fs.existsSync("./src/lib/dedupeCompanies.js"));
 
 const s = sortCompaniesByName({
   competitors: {

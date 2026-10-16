@@ -17,7 +17,7 @@ import Thumb from "../../components/thumb/Thumb.jsx";
    whole-row link. */
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
 import { tickerFor, notListedNote } from "../../lib/tickers";
-import { detailLine, listLine, competitorFullName } from "../../lib/companyNames";
+import { competitorFullName } from "../../lib/companyNames";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
    persisted to localStorage, which survives the tab, the browser and the machine's
    next reboot -- so a company opened once was still the landing selection weeks
@@ -457,11 +457,11 @@ export default function Profile() {
       if (country !== "all" && (r.origin || UNKNOWN_ORIGIN) !== country) return false;
       if (revenue !== "all" && r.revenueTier !== revenue) return false;
       if (!tokens.length) return true;
-      const fn = competitorFullName(r.cid, r.name);
+      const fn = competitorFullName(r.cid, r.name, data.competitors);
       const fullText = `${r.name || ""} ${fn || ""} ${r.sector || ""} ${r.hq || ""} ${r.cid || ""}`.toLowerCase();
       return tokens.every((tok) => fullText.includes(tok));
     });
-  }, [roster, query, searchQuery, country, revenue]);
+  }, [data, roster, query, searchQuery, country, revenue]);
   const revenueOpts = useMemo(() => revenueOptions(roster), [roster]);
 
   const p = useMemo(() => (cid ? buildProfile(data, cid) : null), [data, cid]);
@@ -472,7 +472,7 @@ export default function Profile() {
   };
   const strengths = swList("strengths");
   const weaknesses = swList("weaknesses");
-  const displayName = p ? competitorFullName(p.cid, p.name) : "";
+  const displayName = p ? competitorFullName(p.cid, p.name, data.competitors) : "";
 
   /* LIVE company pulse -- trending headlines (Google News) and a stock quote (Yahoo),
      fetched server-side via /api/pulse. Same-origin, so no CSP issue; null-safe so a
@@ -644,8 +644,6 @@ export default function Profile() {
     if (!p) return null;
     const details = companyMeta
       ? [
-          /* the exported profile must say what the panel says */
-          ...(detailLine(cid, p.name) && detailLine(cid, p.name) !== displayName ? [["Entity note", detailLine(cid, p.name)]] : []),
           ["Starting year", companyMeta.founded],
           ["Headquarters", companyMeta.hq],
           ["Global locations", companyMeta.globalLocs],
@@ -789,7 +787,7 @@ export default function Profile() {
               <span className="pli-n" style={{ display: "flex", alignItems: "center", gap: "8px", whiteSpace: "normal" }}>
                 <span className={`wdot ${r.threat === "high" ? "threat" : r.threat === "low" ? "fav" : "watch"}`} style={{ flexShrink: 0 }} />
                 <span style={{ minWidth: 0, wordBreak: "break-word" }}>
-                  <span>{competitorFullName(r.cid, r.name)}</span>
+                  <span>{competitorFullName(r.cid, r.name, data.competitors)}</span>
                 </span>
               </span>
             </div>
@@ -852,14 +850,6 @@ export default function Profile() {
                     overflow: "hidden",
                   }}
                 >
-                  {detailLine(cid, p.name) && detailLine(cid, p.name) !== displayName ? (
-                    <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: "12px", padding: "14px 18px", borderBottom: "1px solid var(--d-line)", fontSize: "13px", alignItems: "center" }}>
-                      <span style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--d-txt-3)", fontWeight: "600", textTransform: "uppercase", letterSpacing: ".06em", whiteSpace: "nowrap" }}>
-                        Entity Note
-                      </span>
-                      <span style={{ color: "var(--d-txt)", fontWeight: "600" }}>{detailLine(cid, p.name)}</span>
-                    </div>
-                  ) : null}
 
                   <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: "12px", padding: "14px 18px", borderBottom: "1px solid var(--d-line)", fontSize: "13px", alignItems: "center" }}>
                     <span style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--d-txt-3)", fontWeight: "600", textTransform: "uppercase", letterSpacing: ".06em", whiteSpace: "nowrap" }}>

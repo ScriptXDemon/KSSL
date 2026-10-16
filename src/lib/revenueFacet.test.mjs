@@ -1,13 +1,29 @@
-import assert from "node:assert";
-import { revenueCrore, revenueTierOf } from "./revenueFacet.js";
-const tier = (v) => revenueTierOf({ sales: [{ value: v }] });
-assert.equal(tier("FY2025 sales and revenues USD 67.6 billion (record)"), "high");        // Caterpillar: not read as "2025"
-assert.equal(tier("EUR 5.72 billion in FY2025 (+19%)"), "high");
-assert.equal(tier("RMB 231,809 million (2025, up 7.47 percent)"), "high");
-assert.equal(tier("US$4.21 billion (2025)"), "high");
-assert.equal(tier("Not published separately; capital 5,000 million yen. MHIET is a subsidiary"), "unknown");
-assert.equal(tier("Not disclosed separately. Caterpillar Inc. group US$67.6 billion"), "unknown");
-assert.equal(tier("₹1,128 crore (demo)"), "mid");
-assert.equal(tier("JPY 10 billion"), "emerging");
-assert.equal(revenueCrore("no figure here"), null);
-console.log("ok");
+import assert from "node:assert/strict";
+import test from "node:test";
+import fs from "node:fs";
+import { revenueTierOf, revenueOptions } from "./revenueFacet.js";
+import * as facet from "./revenueFacet.js";
+
+const d = JSON.parse(fs.readFileSync(new URL("../../fixtures/kssl_dataset.json", import.meta.url), "utf8"));
+
+test("the tier is the stored word, nothing is derived from a revenue figure", () => {
+  assert.equal(revenueTierOf({ revenue_filter: "USD 1-5 bn" }), "USD 1-5 bn");
+  assert.equal(revenueTierOf({ sales: [{ value: "FY2025 sales USD 67.6 billion" }] }), null);
+  assert.equal(revenueTierOf({}), null);
+  assert.equal(revenueTierOf(null), null);
+});
+
+test("the currency and tier tables are gone", () => {
+  const src = fs.readFileSync(new URL("./revenueFacet.js", import.meta.url), "utf8");
+  assert.ok(!("revenueCrore" in facet) && !("REVENUE_LABEL" in facet));
+  assert.ok(!/CRORE_PER_BN|REVENUE_LABEL|const CUR\b|crore/i.test(src));
+});
+
+test("the options are the tiers the fixture's competitors carry, labelled as stored", () => {
+  const rows = Object.values(d.competitors).map((c) => ({ revenueTier: revenueTierOf(c) }));
+  const opts = revenueOptions(rows);
+  const stored = new Set(Object.values(d.competitors).map((c) => c.revenue_filter).filter(Boolean));
+  assert.deepEqual(new Set(opts.map((o) => o.v)), stored);
+  opts.forEach((o) => assert.equal(o.l, o.v));
+  assert.equal(revenueOptions([{ revenueTier: null }, {}]).length, 0);
+});

@@ -15,13 +15,10 @@ import { formatDate } from "../utils/formatDate.js";
 // the patent country vocabulary. patents.js imports nothing from here, so this edge
 // adds no cycle -- and the normaliser lives with the rest of the patent display rules.
 import { normCountry } from "./patents.js";
-import { fixGlobalCountry } from "./signalCountry.js";
 import { cutGroupsByDirection, marketAttention, technologyAttention, isRivalCard, dateVal, ATTENTION_DAYS } from "./overview.js";
-import { dedupeCompanies } from "./dedupeCompanies.js";
-import { applyRoster, sortCompaniesByName } from "./roster.js";
+import { sortCompaniesByName } from "./roster.js";
 import { rosterIndex, rosterLookup } from "./partners.js";
 import { markOverlaps } from "./overlap.js";
-import { isJunkPartner, orgKey } from "./orgident.js";
 import { refineThreats } from "./threat.js";
 import { overviewShortlist, shortlistContext, foldDemotedIntoNews } from "./shortlist.js";
 import { logger } from "../utils/logger.js";
@@ -125,20 +122,9 @@ export function wireDataset(raw) {
   // shallow clone the containers we mutate; the leaf objects are ours after a fetch
   // decodeAmp first: every later rule (casing, promotion, grouping) should see the text
   // the reader will see, not a text with entities standing in for characters.
-  /* THE ROSTER IS MERGED BEFORE ANYTHING READS IT.
-     48 served rows are 44 companies; four rivals are entered twice. Every join below --
-     the feed's company column, geo, patents, the news panels, the picker -- keys on a
-     competitor id, so a merge applied anywhere later would leave those joins pointing
-     at an id the roster no longer lists. It runs first, and no consumer ever sees the
-     duplicate ids. See dedupeCompanies.js for what counts as evidence of a pair. */
-  /* markOverlaps runs AFTER dedupeCompanies, on purpose: the merge unions two rosters'
-     partner lists, so a tie that only the absorbed half carried is present to be tested.
-     Before the merge, Iveco's partners and IDV's were two lists and only one of them
-     would have been looked at. */
-  /* applyRoster right after the merge: the competitive views track the static 45-rival
-     roster (roster.js); an absorbed duplicate is already folded into its surviving id.
-     sortCompaniesByName then puts every company list in alphabetical order. */
-  const d = markOverlaps(sortCompaniesByName(applyRoster(dedupeCompanies(plainDashes(decodeAmp({ ...raw }))))));
+  /* markOverlaps runs on the dataset as served: competitor_id is unique, so there is no merge step.
+     sortCompaniesByName puts every company list in alphabetical order. */
+  const d = markOverlaps(sortCompaniesByName(plainDashes(decodeAmp({ ...raw }))));
 
   /* Re-classify competitor signals as threat/watch by KSSL segment overlap, geography
      and alliance -- see threat.js. Runs before any consumer reads `dir`/`severity`. */
@@ -237,48 +223,13 @@ export function wireDataset(raw) {
       if (Array.isArray(c.products)) out.products = c.products.map(caseProduct);
       /* A partner label stored as "Saab," joins into a list as "Saab,, Foo" -- the
          double comma of FE 31. The id is the join key; the label is only printed.
-         2026-09-21: also drop non-partner rows the extractor minted from a co-mention --
-         quantities ("1,400 Australian companies"), bare collectives, places, ministries
-         (isJunkPartner). The pipeline gate that would stop these runs on the fleet and
-         does not reach a git deploy, so it is enforced here at serve time. */
+         No row is dropped here: what the database stores is what is shown. */
       if (Array.isArray(c.partners)) {
-        out.partners = c.partners
-          /* a row with an analyst's read (`mean`) was written by hand, not minted by the extractor,
-             so the gate does not apply: it dropped Midis Group (long name), the Kuwait DGCA /
-             Ministry account and the Mitsubishi utility accounts from the client set */
-          .filter((p) => !(p && typeof p.label === "string" && !p.mean && isJunkPartner(p.label)))
-          .map((p) =>
-            p && typeof p.label === "string" ? { ...p, label: tidySeparators(p.label) } : p);
+        out.partners = c.partners.map((p) =>
+          p && typeof p.label === "string" ? { ...p, label: tidySeparators(p.label) } : p);
       }
       return out;
     });
-
-    /* A roster row's cid must be its OWN identity. mark_shared over-merged at least one
-       (Rafael carried cid='bae-systems'), which poisons the roster index. Clear a cid
-       that does not fold to the row's own name. */
-    const VERIFIED_KSSL_ROSTER = [
-      { id: "kssl_p01", label: "DRDO", country: "India", ptype: "Co-Development", rel: "joint_development", status: "active", note: "Co-development of ATAGS 155mm/52 cal artillery and Garuda 105 systems" },
-      { id: "kssl_p02", label: "Rafael Advanced Defense Systems", country: "Israel", ptype: "Joint venture", rel: "joint_venture", status: "active", note: "Kalyani Rafael Advanced Systems (KRAS) for Spike anti-tank guided missiles", cid: "rafael-advanced-defense-systems" },
-      { id: "kssl_p03", label: "AM General", country: "USA", ptype: "Strategic alliance", rel: "strategic", status: "active", note: "Mobile Tactical Cannon (MArG 155mm on Humvee/BRV platform) for US Army" },
-      { id: "kssl_p04", label: "Paramount Group", country: "South Africa", ptype: "Joint venture", rel: "joint_venture", status: "active", note: "Manufacturing Kalyani M4 armoured vehicles and Kalyani Maverick", cid: "paramount-group" },
-      { id: "kssl_p05", label: "Saab", country: "Sweden", ptype: "Partnership / MoU", rel: "strategic", status: "active", note: "Strategic cooperation on air defence systems and RBS 70 NG", cid: "saab" },
-      { id: "kssl_p06", label: "Elbit Systems", country: "Israel", ptype: "Technology transfer", rel: "licensing", status: "active", note: "Collaboration on advanced artillery components and weapon systems", cid: "elbit-systems" },
-      { id: "kssl_p07", label: "Thales", country: "France", ptype: "MoU / Technology", rel: "strategic", status: "active", note: "Cooperation on radar, optronics and fire control integration" },
-      { id: "kssl_p08", label: "BAE Systems", country: "United Kingdom", ptype: "Supply agreement", rel: "supply", status: "active", note: "Artillery forgings and high-precision ordnance component supply", cid: "bae-systems" },
-      { id: "kssl_p09", label: "PLR Systems", country: "India", ptype: "Subsidiary / JV", rel: "subsidiary", status: "active", note: "Indigenous small arms manufacturing (Tavor, Galil, Negev, X95)", cid: "plr-systems" },
-      { id: "kssl_p10", label: "Seco Tools", country: "Sweden", ptype: "Supply agreement", rel: "supply", status: "active", note: "Specialized defense tooling and precision machining collaboration" },
-    ];
-    if (!Array.isArray(d.KSSL_PARTNERS) || d.KSSL_PARTNERS.length <= 1) {
-      d.KSSL_PARTNERS = VERIFIED_KSSL_ROSTER;
-    }
-    if (Array.isArray(d.KSSL_PARTNERS)) {
-      d.KSSL_PARTNERS = d.KSSL_PARTNERS.map((p) => {
-        if (!p || !p.cid || !p.label) return p;
-        const nk = orgKey(p.label);
-        const ck = orgKey(String(p.cid).replace(/[-_]+/g, " "));
-        return nk && ck && nk !== ck && !ck.includes(nk) && !nk.includes(ck) ? { ...p, cid: null } : p;
-      });
-    }
 
     /* THE MATCHUP TABLE spells the same product a third way. `comp` is "Company ·
        Product" and `bf` is "KSSL · Product", printed raw by the matchup list, the
@@ -298,13 +249,6 @@ export function wireDataset(raw) {
         : m);
   } catch (e) {
     logger.warn("wiring:headlineCase", e);
-  }
-
-  /* "Global" is not a country: the Country fact of a worldwide signal becomes the country it is about, or a Region row */
-  try {
-    d.details = fixGlobalCountry({ ...(d.details || {}) });
-  } catch (e) {
-    logger.warn("wiring:globalCountry", e);
   }
 
   // overviewConfig needs the card arrays by reference (the exporter emits them apart)

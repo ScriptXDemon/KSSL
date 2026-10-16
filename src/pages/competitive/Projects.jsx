@@ -115,7 +115,7 @@ export default function Projects({ onSelectionChange }) {
 
   const roster = useMemo(() => (data && data.competitors ? rosterOf(data) : [])
     .filter((r) => PROJECTS_DATA.some((p) => p.cid === r.cid))
-    .map((r) => ({ cid: r.cid, name: competitorFullName(r.cid, r.name) || r.name || r.cid, threat: r.threat })), [data]);
+    .map((r) => ({ cid: r.cid, name: competitorFullName(r.cid, r.name, data.competitors) || r.name || r.cid, threat: r.threat })), [data]);
 
   const { rows, counts, perCompetitor } = useMemo(
     () => projectFeed({ cid: cid === ALL ? null : cid, filter, query, seq }), [cid, filter, query, seq]);
