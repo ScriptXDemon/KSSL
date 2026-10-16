@@ -56,6 +56,7 @@ def build_leaders(database):
                 "id": text(rec.get("record_id")),
                 "role": text(rec.get("role_or_degree")),
                 "org": text(rec.get("institution_or_employer")),
+                "text": text(rec.get("headline")),     # a free-text line (Excel bullets) when role/org are not split out
                 "from": text(rec.get("start_date")),
                 "to": text(rec.get("end_date")),
                 "url": text(rec.get("source_url")),

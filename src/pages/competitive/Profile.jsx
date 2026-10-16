@@ -52,7 +52,8 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
   const exp = leader.experience || [];
   const edu = leader.education || [];
   // current position: the experience record with no end date; else the leader's stored role + organisation
-  const current = exp.find((e) => isPresent(e.to)) || null;
+  // a free-text line (no role, no dates) is never taken as the current position
+  const current = exp.find((e) => (e.role || e.from) && isPresent(e.to)) || null;
   const nowRole = current ? current.role : leader.role;
   const nowOrg = current ? current.org : leader.org;
 
@@ -104,10 +105,10 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
               <div className="cp-person-row" key={e.id || `${e.org}-${e.role}-${i}`}>
                 <span className="cp-person-dot" />
                 <div className="cp-person-row-main">
-                  <span className="cp-person-role">{e.role}</span>
+                  <span className="cp-person-role">{e.role || e.text}</span>
                   <span className="cp-person-org">{e.org}</span>
                 </div>
-                <span className="cp-person-when">{tenureText(e.from, e.to)}</span>
+                {e.from || e.to || e.role ? <span className="cp-person-when">{tenureText(e.from, e.to)}</span> : null}
               </div>
             ))}
           </div>
@@ -124,7 +125,7 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
               <div className="cp-person-row" key={e.id || `${e.org}-${i}`}>
                 <span className="cp-person-dot" />
                 <div className="cp-person-row-main">
-                  <span className="cp-person-role">{e.role}</span>
+                  <span className="cp-person-role">{e.role || e.text}</span>
                   <span className="cp-person-org">{e.org}</span>
                 </div>
                 {e.from || e.to ? <span className="cp-person-when">{tenureText(e.from, e.to).split(" · ")[0]}</span> : null}
