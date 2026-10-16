@@ -1107,6 +1107,34 @@ Ruling R2: every on-screen label or config the Cummins UI hardcodes, mapped to a
 | Product photos and keyword stock images | Products.jsx; Thumb.jsx | hidden:product-images |
 | Chat dock, scoped chat, Ask box | MalloryChat.jsx; ScopeChat.jsx; AskBox.jsx; chat.js | hidden:chat |
 
+### E5. Task 11 fix round 1: what is wired, what was decided
+
+The helper is `src/lib/uiText.js` (`uiText`, `uiList`, `filterOptions`, `stanceWords`): a stored cell or "", never a literal. The lanes are built in `src/lib/lanes.js`.
+
+New table (db/setup/09_ui_port_tables.sql, staging_ui + ui, guard trigger, seeded in db/test_seed_full/90_ui_port.sql): `ui.filter_option(filter_group, option_code, option_label, badge_label, display_order)`, PK (filter_group, option_code). One row per filter pill and card badge word. Groups: `stance` (threat, watch: the only stances), `market-feed` (tenders, opportunities), `technology-feed` (competitor-advances, adoptable). It supersedes the E2 rows that mapped the market and technology pills to metric label columns. A group with no rows draws no pills; a stance row under any code other than threat or watch is ignored.
+
+| label/config | wired to | status |
+|---|---|---|
+| Competitive overview tiles | ui.competitive_metric.metric_label where metric_key in (threats, watch, companies_tracked); bound by key | wired |
+| Competitive overview pills, badge words, DetailPanel and Projects stance words | ui.filter_option group `stance` | wired |
+| Competitive overview heading "Competitive Intelligence" | no ui column holds it | chrome (decision; the other competitive headings are the stored view_label) |
+| Technology tiles | serving.technology_metric.metric_label where metric_key in (competitor_advances, adoptable, innovations_tracked); bound by key; innovations_tracked counts innovations | wired |
+| Technology pills, group headings, badge (Adoptable) | ui.filter_option group `technology-feed` | wired |
+| Technology heading, sequence menu, sequence label, search placeholder | ui.technology_ui_view (page_heading, sequence_options newest/oldest/threat, sequence_label, search_placeholder) | wired |
+| Market top-opportunity tiles | ui.market_top_opportunity_view four metric label columns; bound by the column | wired |
+| Market top-opportunity heading | ui.market_top_opportunity_view.page_heading | wired |
+| Market feed pills, group headings, TENDER / OPPORTUNITY badges | ui.filter_option group `market-feed` | wired |
+| Market report tiles | ui.market_metric.metric_label by metric_id | wired |
+| Rail labels, rail order, page headings (three pillars) | ui.competitive_navigation, ui.market_view, ui.technology_ui_view; a view with no row is not drawn | wired |
+| Market Intelligence tabs (label, order) | ui.market_intelligence_tab; a tab with no row is not drawn | wired |
+| Moment time-window chips and the Profile news windows | ui.competitive_competitor_moment_time_window (label, day_count, is_default); the "All" reset chip is chrome | wired |
+| Moment level words and class | ui.competitive_competitor_moment_level; only a threat or watch tag draws a word or a pill | wired |
+| Country, category, revenue, origin filters (options and counts) | distinct stored values of the rows on screen; the word "All" is chrome | data |
+| Tender / Global Requirements filter labels ("Country", "Category"), sort notes, empty-state texts, Top-opportunity section titles, Product Evaluation tab labels, pillar names (Market, Technology), impact eyebrows | the ui tables E3/E4 name | NOT WIRED yet: still literals in code (listed in VERIFY.md "Label sources") |
+| Sequence menu and search placeholder, competitive and market overview | no stored text | chrome |
+
+Decision: there is no favourable stance. The only stances are threat and watch (uiText.STANCES). A row stored with any other stance has no stance: no pill, no colour, not counted, not on the competitive overview (the Cummins rule that dropped its third stance from that feed, stated without the word). The geo client marker is class `client`; the green accent token is `--ok`.
+
 ## F. Rulings
 
 Controller rulings R3 to R9, copied verbatim from `progress.md`. They are binding and already applied to the rows of A to E.

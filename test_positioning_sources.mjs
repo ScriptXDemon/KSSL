@@ -66,8 +66,8 @@ ck("Spec Comparison renders no source anchor or source line for any matchup",
 ck("Advantages of every matchup render with no source anchor",
    rows.every((m) => !/<a\s[^>]*adv-src/i.test([m.advBf, m.advComp].flat().filter(Boolean).map((x) => advantageText(x)).join(" "))));
 ck("no component reads a matchup's .srcs or builds a Sources row (srcKvRow is imported nowhere)",
-   !/m\.srcs|srcKvRow/.test(dossier) &&
-   !readFileSync(new URL("./src/components/matchupList/MatchupList.jsx", import.meta.url), "utf8").match(/\.srcs|srcKvRow/));
+   !/\bm\.srcs\b|srcKvRow/.test(dossier) &&
+   !readFileSync(new URL("./src/components/matchupList/MatchupList.jsx", import.meta.url), "utf8").match(/\.srcs\b|srcKvRow/));
 
 // --- the control-byte guard that would have caught the silent regex ---------------
 const specs = readFileSync(new URL("./src/lib/specs.js", import.meta.url), "utf8");

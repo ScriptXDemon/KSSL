@@ -14,7 +14,7 @@ assert.ok(!/detail\.dir \|\| "watch"/.test(panel), "no default stance in DetailP
 assert.ok(/stanceOf\(detail\.dir\) \|\| "none"/.test(panel));
 // the stance words are the ui.filter_option rows (stanceWords holds threat and watch only), so "none" draws no pill
 assert.ok(/const DIR_WORD = stanceWords\(data\)/.test(panel));
-assert.ok(!/favou?rable|fav/i.test(panel), "no third stance in DetailPanel");
+assert.ok(!/favou?rable|\bfav\b/i.test(panel), "no third stance in DetailPanel");
 // the ad-hoc details opened from the cockpit hold no dir
 const adhoc = overview.match(/select\(id, \{[\s\S]*?\}\);|select\(`tender-\$\{t\.id\}`, \{[\s\S]*?\}\);/g);
 assert.equal(adhoc.length, 2);

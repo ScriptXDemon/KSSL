@@ -224,9 +224,9 @@ INSERT INTO staging_ui.technology_pillar
 INSERT INTO staging_ui.technology_ui_view
   (view_id, pillar_id, view_code, view_key, view_name, view_label, view_number, route_hash, page_heading, search_placeholder,
    sequence_label, sequence_default, sequence_options, record_count, rail_count, display_order, is_active) VALUES
-  (91001, '1', 'technology-overview',   'overview',   'Technology Overview',   'Technology Overview',   '1', '#/technology/overview',   'Technology Overview',   'Search signals...',
+  (91001, '1', 'technology-overview',   'overview',   'Technology Overview',   'Overview',   '1', '#/technology/overview',   'Technology Overview',   'Search signals...',
    'Sequence', 'newest', '[{"code": "newest", "label": "Newest first"}, {"code": "oldest", "label": "Oldest first"}, {"code": "threat", "label": "Threat first"}]'::jsonb, 10, 10, 1, true),
-  (91002, '1', 'technology-innovation', 'innovation', 'Technology Innovation', 'Technology Innovation', '2', '#/technology/innovation', 'Technology Innovation', 'Search innovations...',
+  (91002, '1', 'technology-innovation', 'innovation', 'Technology Innovation', 'Innovations', '2', '#/technology/innovation', 'Technology Innovation', 'Search innovations...',
    'Sequence', 'category', '[{"code": "category", "label": "By category"}, {"code": "position", "label": "Aurora position"}]'::jsonb, 16, 16, 2, true);
 
 -- technology_ui_navigation: the Technology entries of the left navigation (labels, search placeholder, print button). 2 rows.
