@@ -4,6 +4,7 @@
     python -m backend.excel_load leadership --file "<Company Directors Details - Re-verified.xlsx>" [--db local|vps] [--dry-run]
                                             [--compare "<leadership profile.xlsx>"] [--reports DIR]
     python -m backend.excel_load products --file "<Product Specs.xlsx>" [--db local|vps] [--dry-run] [--reports DIR]
+    python -m backend.excel_load client-products --file "<KSSL Product Portfolio.xlsx>" [--db local|vps] [--dry-run] [--reports DIR]
     python -m backend.excel_load --selftest                       (no database, no files)
 
 leadership: one competitor per company (inserted if missing, an existing row is never changed), one competitive_leader
@@ -33,6 +34,23 @@ Idempotent in ONE transaction: for the competitors in the sheet, the products th
 uuid5 of competitor + name) are deleted with their specs + fact_source and re-inserted; a product that existed before with the same
 normalised name keeps its id (its specs are replaced); other products are never touched.
 
+client-products: sheet 'All Products' of the client's own portfolio workbook (same columns as the competitor sheet; 'Unverified' is not loaded)
+-> client_product / client_product_specification / client_product_source + staging.fact_source.  The client is the staging.client_account row whose
+brand / client / legal name equals the sheet's Company.  Idempotent in ONE transaction.  A product keeps the id of an existing client_product of the
+same normalised name (CLIENT_KEEP_ALIASES, else the existing name as a whole-word prefix of the sheet name, e.g. 'MArG 155' -> 'MArG 155 mm/39 cal ...');
+new products get a deterministic 63-bit id (prompts.loader.make_id).  The specs, sources and fact_source of the products in the sheet (and of products
+this loader created earlier that are no longer in the sheet) are deleted and re-inserted; other client products are never touched.
+  - client_product: product_name, category (verbatim), source_id (first source), created_at / updated_at; product_family / subcategory / technology / status stay
+    NULL (the sheet has no such columns).  Description / Collaboration / Production & Licensing Notes have no column and are not loaded.
+  - client_product_source: one row per distinct URL of 'Source(s)'; the matching line of 'Source Type' gives source_type; source_label = publisher (from the host) + type.
+  - client_product_specification: one row per line of 'Technical Specifications' ('Label: value', same parser and unit rule as products; no-data lines skipped).
+    A trailing '[S2]' / '[S1,S3]' on a line is a footnote to the 1-based line of 'Source(s)' that states the value: it is removed from the value, the FIRST
+    footnote becomes the spec's source_id (no footnote = the product's first source) and every footnoted URL gets a fact_source row.
+    spec_group rule (first match wins, whole words of the label): Mobility = road, speed, engine, power, weight, mass, gradient, gradeability, drive;
+    Performance = range, rate (of fire), velocity, elevation, traverse, time, accuracy, firing, burst; Physical = calibre, barrel, length, width, height, crew,
+    dimension(s), diameter; everything else Other.  display_order = line position.
+  - a wiki URL stops the load.
+
 DSN: prompts.batch.resolve_dsn (--db vps needs the tunnel, routines/tunnel.sh).  The target is printed without the password.
 """
 
@@ -44,7 +62,7 @@ import re
 import sys
 import unicodedata
 import uuid
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from dataclasses import dataclass, field
@@ -1283,6 +1301,305 @@ def cmd_products(args) -> int:
     return 0
 
 
+# ---- client products (sheet 'All Products' of the client's own portfolio workbook) ------------------------------------
+
+# existing client_product name (normalised) -> sheet product name that keeps its id; empty = same name or whole-word prefix of the sheet name
+CLIENT_KEEP_ALIASES: dict[str, str] = {}
+CLIENT_LIMITS = {"product_name": 255, "category": 128, "spec_name": 150, "unit": 32, "source_label": 255}
+CLIENT_PRIMARY_DOMAINS = ("kssl.in", "bharatforge.com", "kalyanigroup.com")
+SRC_MARK = re.compile(r"\s*\[S(\d+(?:\s*[,;]\s*S?\d+)*)\]")
+BULLET_START = re.compile("^[\\s•�·*]+|^-\\s+")
+GROUP_RULES = (
+    ("Mobility", re.compile(r"\b(road|speed|engine|power|weight|mass|gradient|gradeability|drive)\b", re.I)),
+    ("Performance", re.compile(r"\b(range|rate|velocity|elevation|traverse|time|accuracy|firing|burst)\b", re.I)),
+    ("Physical", re.compile(r"\b(calibre|caliber|barrel|length|width|height|crew|dimensions?|diameter)\b", re.I)),
+)
+PUBLISHERS = {"kssl.in": "KSSL", "bharatforge.com": "Bharat Forge", "kalyanigroup.com": "Kalyani Group", "pib.gov.in": "PIB",
+              "drdo.gov.in": "DRDO", "mod.gov.in": "Ministry of Defence", "armyrecognition.com": "Army Recognition", "janes.com": "Janes",
+              "army-technology.com": "Army Technology", "ajaishukla.com": "Ajai Shukla (Broadsword)", "frontierindia.com": "Frontier India",
+              "thehindu.com": "The Hindu", "defensenews.com": "Defense News", "livemint.com": "Mint", "business-standard.com": "Business Standard",
+              "idrw.org": "IDRW", "spslandforces.com": "SP's Land Forces", "forceindia.net": "Force India", "defence-industry.eu": "Defence-Industry.eu",
+              "breakingdefense.com": "Breaking Defense", "economictimes.indiatimes.com": "Economic Times", "rafael.co.il": "Rafael", "fnherstal.com": "FN Herstal"}
+
+
+def client_id_for(kind: str, *parts) -> int:
+    """Deterministic 63-bit id (same hash as prompts.loader.make_id for a bigint column)."""
+    from prompts.loader import make_id
+    return make_id("bigint", "kssl-client-" + kind + "|" + "|".join(str(p) for p in parts))
+
+
+def spec_group(label: str) -> str:
+    for name, rx in GROUP_RULES:
+        if rx.search(label):
+            return name
+    return "Other"
+
+
+def source_type_of(text: str | None) -> str | None:
+    t = (text or "").casefold()
+    if not t.strip():
+        return None
+    if "manufactur" in t or "company" in t or "kssl" in t:
+        return "manufacturer"
+    if "partner" in t or "jv" in t or "joint" in t:
+        return "partner"
+    if "gov" in t or "mod" in t or "drdo" in t or "pib" in t:
+        return "government"
+    return "defence_press"
+
+
+def publisher_of(url: str) -> str:
+    from backend.sources import host_of
+    host = host_of(url)
+    for dom, name in PUBLISHERS.items():
+        if host == dom or host.endswith("." + dom):
+            return name
+    return host or url[:60]
+
+
+def numeric_of(value: str | None, unit: str | None) -> Decimal | None:
+    """value_numeric only for an exact '<number> <unit>' value (split_unit gave a unit)."""
+    if unit is None or value is None:
+        return None
+    try:
+        return Decimal(value.replace(",", ""))
+    except Exception:
+        return None
+
+
+def parse_client_specs(cell) -> list[dict]:
+    """parse_spec_lines + the '[S#]' footnotes: [{pos, label, value, unit, skip, src, group}] (src = 1-based indexes into Source(s), in order of appearance)."""
+    lines, srcs = [], []
+    for line in str(cell or "").replace("\r", "\n").split("\n"):
+        line = BULLET_START.sub("", line.strip()).strip()
+        if not line:
+            continue
+        nums = [int(n) for m in SRC_MARK.finditer(line) for n in re.findall(r"\d+", m.group(1))]
+        line = SRC_MARK.sub("", line).strip()
+        if line:
+            lines.append(line)
+            srcs.append(list(dict.fromkeys(nums)))
+    out = parse_spec_lines("\n".join(lines))
+    for ln, src in zip(out, srcs):
+        ln["src"] = src
+        if ln["skip"] is None:
+            ln["group"] = spec_group(ln["label"])
+    return out
+
+
+def build_client_plan(rows: list[dict], client: dict, existing: list[dict]) -> dict:
+    """rows: product_rows() of the sheet (all one company).  client: {client_id, name}.  existing: client_product rows of that client
+    ({client_product_id, product_name}).  Returns {'products': [...], 'warnings': [...], 'stale': [existing rows no longer in the sheet that this loader created]}."""
+    from backend.sources import is_wiki
+    cid = client["client_id"]
+    groups: dict[str, dict] = {}
+    order, warnings = [], []
+    for r in rows:
+        key = norm_product(r["Product"])
+        urls = list(dict.fromkeys(u.strip() for u in re.split(r"[\r\n]+", str(r["Source(s)"] or "")) if u.strip()))
+        wiki = [u for u in urls if is_wiki(u)]
+        if wiki:
+            raise ValueError(f"{r['Product']}: wiki source {wiki[0]!r}: nothing loaded")
+        bad = [u for u in urls if not u.lower().startswith(("http://", "https://"))]
+        if bad:
+            raise ValueError(f"{r['Product']}: non-http source token(s) {bad[:2]}")
+        types = [t.strip() for t in re.split(r"[\r\n]+", str(r["Source Type"] or "")) if t.strip()]
+        if key in groups:
+            raise ValueError(f"duplicate product name in the sheet: {r['Product']!r}")
+        quote = f"Verification: {r['Verification']}; Confidence: {r['Confidence']}"
+        if r["Verification detail"]:
+            quote += " — " + r["Verification detail"][:QUOTE_DETAIL_MAX]
+        groups[key] = {"name": r["Product"], "category": r["Category"], "row": r, "urls": urls, "quote": quote,
+                       "types": [types[i] if i < len(types) else (types[0] if len(types) == 1 else None) for i in range(len(urls))]}
+        order.append(key)
+        if not urls:
+            warnings.append(f"{r['Product']}: no source URL (specs get no source)")
+    # keep ids of existing products: exact normalised name (or alias) first, then whole-word prefix; each existing id once
+    taken, assign = set(), {}
+    ex = sorted(existing, key=lambda e: int(e["client_product_id"]))
+    for e in ex:
+        en = norm_product(e["product_name"])
+        want = norm_product(CLIENT_KEEP_ALIASES[en]) if en in CLIENT_KEEP_ALIASES else en
+        if want in groups and want not in assign:
+            assign[want] = e
+            taken.add(int(e["client_product_id"]))
+    for e in ex:
+        if int(e["client_product_id"]) in taken:
+            continue
+        en = norm_product(e["product_name"])
+        for key in order:
+            if key not in assign and key.startswith(en + " "):
+                assign[key] = e
+                taken.add(int(e["client_product_id"]))
+                break
+    products = []
+    for key in order:
+        g = groups[key]
+        e = assign.get(key)
+        if e:
+            g["product_id"], g["mode"] = int(e["client_product_id"]), "kept"
+        else:
+            g["product_id"], g["mode"] = client_id_for("product", cid, key), "new"
+        pid = g["product_id"]
+        g["sources"] = [{"source_id": client_id_for("source", pid, u), "url": u, "source_type": source_type_of(t), "label": None}
+                        for u, t in zip(g["urls"], g["types"])]
+        for s in g["sources"]:
+            s["label"] = (publisher_of(s["url"]) + (" - " + s["source_type"].replace("_", " ") if s["source_type"] else ""))[:CLIENT_LIMITS["source_label"]]
+        specs, skipped = [], []
+        for ln in parse_client_specs(g["row"]["Technical Specifications"]):
+            reason = ln["skip"]
+            bad_src = [i for i in ln["src"] if not 1 <= i <= len(g["sources"])]
+            if bad_src:
+                raise ValueError(f"{g['name']}: line {ln['pos']} cites [S{bad_src[0]}] but Source(s) has {len(g['sources'])} URLs")
+            if reason:
+                skipped.append({"pos": ln["pos"], "label": ln["label"], "value": ln["value"], "reason": reason})
+                continue
+            used = [g["sources"][i - 1] for i in ln["src"]] or g["sources"][:1]
+            specs.append({"specification_id": client_id_for("spec", pid, ln["label"], ln["pos"]), "client_product_id": pid,
+                          "spec_name": ln["label"], "value_text": ln["value"], "value_numeric": numeric_of(ln["value"], ln["unit"]),
+                          "unit": ln["unit"], "spec_group": ln["group"], "display_order": ln["pos"],
+                          "source_id": used[0]["source_id"] if used else None, "source_urls": [u["url"] for u in used], "quote": g["quote"]})
+        g["spec_rows"], g["skipped"] = specs, skipped
+        for col, val in (("product_name", g["name"]), ("category", g["category"])):
+            if len(val) > CLIENT_LIMITS[col]:
+                raise ValueError(f"{g['name']}: {col} longer than {CLIENT_LIMITS[col]}")
+        products.append(g)
+    new_ids = {g["product_id"] for g in products}
+    stale = [e for e in existing if int(e["client_product_id"]) not in new_ids
+             and int(e["client_product_id"]) == client_id_for("product", cid, norm_product(e["product_name"]))]      # created by this loader
+    return {"products": products, "warnings": warnings, "stale": stale}
+
+
+def apply_client_plan(conn, plan: dict, client: dict, dry_run: bool) -> dict:
+    from psycopg2.extras import execute_values
+    from backend.sources import classify
+    cur = conn.cursor()
+    prods = plan["products"]
+    touched = sorted({g["product_id"] for g in prods} | {int(e["client_product_id"]) for e in plan["stale"]})
+    cur.execute("SELECT specification_id::text AS sid FROM staging.client_product_specification WHERE client_product_id = ANY(%s)", (touched,))
+    old_specs = [r["sid"] for r in cur.fetchall()]
+    cur.execute("DELETE FROM staging.fact_source WHERE (table_name = 'client_product' AND column_name = 'product_name' AND row_id = ANY(%s)) "
+                "OR (table_name = 'client_product_specification' AND column_name = 'value_text' AND row_id = ANY(%s))",
+                ([str(i) for i in touched], old_specs))
+    res = {"deleted_facts": cur.rowcount}
+    cur.execute("DELETE FROM staging.client_product_specification WHERE client_product_id = ANY(%s)", (touched,))
+    res["deleted_specs"] = cur.rowcount
+    cur.execute("DELETE FROM staging.client_product_source WHERE client_product_id = ANY(%s)", (touched,))
+    res["deleted_sources"] = cur.rowcount
+    stale_ids = [int(e["client_product_id"]) for e in plan["stale"]]
+    cur.execute("SELECT count(*) AS n FROM staging.competitive_matchup WHERE client_product_id = ANY(%s)", (stale_ids,))
+    res["stale_matchups"] = cur.fetchone()["n"]
+    cur.execute("DELETE FROM staging.client_product WHERE client_product_id = ANY(%s)", (stale_ids,))
+    res["stale_products"] = cur.rowcount
+    for g in prods:
+        first = g["sources"][0]["source_id"] if g["sources"] else None
+        if g["mode"] == "kept":
+            cur.execute("UPDATE staging.client_product SET product_name = %s, category = %s, source_id = %s, updated_at = now() "
+                        "WHERE client_product_id = %s AND client_id = %s", (g["name"], g["category"], first, g["product_id"], client["client_id"]))
+            if cur.rowcount != 1:
+                raise RuntimeError(f"kept product {g['name']!r} not found exactly once: rolled back")
+        else:
+            cur.execute("INSERT INTO staging.client_product (client_product_id, client_id, product_name, category, source_id, created_at, updated_at) "
+                        "VALUES (%s, %s, %s, %s, %s, now(), now()) ON CONFLICT DO NOTHING", (g["product_id"], client["client_id"], g["name"], g["category"], first))
+            if cur.rowcount != 1:
+                raise RuntimeError(f"id collision for new product {g['name']!r}: rolled back")
+    execute_values(cur, "INSERT INTO staging.client_product_source (client_product_id, source_id, source_label, source_type, source_url, published_date) VALUES %s",
+                   [(g["product_id"], s["source_id"], s["label"], s["source_type"], s["url"], None) for g in prods for s in g["sources"]])
+    spec_rows = [(s["specification_id"], s["client_product_id"], s["spec_name"], s["value_text"], s["value_numeric"], s["unit"], s["spec_group"],
+                  s["display_order"], s["source_id"]) for g in prods for s in g["spec_rows"]]
+    execute_values(cur, "INSERT INTO staging.client_product_specification (specification_id, client_product_id, spec_name, value_text, value_numeric, unit, "
+                        "spec_group, display_order, source_id) VALUES %s", spec_rows, page_size=2000)
+    tier_cache, tiers, facts = {}, defaultdict(int), []
+
+    def tier_of(url):
+        if url not in tier_cache:
+            tier_cache[url] = classify(url, CLIENT_PRIMARY_DOMAINS) or "unlisted"
+        return tier_cache[url]
+
+    for g in prods:
+        for u in g["urls"]:
+            tiers[tier_of(u)] += 1
+            facts.append(("client_product", str(g["product_id"]), "product_name", u, tier_of(u), g["quote"]))
+        for s in g["spec_rows"]:
+            for u in s["source_urls"]:
+                tiers[tier_of(u)] += 1
+                facts.append(("client_product_specification", str(s["specification_id"]), "value_text", u, tier_of(u), s["quote"]))
+    execute_values(cur, "INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, publisher, quote, retrieved_at) VALUES %s",
+                   facts, template="(%s, %s, %s, %s, %s, NULL, %s, now())", page_size=5000)
+    res.update(products=len(prods), specs=len(spec_rows), sources=sum(len(g["sources"]) for g in prods), facts=len(facts), tiers=dict(tiers))
+    if dry_run:
+        conn.rollback()
+    else:
+        conn.commit()
+    return res
+
+
+def write_client_reports(plan: dict, res: dict, client: dict, out_dir: Path, dry_run: bool) -> list[Path]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    prods = plan["products"]
+    cats = defaultdict(lambda: [0, 0])
+    for g in prods:
+        cats[g["category"]][0] += 1
+        cats[g["category"]][1] += 1 if g["spec_rows"] else 0
+    lines = [f"Client products load summary ({'DRY RUN' if dry_run else 'loaded'}) - client {client['name']} (client_id {client['client_id']})", "",
+             f"products {res['products']} ({sum(1 for g in prods if g['mode'] == 'kept')} kept id, {sum(1 for g in prods if g['mode'] == 'new')} new); "
+             f"specs {res['specs']}; sources {res['sources']}; fact_source {res['facts']} tiers {res['tiers']}",
+             f"replaced: {res['deleted_specs']} specs, {res['deleted_sources']} sources, {res['deleted_facts']} fact_source; stale products deleted {res['stale_products']} "
+             f"(matchups pointing at them: {res['stale_matchups']})", "", f"{'category':36} {'products':>8} {'with specs':>10}", "-" * 58]
+    lines += [f"{c[:36]:36} {n:>8} {w:>10}" for c, (n, w) in sorted(cats.items())]
+    lines += ["", f"units split off: {sum(1 for g in prods for s in g['spec_rows'] if s['unit'])} of {res['specs']} specs; "
+                  f"spec groups: {dict(sorted(Counter(s['spec_group'] for g in prods for s in g['spec_rows']).items()))}",
+              "", "per product (id, mode, specs, skipped lines, sources):"]
+    lines += [f"  {g['product_id']} {g['mode']:5} {len(g['spec_rows']):>3} {len(g['skipped']):>3} {len(g['sources']):>2}  [{g['category']}] {g['name']}" for g in prods]
+    if plan["warnings"]:
+        lines += ["", f"warnings ({len(plan['warnings'])}):"] + ["  " + w for w in plan["warnings"]]
+    spath = out_dir / "client_products_summary.txt"
+    spath.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    cpath = out_dir / "client_products_skipped.csv"
+    with cpath.open("w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f)
+        w.writerow(["product", "line_no", "spec_label", "spec_value", "reason"])
+        for g in prods:
+            for s in g["skipped"]:
+                w.writerow([g["name"], s["pos"], s["label"], s["value"], s["reason"]])
+    return [spath, cpath]
+
+
+def cmd_client_products(args) -> int:
+    from prompts import batch
+    sheets = read_sheets(Path(args.file), wanted=(SHEET_PRODUCTS,))
+    if SHEET_PRODUCTS not in sheets:
+        raise SystemExit(f"sheet {SHEET_PRODUCTS!r} not found")
+    rows = product_rows(sheets[SHEET_PRODUCTS])
+    names = sorted({r["Company"] for r in rows})
+    if len(names) != 1:
+        raise SystemExit(f"the sheet must hold ONE client company, found {names}")
+    conn = batch.connect_db(args.db)
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT client_id, client_name, brand_name, legal_name FROM staging.client_account")
+        hit = [r for r in cur.fetchall() if names[0].casefold() in {str(r[k] or "").casefold() for k in ("client_name", "brand_name", "legal_name")}]
+        if len(hit) != 1:
+            raise SystemExit(f"company {names[0]!r} matches {len(hit)} staging.client_account rows (need exactly 1)")
+        client = {"client_id": hit[0]["client_id"], "name": hit[0]["client_name"]}
+        cur.execute("SELECT client_product_id, product_name FROM staging.client_product WHERE client_id = %s", (client["client_id"],))
+        plan = build_client_plan(rows, client, cur.fetchall())
+        res = apply_client_plan(conn, plan, client, args.dry_run)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    paths = write_client_reports(plan, res, client, Path(args.reports), args.dry_run)
+    modes = Counter(g["mode"] for g in plan["products"])
+    print(("DRY RUN (rolled back)" if args.dry_run else "LOADED") + f": {res['products']} products {dict(modes)}, {res['specs']} specs, {res['sources']} sources, "
+          f"skipped lines {sum(len(g['skipped']) for g in plan['products'])}")
+    print(f"  fact_source {res['facts']}  tiers {res['tiers']}  replaced {res['deleted_specs']} specs / {res['deleted_sources']} sources, stale deleted {res['stale_products']}")
+    print(f"  warnings {len(plan['warnings'])}")
+    print("  reports: " + "\n           ".join(str(p) for p in paths))
+    return 0
+
+
 # ---- selftest -------------------------------------------------------------------------------------------------
 
 def _selftest() -> None:
@@ -1443,6 +1760,39 @@ def _selftest() -> None:
         assert "Nobody Ltd" in str(e)
     assert build_products_plan([prow("Saab", "P", "A: 1")], comps, [])["products"][0]["spec_rows"][0]["spec_id"] == \
         build_products_plan([prow("Saab", "P", "A: 1")], comps, [])["products"][0]["spec_rows"][0]["spec_id"]
+    # client products: footnotes, groups, unit rule, id keeping (fictional values)
+    cl = parse_client_specs("• Calibre: 99 mm [S1]\n- Range: 12.5 km [S2,S1]\nWeight: 7 t (A); 8 t (B) [S1,S2]\n\nEngine power: 300 hp\nColour: not disclosed [S1]\nSomething free")
+    assert [(x["label"], x["value"], x["unit"], x["skip"], x["src"], x.get("group")) for x in cl] == [
+        ("Calibre", "99", "mm", None, [1], "Physical"), ("Range", "12.5", "km", None, [2, 1], "Performance"), ("Weight", "7 t (A); 8 t (B)", None, None, [1, 2], "Mobility"),
+        ("Engine power", "300", "hp", None, [], "Mobility"), ("Colour", "not disclosed", None, "not_disclosed", [1], None), ("Note", "Something free", None, None, [], "Other")], cl
+    assert [spec_group(x) for x in ("Barrel length", "Muzzle velocity", "Max speed (road)", "Maximum range", "Crew", "Coming into action time", "Magazine capacity", "Combat weight")] == \
+        ["Physical", "Performance", "Mobility", "Performance", "Physical", "Performance", "Other", "Mobility"]
+    assert numeric_of("1,200", "rounds/min") == Decimal(1200) and numeric_of("7 t (A)", None) is None and numeric_of("-5", "deg") == Decimal(-5)
+    assert source_type_of("manufacturer (Zed page)") == "manufacturer" and source_type_of("defence-press") == "defence_press" and source_type_of("government / MoD") == "government"
+    assert publisher_of("https://www.kssl.in/x") == "KSSL" and publisher_of("https://unknown.example/x") == "unknown.example"
+    assert client_id_for("product", 9, "a") == client_id_for("product", 9, "a") != client_id_for("product", 9, "b") and 0 <= client_id_for("spec", 1, "L", 1) < 2 ** 63
+
+    def krow(product, specs, cat="Artillery", src="http://a.example/1\nhttp://b.example/2", types="manufacturer\ndefence-press"):
+        return {**{h: None for h in PRODUCT_COLS}, "Company": "Acme Defence", "Category": cat, "Product": product, "Technical Specifications": specs,
+                "Source(s)": src, "Source Type": types, "Confidence": "high", "Verification": "Verified", "Verification detail": "d" * 400}
+    kex = [{"client_product_id": 101, "product_name": "Zed Gun"}, {"client_product_id": 102, "product_name": "Zed"}, {"client_product_id": 103, "product_name": "Old Thing"},
+           {"client_product_id": client_id_for("product", 7, "gone"), "product_name": "Gone"}, {"client_product_id": 105, "product_name": "Unrelated"}]
+    kp = build_client_plan([krow("Zed Gun", "Calibre: 99 mm [S1]\nRange: 12 km [S2]"), krow("Zed 2 mk1 (variant)", "Weight: 7 t"), krow("Fresh Product", "Note only", cat="Small Arms", src="", types="")],
+                           {"client_id": 7, "name": "Acme"}, kex)
+    z, z2, f = kp["products"]
+    assert (z["product_id"], z["mode"]) == (101, "kept") and (z2["product_id"], z2["mode"]) == (102, "kept") and f["mode"] == "new" and f["product_id"] == client_id_for("product", 7, "fresh product")
+    assert [e["client_product_id"] for e in kp["stale"]] == [client_id_for("product", 7, "gone")]            # hand-made 103 / 105 are never stale
+    assert [(s["spec_name"], s["unit"], s["value_numeric"], s["spec_group"], s["display_order"]) for s in z["spec_rows"]] == \
+        [("Calibre", "mm", Decimal(99), "Physical", 1), ("Range", "km", Decimal(12), "Performance", 2)]
+    assert z["spec_rows"][0]["source_id"] == z["sources"][0]["source_id"] and z["spec_rows"][1]["source_id"] == z["sources"][1]["source_id"] == client_id_for("source", 101, "http://b.example/2")
+    assert z2["spec_rows"][0]["source_urls"] == ["http://a.example/1"] and z["sources"][1]["source_type"] == "defence_press" and z["sources"][0]["label"] == "a.example - manufacturer"
+    assert f["spec_rows"][0]["spec_name"] == "Note" and f["sources"] == [] and len(kp["warnings"]) == 1 and z["quote"].endswith("d" * 300)
+    for bad in ([krow("P", "A: 1 [S3]")], [krow("P", "A: 1", src="https://en.wikipedia.org/wiki/X")], [krow("P", "A: 1"), krow("p", "B: 2")]):
+        try:
+            build_client_plan(bad, {"client_id": 7, "name": "Acme"}, [])
+            raise AssertionError("must stop")
+        except ValueError:
+            pass
     print("excel_load selftest ok")
 
 
@@ -1466,6 +1816,11 @@ def main(argv=None) -> int:
     pp.add_argument("--db", choices=["local", "vps"], default="local")
     pp.add_argument("--dry-run", action="store_true")
     pp.add_argument("--reports", default=str(DEFAULT_REPORTS), help="reports folder (default db/excel_reports/, gitignored)")
+    kp = sub.add_parser("client-products", help="the client's own products + specifications (sheet All Products) -> client_product / _specification / _source + fact_source")
+    kp.add_argument("--file", required=True)
+    kp.add_argument("--db", choices=["local", "vps"], default="local")
+    kp.add_argument("--dry-run", action="store_true")
+    kp.add_argument("--reports", default=str(DEFAULT_REPORTS), help="reports folder (default db/excel_reports/, gitignored)")
     args = ap.parse_args(argv)
     if args.selftest:
         _selftest()
@@ -1476,6 +1831,8 @@ def main(argv=None) -> int:
         return cmd_company(args)
     if args.cmd == "products":
         return cmd_products(args)
+    if args.cmd == "client-products":
+        return cmd_client_products(args)
     ap.print_help()
     return 2
 
