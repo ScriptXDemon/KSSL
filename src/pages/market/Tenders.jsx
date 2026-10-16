@@ -102,7 +102,6 @@ export default function Tenders({ mode = "tender" }) {
   };
   const savedTender = getSavedTender();
 
-  const [productType, setProductType] = useState(savedTender.productType || null);
   const [country, setCountry] = useState(savedTender.country || null);
   const [cat, setCat] = useState(savedTender.cat || null);
   const [menu, setMenu] = useState(null);
@@ -120,9 +119,9 @@ export default function Tenders({ mode = "tender" }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem("kssl_tender_state", JSON.stringify({ productType, country, cat }));
+      localStorage.setItem("kssl_tender_state", JSON.stringify({ country, cat }));
     } catch (e) {}
-  }, [productType, country, cat]);
+  }, [country, cat]);
 
   /* A tab CHANGE drops the selection -- a row from the open list is not on the awarded
      list. Guarded against the mount run: an effect with [mode] also fires once after
@@ -144,15 +143,12 @@ export default function Tenders({ mode = "tender" }) {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  /* `scope` is the tab and the search box -- everything that is NOT one of the three
+  /* `scope` is the tab and the search box -- everything that is NOT one of the two
      dropdown facets. Each facet's option counts are then taken from scope with the OTHER
      two facets applied, so a badge can never describe a different set than the rows
      below it. They read "India 7" over a list of 2, because the counts ran over all 106
      tenders while the list showed only the 74 that are open; five of those seven had
-     closed. Product Type had the same fault and is included here -- fixing two of three
-     facets and leaving the third is how this bug survives a fix. */
-  const isAirNaval = (t) =>
-    /uav|drone|naval|marine|missile|air defence/i.test(`${t.cat} ${t.title}`);
+     closed. */
 
   const scope = useMemo(
     () =>
@@ -179,16 +175,13 @@ export default function Tenders({ mode = "tender" }) {
   const facetOk = {
     country: (t, v) => !v || t.country === v,
     cat: (t, v) => !v || t.cat === v,
-    productType: (t, v) =>
-      !v || (v === "Air, Naval & Missiles" ? isAirNaval(t) : !isAirNaval(t)),
   };
 
   const applyFacets = (rows, except) =>
     rows.filter(
       (t) =>
         (except === "country" || facetOk.country(t, country)) &&
-        (except === "cat" || facetOk.cat(t, cat)) &&
-        (except === "productType" || facetOk.productType(t, productType)),
+        (except === "cat" || facetOk.cat(t, cat)),
     );
 
   const list = useMemo(
@@ -197,7 +190,7 @@ export default function Tenders({ mode = "tender" }) {
         (a, b) => (Number(a.dl) || 999) - (Number(b.dl) || 999),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scope, country, cat, productType],
+    [scope, country, cat],
   );
 
   const select = (id) => {
@@ -259,26 +252,19 @@ export default function Tenders({ mode = "tender" }) {
     sections.push({ h: `${modeTitle} (${list.length})`, rows: list.map(row) });
     return {
       title: modeTitle,
-      subtitle: [country, cat, productType].filter(Boolean).join(" · ") || "all tenders in this tab",
+      subtitle: [country, cat].filter(Boolean).join(" · ") || "all tenders in this tab",
       sections,
       payload: {
         tab: mode,
-        filters: { country: country || null, category: cat || null, productType: productType || null },
+        filters: { country: country || null, category: cat || null },
         selected: t || null,
         tenders: list,
       },
     };
-  }, [t, list, mode, modeTitle, country, cat, productType, clientName]);
+  }, [t, list, mode, modeTitle, country, cat, clientName]);
   useHeaderReport(report);
 
   const menuItems = (which) => {
-    if (which === "productType") {
-      const pool = applyFacets(scope, "productType");
-      return [
-        { v: "Land Systems", n: pool.filter((x) => !isAirNaval(x)).length },
-        { v: "Air, Naval & Missiles", n: pool.filter(isAirNaval).length },
-      ];
-    }
     /* Option values come from the SERVED tenders only. The config vocabulary
        (tpAllCountries / tpAllCats) ORDERS them; it adds nothing. It used to be unioned
        in "for completeness", which put Armenia, Kenya, Morocco and eight more countries
@@ -342,7 +328,7 @@ export default function Tenders({ mode = "tender" }) {
             setMenu(null);
           }}
         >
-          All {which === "country" ? "countries" : which === "productType" ? "product types" : "categories"} ({items.length})
+          All {which === "country" ? "countries" : "categories"} ({items.length})
         </div>
         {items.map(({ v, n }) => (
           <div
@@ -368,7 +354,6 @@ export default function Tenders({ mode = "tender" }) {
       <div className="tp-list">
         <div className="tp-fbar">
           <span className="eyebrow">Filter</span>
-          {dd("productType", "Product Type", productType, setProductType)}
           {dd("country", "Country", country, setCountry)}
           {dd("cat", "Category", cat, setCat)}
           {/* the one deadline hint the operator kept; the verbose count line and the
@@ -490,7 +475,7 @@ export default function Tenders({ mode = "tender" }) {
             })
           ) : (
             <div className="tp-list-empty">
-              {productType || country || cat
+              {country || cat
                 ? "No tenders match this filter"
                 : "No tenders served yet"}
             </div>
