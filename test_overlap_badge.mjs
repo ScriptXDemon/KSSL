@@ -12,6 +12,7 @@
  *   node frontend/test_overlap_badge.mjs        (no build, no browser, no data)
  */
 import { overlapState, overlapBadge, tieKind, tieKindShort } from "./src/lib/partners.js";
+import { buildCategories } from "./src/lib/partnerCategories.js";
 
 let fail = 0;
 const check = (name, got, want) => {
@@ -86,28 +87,24 @@ check("  and not one of them renders as Direct Partner",
 // agreement all rendered identically, and the tab's whole subject appeared nowhere.
 const tele = { label: "Telephonics Corporation", kind: "Foreign OEM", rel: "jv",
                ptype: "Joint Venture (51% Mahindra, 49% Telephonics)", country: "United States" };
+const cats = buildCategories({ database: { ui: { partner_category: [
+  { category_key: "joint-venture", group_key: "g", group_label: "G", category_label: "Joint venture", short_label: "JV", definition: "", overlap_kind: "", display_order: 1 },
+  { category_key: "mou-strategic", group_key: "g", group_label: "G", category_label: "MoU / strategic", short_label: "MoU", definition: "", overlap_kind: "", display_order: 2 },
+] } } });
 check("the card shows the relationship, not the company category",
-      tieKind(tele), "Joint Venture (51% Mahindra, 49% Telephonics)");
+      tieKind(tele, cats), "Joint Venture (51% Mahindra, 49% Telephonics)");
 check("  and never falls back to kind while ptype exists",
-      tieKind(tele).includes("Foreign OEM"), false);
-check("a graph node gets the canonical label, not truncated free text",
-      tieKindShort(tele), "Joint venture");
-check("  and it fits the node", tieKindShort(tele).length <= 22, true);
-check("  a long ptype with no rel is trimmed, not overflowed",
-      tieKindShort({ ptype: "Licensed Component Manufacturing & Technical Data Exchange" }),
-      (t) => t.length <= 22 && t.endsWith("\u2026"));
-
-// The ten types the pipeline writes must all resolve. REL_LABEL held five, so the
-// other five printed their raw key -- "rnd", "manufacturing" -- on the tab.
-["supply", "manufacturing", "technology", "licensing", "rnd", "distribution", "jv",
- "integration", "strategic"].forEach((r) => {
-  check(`  rel "${r}" has a label`, tieKindShort({ rel: r }),
-        (t) => t !== r && t !== "Partner" && t.length > 2);
-});
-check("legacy rel keys still resolve", tieKindShort({ rel: "mou" }), "MoU");
-check("an unknown rel with no ptype degrades to Partner", tieKind({ rel: "zzz" }), "Partner");
-check("kind is the last resort, not the first", tieKind({ kind: "Foreign OEM" }), "Foreign OEM");
-check("nothing at all does not throw", tieKind(null), "Partner");
+      tieKind(tele, cats).includes("Foreign OEM"), false);
+check("a graph node gets the legend's short label, not truncated free text",
+      tieKindShort({ ...tele, rel: "joint-venture" }, 22, cats), "JV");
+check("  a long ptype with no category is trimmed, not overflowed",
+      tieKindShort({ ptype: "Licensed Component Manufacturing & Technical Data Exchange" }, 22, cats),
+      (t) => t.length <= 22 && t.endsWith("…"));
+check("a category's short label comes from the legend", tieKindShort({ rel: "mou-strategic" }, 22, cats), "MoU");
+check("an unknown rel with no ptype shows the dash, not an invented word", tieKind({ rel: "zzz" }, cats), "—");
+check("kind is the last resort, not the first", tieKind({ kind: "Foreign OEM" }, cats), "Foreign OEM");
+check("nothing at all does not throw", tieKind(null, cats), "—");
+check("without a legend the tie's own words still show", tieKind({ ptype: "Supplier" }), "Supplier");
 
 console.log(fail ? `\n${fail} failed` : "\nok - the badge marks the exception, the chip names the tie");
 process.exit(fail ? 1 : 0);

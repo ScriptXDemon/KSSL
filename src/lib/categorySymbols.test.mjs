@@ -53,6 +53,11 @@ test("typeGraphSvg integration: renders categoryDisc with symbols in Categories 
     COMPSYN: {},
     TRACEIDS: {},
     sourceRegistry: {},
+    database: { ui: { partner_category: [
+      { category_key: "tech", group_key: "g", group_label: "G", category_label: "Technology", short_label: "Tech", definition: "", overlap_kind: "", display_order: 1 },
+      { category_key: "supply", group_key: "g", group_label: "G", category_label: "Supply / customer", short_label: "Supply", definition: "", overlap_kind: "", display_order: 2 },
+      { category_key: "jv", group_key: "g", group_label: "G", category_label: "Joint venture", short_label: "JV", definition: "", overlap_kind: "", display_order: 3 },
+    ] } },
   };
 
   const partners = createPartners(mockData);

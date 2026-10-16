@@ -13,7 +13,7 @@ const src = readFileSync(new URL("./src/lib/partners.js", import.meta.url), "utf
 // lift the two helpers out of the module rather than importing it: partners.js pulls in
 // the whole dataset layer, and this is about one function's arithmetic.
 const start = src.indexOf("const STALE_YEARS");
-const end = src.indexOf("const CONF_TAG");
+const end = src.indexOf("/* the confidence word");
 if (start < 0 || end < 0) {
   console.log("FAIL could not lift statusTag out of partners.js");
   process.exit(1);

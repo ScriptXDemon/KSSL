@@ -32,19 +32,19 @@ const ck = (name, ok, detail) => {
   if (!ok) fails++;
 };
 
-const fx = JSON.parse(fs.readFileSync(new URL("./fixture_partner_overlap.json", import.meta.url), "utf8"));
-const d = {
-  competitors: fx,
-  client: { id: "KSSL", name: "Kalyani Strategic Systems", short: "KSSL" },
-  geoData: {}, matchups: {}, partners: [],
-};
+import { wireDataset } from "./src/lib/dataset.js";
+import { setClient } from "./src/lib/client.js";
+const raw = JSON.parse(fs.readFileSync(new URL("./fixtures/kssl_dataset.json", import.meta.url), "utf8"));
+setClient(raw.client);
+const d = wireDataset(raw);
 const P = createPartners(d);
 
-const saab = fx.saab.partners;
-const ga = saab.find((p) => /GA-ASI/i.test(p.label || ""));
-ck("production data still marks GA-ASI as shared", !!(ga && (ga.shared || ga.koel)), ga && ga.label);
+/* the rival that has a partner the client also uses (marked at wire time) */
+const [rid, rival] = Object.entries(d.competitors).find(([, c]) => (c.partners || []).some((p) => p.shared || p.koel));
+const ga = rival.partners.find((p) => p.shared || p.koel);
+ck("the dataset marks a shared partner", !!ga, ga && ga.label);
 
-const saabComp = { ...fx.saab, id: "saab", cid: "saab" };
+const saabComp = { ...rival, id: rid, cid: rid };
 const svg = P.graphSvg(saabComp);
 ck("the graph renders", typeof svg === "string" && svg.length > 200);
 

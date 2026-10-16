@@ -14,7 +14,7 @@ import { esc, escAll, escAttr, escRich, joinParts, srcChips } from "./html.js";
 import { canonicalizeLabels } from "./orgident.js";
 import { countryFlagDisc } from "./countryFlags.js";
 import { categoryDisc } from "./categorySymbols.js";
-import { PARTNER_CATEGORIES, categoryOf, categoryDef, verdictOf, meanText, closenessOf } from "./partnerCategories.js";
+import { buildCategories, verdictOf, meanText } from "./partnerCategories.js";
 
 /* THE CLIENT ROSTER AND A RIVAL'S PARTNER ROWS DO NOT SHARE A KEY SPACE.
    KSSL_PARTNERS is reference data and carries `plp_01`..`plp_03` with cid null; the rows
@@ -90,124 +90,6 @@ export function pgKeyer(partners) {
   fn.canon = canon;
   return fn;
 }
-
-/* KSSL's side of the relationship decides which exposure applies. */
-export const OV_KIND = {
-  jv: "tech",
-  tech: "tech",
-  mou: "tech",
-  acq: "tech",
-  supply: "supplier",
-  /* The ten types enrich_serving writes (PART_TYPES). Without these the fallback
-     `OV_KIND[relKey] || "tech"` filed a shared DISTRIBUTOR and a shared contract
-     MANUFACTURER under the technology-leakage narrative, which is the wrong exposure
-     and the wrong advice. Mapped to what the overlap actually costs KSSL. */
-  manufacturing: "supplier",
-  distribution: "channel",
-  integration: "channel",
-  technology: "tech",
-  licensing: "tech",
-  rnd: "tech",
-  strategic: "tech",
-  other: "tech",
-  "Channel partner": "channel",
-  "Component supplier": "supplier",
-  "Casting supplier": "supplier",
-  "Emission-technology supplier": "supplier",
-  "Lubricant partner": "supplier",
-  "Supply / customer": "supplier",
-  "Service partner": "service",
-  "Service and retrofit partner": "service",
-  "Joint venture": "tech",
-  "Technology / ToT": "tech",
-  "Acquisition / stake": "tech",
-  "MoU / strategic": "tech",
-};
-
-/* What each kind of overlap actually does to KSSL. Written as effect → mechanism,
-   so a reader can act on it rather than just note it. */
-export const OV_DEF = {
-  channel: {
-    label: "What an overlapping channel costs KSSL",
-    lead: "the same dealer quotes KSSL and the rival from one counter, so the brand decision moves from the customer to the salesperson",
-    fx: [
-      [
-        "Brand choice moves to the counter",
-        "The dealer earns on whichever brand pays more or ships sooner, so a KSSL enquiry can close as a rival order without the customer shortlisting the rival.",
-      ],
-      [
-        "KSSL’s price becomes the rival’s floor",
-        "A dealer quoting both brands sees both discount sheets, so every KSSL scheme tells the rival what to beat and by how little.",
-      ],
-      [
-        "The pipeline leaks",
-        "Which customer, which programme, which stage - KSSL’s live funnel sits with a party aligned to the rival as well.",
-      ],
-      [
-        "Service capacity is pooled",
-        "Engineers, spares and AMC cover are shared, so KSSL’s uptime promise competes for the same technicians. AMC performance is what earns the repeat order.",
-      ],
-      [
-        "No territory lock",
-        "The rival buys the same district reach without building it; KSSL’s channel spend subsidises a shelf it does not own.",
-      ],
-      [
-        "Switching cost is near zero",
-        "A dealer tooled for both brands can move volume from KSSL to the rival inside a quarter, with nothing new to justify.",
-      ],
-    ],
-  },
-  supplier: {
-    label: "What an overlapping supplier costs KSSL",
-    lead: "KSSL and the rival buy the same part from the same vendor, so that component stops separating the two platforms",
-    fx: [
-      [
-        "Cost parity on that part",
-        "Both buy at a similar landed cost, so KSSL cannot price off a component advantage it does not have.",
-      ],
-      [
-        "Correlated supply risk",
-        "One vendor’s capacity, quality or compliance slip hits KSSL and the rival together - and the rival that dual-sources absorbs it while KSSL does not.",
-      ],
-      [
-        "KSSL funds the learning curve",
-        "What KSSL asks the vendor to develop becomes a capability the vendor can sell on. KSSL pays for the development; the rival buys it finished.",
-      ],
-      [
-        "Allocation follows the bigger book",
-        "In a tight quarter the vendor serves whoever orders more or pays more, which is a volume contest KSSL does not always win.",
-      ],
-    ],
-  },
-  service: {
-    label: "What an overlapping service network costs KSSL",
-    lead: "the aftermarket - KSSL’s stickiest, highest-margin revenue - is delivered by someone who also earns on the rival’s fleet",
-    fx: [
-      [
-        "The annuity is not exclusive",
-        "Spares, AMC and retrofit revenue that KSSL treats as locked in is handled by a party with no reason to defend the KSSL brand.",
-      ],
-      [
-        "Every visit is a switching opportunity",
-        "An engineer already inside the customer’s plant at end of life is the cheapest possible route for a rival replacement quote.",
-      ],
-    ],
-  },
-  tech: {
-    label: "What an overlapping technology partner costs KSSL",
-    lead: "the partner behind a KSSL capability is also inside a rival, so the capability is a lead-time rather than a moat",
-    fx: [
-      [
-        "A lead-time, not a moat",
-        "Whatever the partner supplies or licenses to KSSL it can supply or license again. KSSL’s edge lasts only until the rival signs the same paper.",
-      ],
-      [
-        "Roadmap visibility cuts both ways",
-        "A partner that sees where KSSL is taking a platform can price, time and position the rival’s answer against it.",
-      ],
-    ],
-  },
-};
 
 /* radial layout constants. The ellipse is wider than tall because the pane is, and
    because labels are horizontal text: it buys room where labels actually need it. */
@@ -577,52 +459,35 @@ const statusTag = (p) => {
   return y !== null ? `<span class="tie-tag asof">as of ${y}</span>` : "";
 };
 
-const CONF_TAG = {
-  official: ["official", "the maker or a government publisher states it"],
-  corroborated: ["corroborated", "two or more independent sources"],
-  single_source: ["single source", "one source, uncorroborated"],
-};
+/* the confidence word is the stored one (competitive_partnership.relationship_confidence), shown as it is */
 const confTag = (p) => {
-  const c = p && CONF_TAG[p.confidence];
-  return c ? `<span class="tie-tag conf-${p.confidence}" title="${esc(c[1])}">${c[0]}</span>` : "";
+  const c = p && p.confidence ? String(p.confidence) : "";
+  return c ? `<span class="tie-tag conf-${escAll(c)}">${esc(c.replace(/_/g, " "))}</span>` : "";
 };
 
 /* WHAT THE TIE IS, not what kind of company the partner is.
 
-   Every card and every graph node read `p.kind` first and `p.ptype` second, and
-   `kind` holds "Foreign OEM" / "Domestic" -- a category of company, printed next to
-   the country that already says the same thing. So a 51/49 joint venture, an MoU and
-   a supply agreement all rendered as "Foreign OEM · United States", and the one thing
-   the Partnerships tab exists to show appeared nowhere on the card.
-
-   REL_LABEL is not the fallback: it is five legacy keys in serving.ui_config, and the
-   pipeline now writes ten types, so the other five fell through it to the raw key
-   ("rnd", "manufacturing"). This map is the frontend's copy of PART_TYPES in
-   enrich_serving.py, plus the legacy keys the hand-written rows still use. */
-const REL_SHORT = {
-  supply: "Supply agreement", manufacturing: "Manufacturing",
-  technology: "Technology / ToT", tech: "Technology / ToT",
-  licensing: "Licensing", rnd: "R&D / research",
-  distribution: "Distribution / reseller", jv: "Joint venture",
-  integration: "Integration / platform", strategic: "Partnership / MoU",
-  mou: "MoU", other: "Partnership", partner: "Partnership",
-};
+   Every card and every graph node reads the tie's own type first (`ptype`: "Joint venture", "Supplier")
+   and the legend's short label second (ui.partner_category.short_label, through `cats`). The company
+   category `kind` is the last resort. A tie with none of them shows the em dash: no word is invented. */
 
 /* The tie's own words, for the card and the drawer: "Joint Venture (51% Mahindra,
    49% Telephonics)" carries the split, and losing it to a canonical label loses the
    only number on the card. */
-export function tieKind(p) {
-  if (!p) return "Partner";
-  return String(p.ptype || REL_SHORT[p.rel] || p.kind || "Partner");
+export function tieKind(p, cats) {
+  if (!p) return "—";
+  const cat = cats && cats.categoryOf(p.rel);
+  return String(p.ptype || (cat && (cat.short || cat.label)) || p.kind || "—");
 }
 
-/* The canonical label, for a graph node sublabel that has ~22 characters. The free
+/* The legend's short label, for a graph node sublabel that has ~22 characters. The free
    text goes second here and is trimmed: a node reading "Joint Venture (51% Mahin…"
    is worse than one reading "Joint venture". */
-export function tieKindShort(p, max = 22) {
-  if (!p) return "Partner";
-  const t = String(REL_SHORT[p.rel] || p.ptype || p.kind || "Partner");
-  return t.length > max ? `${t.slice(0, max - 1).replace(/[\s,(./-]+$/, "")}\u2026` : t;
+export function tieKindShort(p, max = 22, cats) {
+  if (!p) return "—";
+  const cat = cats && cats.categoryOf(p.rel);
+  const t = String((cat && (cat.short || cat.label)) || p.ptype || p.kind || "—");
+  return t.length > max ? `${t.slice(0, max - 1).replace(/[\s,(./-]+$/, "")}…` : t;
 }
 
 /* THREE ANSWERS TO ONE QUESTION: is this partner also the client's? Yes, no, and
@@ -677,13 +542,30 @@ export function overlapBadge(p, clientName) {
   const [bg, fg, br, text] = OVERLAP_BADGE[state];
   const roster = clientName ? `${clientName}'s own partner roster` : "the partner roster";
   const title = state === "shared"
-    ? `${(p && p.label) || "This partner"} is also on ${roster}.`
+    ? `${(p && p.label) || "—"} is also on ${roster}.`
     : `Not yet matched against ${roster} -- whether it is shared is unknown.`;
   return `<span class="ov-badge ov-${state}" title="${escAttr(title)}" style="font-family: var(--mono); font-size: 9.5px; background: ${bg}; color: ${fg}; border: 1px solid ${br}; padding: 2px 7px; border-radius: 4px; font-weight: 700; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;">${text}</span>`;
 }
 
+/* What each kind of overlap does to the client: ui.partner_overlap_kind (heading, lead) and
+   ui.partner_overlap_effect (title, text), keyed by overlap_kind. {rival} and {client} are filled in by the caller.
+   Empty tables give an empty object, and the drawer then prints nothing. */
+export function overlapDefs(d) {
+  const ui = (d && d.database && d.database.ui) || {};
+  const out = {};
+  (ui.partner_overlap_kind || []).slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).forEach((k) => {
+    if (k && k.overlap_kind) out[k.overlap_kind] = { label: k.kind_label || "", lead: k.lead || "", fx: [] };
+  });
+  (ui.partner_overlap_effect || []).slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).forEach((e) => {
+    if (e && out[e.overlap_kind]) out[e.overlap_kind].fx.push([e.effect_title || "", e.effect_text || ""]);
+  });
+  return out;
+}
+
 export function createPartners(d) {
   const { competitors, KSSL_PARTNERS, REL_LABEL, FIELDSYN, COMPSYN, TRACEIDS, sourceRegistry } = d;
+  const cats = buildCategories(d);
+  const { categoryOf, categoryDef } = cats;
   const CLIENT_CID = (d.client && d.client.id);
 
   /* Which rivals each shared company serves. Deduped per rival: the dataset carries
@@ -765,11 +647,7 @@ export function createPartners(d) {
         ellipse, so no two lines can coincide.
      =================================================================== */
   function pgRowRank(p) {
-    const s = p.insight || "";
-    return (
-      (s.indexOf("[CORE]") >= 0 ? 2 : s.indexOf("[ADJACENT]") >= 0 ? 1 : 0) * 10 +
-      (p.sig || 1)
-    );
+    return p.sig || 1;
   }
   // one entry per company; the strongest row leads and carries the rest in .rows
   function pgNodes(c) {
@@ -909,7 +787,7 @@ const PG_IMG_ONERROR =
 
   function graphSvg(c) {
     if (!c) return "";
-    const centerName = esc(c.name || c.label || "Main Company");
+    const centerName = esc(c.name || c.label || "—");
     const centerId = c.id || "main";
 
     // Direct partners for selected company
@@ -1019,7 +897,7 @@ const PG_IMG_ONERROR =
           p,
           label: full,
           text: full.length > PG_LBL_MAX ? full.slice(0, PG_LBL_MAX - 1) : full,
-          sub: tieKindShort(p),
+          sub: tieKindShort(p, undefined, cats),
           r: idx === 0 ? 19 : 15,
           lead: idx === 0,
           cluster: cKey,
@@ -1086,7 +964,7 @@ const PG_IMG_ONERROR =
       const nTypes = new Set(
         (p.rows || [p]).map((r) => String(r.ptype || r.rel || "").toLowerCase().trim()).filter(Boolean),
       ).size;
-      const kindText = esc(nTypes > 1 ? `${tieKindShort(p, 14)} +${nTypes - 1}` : tieKindShort(p));
+      const kindText = esc(nTypes > 1 ? `${tieKindShort(p, 14, cats)} +${nTypes - 1}` : tieKindShort(p, undefined, cats));
       const lx = f1(nd.lbl.x);
       const ly = nd.lbl.y;
       const textAnchor = nd.lbl.anchor;
@@ -1094,7 +972,7 @@ const PG_IMG_ONERROR =
       // the label stays inside the node's own group: hover, dim and select key on it
       nodeHtml +=
         `<g class="pg-node ptr ${p.isOverlap ? "overlap" : "direct"} rel-${escAll(p.rel || "other")}${p.status === "ended" ? " st-ended" : ""}" data-id="${p.id}" data-cluster="${nd.cluster}">` +
-        `<title>${labelText} - ${esc(tieKind(p))}${p.isOverlap ? " - also on the client's own roster" : ""}${p.status === "ended" ? " (ended)" : ""}</title>` +
+        `<title>${labelText} - ${esc(tieKind(p, cats))}${p.isOverlap ? " - also on the client's own roster" : ""}${p.status === "ended" ? " (ended)" : ""}</title>` +
         `<circle class="halo" cx="${nx}" cy="${ny}" r="${f1(nd.halo)}" fill="none" stroke="${strokeColor}" stroke-width="${p.isOverlap ? "2.2" : "1.3"}" opacity="${p.isOverlap ? "0.85" : "0.35"}" />` +
         `<circle class="net-circle" cx="${nx}" cy="${ny}" r="${f1(nd.r)}" fill="${fillColor}" stroke="#cfd3da" stroke-width="1.2" stroke-opacity="0.42" />` +
         `<text class="lbl-ptr-title" x="${lx}" y="${f1(ly)}" text-anchor="${textAnchor}">${labelText}</text>` +
@@ -1127,11 +1005,20 @@ const PG_IMG_ONERROR =
      =================================================================== */
   /* Every category the dataset can name (lib/partnerCategories). A colour means the same thing
      here as in the legend and on the cards. */
-  const PG_TYPE_ORDER = PARTNER_CATEGORIES.map((c) => c.key);
+  const PG_TYPE_ORDER = cats.list.map((c) => c.key);
   const PG_TYPE_META = Object.fromEntries(
-    PARTNER_CATEGORIES.map((c) => [c.key, { label: (REL_LABEL || {})[c.key] || c.label, color: c.color, fill: c.fill, hue: c.group }]),
+    cats.list.map((c) => [c.key, { label: (REL_LABEL || {})[c.key] || c.label, color: c.color, fill: c.fill, hue: c.group }]),
   );
-  const pgTypeKey = (r) => (PG_TYPE_META[r && r.rel] ? r.rel : "other");
+  /* a tie type the legend does not list is its own group under its stored word, in the neutral colour */
+  const pgTypeKey = (r) => {
+    const k = (r && r.rel) || "";
+    if (!PG_TYPE_META[k]) {
+      const n = categoryOf(k);
+      PG_TYPE_META[k] = { label: (r && (r.ptype || r.rel)) || "", color: n.color, fill: n.fill, hue: "" };
+      PG_TYPE_ORDER.push(k);
+    }
+    return k;
+  };
 
   // type key -> partner company nodes of that type, in pgNodes rank order
   function pgTypeGroups(c) {
@@ -1151,77 +1038,17 @@ const PG_IMG_ONERROR =
   /* REGIONS: the same partner companies grouped by the partner's own country.
      A row naming two ("France / UK") puts the company under both, as a company with two
      tie types sits under both types. Spellings of one country are folded. */
-  const PG_REGION_ALIAS = {
-    "united states": "USA", "us": "USA", "u.s.": "USA", "usa": "USA", "united states of america": "USA", "ee.uu.": "USA", "stany zjednoczone": "USA",
-    "uk": "United Kingdom", "u.k.": "United Kingdom", "united kingdom": "United Kingdom", "britain": "United Kingdom", "great britain": "United Kingdom",
-    "reino unido": "United Kingdom", "großbritannien": "United Kingdom", "wielka brytania": "United Kingdom", "regno unito": "United Kingdom", "england": "United Kingdom", "scotland": "United Kingdom", "u.k": "United Kingdom",
-    "uae": "UAE", "united arab emirates": "UAE", "emiratos árabes unidos": "UAE", "eau": "UAE", "emirati arabi uniti": "UAE", "vereinigte arabische emirate": "UAE",
-    "morocco": "Morocco", "maroko": "Morocco", "fas": "Morocco", "marruecos": "Morocco",
-    "germany": "Germany", "deutschland": "Germany", "alemania": "Germany", "almanya": "Germany", "njemačka": "Germany",
-    "france": "France", "francja": "France",
-    "poland": "Poland", "polonia": "Poland", "polen": "Poland", "polônia": "Poland", "polonya": "Poland",
-    "denmark": "Denmark", "dinamarca": "Denmark", "danimarka": "Denmark", "дания": "Denmark",
-    "italy": "Italy", "italia": "Italy", "italie": "Italy", "italya": "Italy",
-    "israel": "Israel", "israël": "Israel", "israil": "Israel", "i̇srail": "Israel",
-    "south korea": "South Korea", "korea": "South Korea", "republic of korea": "South Korea", "corée du sud": "South Korea", "대한민국": "South Korea",
-    "russia": "Russia", "russian federation": "Russia",
-    "spain": "Spain", "españa": "Spain",
-    "sweden": "Sweden", "sverige": "Sweden",
-    "switzerland": "Switzerland", "schweiz": "Switzerland", "suisse": "Switzerland",
-    "brazil": "Brazil", "brasil": "Brazil",
-    "czech republic": "Czech Republic", "czechia": "Czech Republic", "chequia": "Czech Republic",
-    "romania": "Romania", "roumanie": "Romania", "rumanía": "Romania", "romanya": "Romania",
-    "saudi arabia": "Saudi Arabia", "suudi arabistan": "Saudi Arabia", "arabie saoudite": "Saudi Arabia",
-    "turkey": "Turkey", "türkiye": "Turkey",
-    "malaysia": "Malaysia", "malasia": "Malaysia", "malásia": "Malaysia",
-    "norway": "Norway", "norvegia": "Norway", "noruega": "Norway", "norveç": "Norway",
-    "netherlands": "Netherlands", "the netherlands": "Netherlands", "holland": "Netherlands",
-    "ukraine": "Ukraine", "ucrania": "Ukraine", "ucraina": "Ukraine", "ukrayna": "Ukraine", "ucrânia": "Ukraine",
-    "philippines": "Philippines", "filipinas": "Philippines",
-    "greece": "Greece", "griechenland": "Greece",
-    "hungary": "Hungary", "węgry": "Hungary", "ungarn": "Hungary",
-    "egypt": "Egypt", "mısır": "Egypt",
-    "qatar": "Qatar", "katar": "Qatar",
-    "south africa": "South Africa",
-  };
-  const DEFENSE_FIRM_COUNTRIES = [
-    { re: /\b(drdo|aweil|bel|hal|ordnance|ofb|hindustan\s+shipyard|hsl|mazagon|mdl|cochin\s+shipyard|csl|zen\s+technologies|premier\s+explosives|pel|ideaforge|tonbo|alpha\s+design|newspace|paras|plr\s+systems|dynamatic|irde|dlrl|rci|drdl|hemrl|arde|ade|gcas|aiesl|prime\s+aero|indo-russian\s+rifles|irrpl|tata|tasl|mahindra|l&t|kalyani|bharat\s+forge|solar\s+industries|sss\s+defence|smpp|mku|ashok\s+leyland|force\s+motors|beml|midhani|walchandnagar|jcbl|jindal)\b/i, country: "India" },
-    { re: /\b(rafael|elbit|iai|israel\s+aerospace|israel\s+weapon|iwi|uvision|plasan|aeronautics|meprolight|controp)\b/i, country: "Israel" },
-    { re: /\b(boeing|lockheed|raytheon|rtx|general\s+dynamics|am\s+general|northrop|general\s+atomics|ga-asi|l3harris|textron|bell|sikorsky|honeywell|collins|pratt\s+&\s+whitney|ge\s+aerospace|ge\s+aviation|shield\s+ai|anduril|archer|maxar|kratos|palantir|sparton|palladyne|impulse\s+space|sandia|elbit\s+america|american\s+rheinmetall|hermeus|amazon|aerovironment)\b/i, country: "USA" },
-    { re: /\b(thales|dassault|safran|airbus|mbda|nexter|naval\s+group|arquus|knds\s+france)\b/i, country: "France" },
-    { re: /\b(saab|bofors|seco|haglunds|hägglunds)\b/i, country: "Sweden" },
-    { re: /\b(bae\s+systems|bae\b|rolls-royce|qinetiq|babcock|supacat|chemring|ultra\s+maritime)\b/i, country: "United Kingdom" },
-    { re: /\b(rheinmetall|krauss-maffei|kmw|heckler|diehl|hensoldt|mtu|renk|knds\s+deutschland)\b/i, country: "Germany" },
-    { re: /\b(paramount|denel|reutech)\b/i, country: "South Africa" },
-    { re: /\b(leonardo|fincantieri|iveco|beretta|idv)\b/i, country: "Italy" },
-    { re: /\b(edge\s+group|edge\b|caracal|halcon|adasi|nimr|al\s+tariq|lahab|al\s+jasoor)\b/i, country: "UAE" },
-    { re: /\b(rostec|rosboronexport|almaz|sukhoi|mig|kalashnikov|uralvagonzavod|tactical\s+missiles|ktrv)\b/i, country: "Russia" },
-    { re: /\b(embraer|avibras)\b/i, country: "Brazil" },
-    { re: /\b(pgz|mesko|hsw|bumar|polonia|huta\s+stalowa)\b/i, country: "Poland" },
-    { re: /\b(navantia|indra)\b/i, country: "Spain" },
-    { re: /\b(bombardier|cae)\b/i, country: "Canada" },
-    { re: /\b(hanwha|poongsan|kai|lig\s+nex1|hyundai\s+rotem)\b/i, country: "South Korea" },
-    { re: /\b(baykar|aselsan|roketsan|tai|otokar|bmc)\b/i, country: "Turkey" },
-    { re: /\b(kongsberg|nammo)\b/i, country: "Norway" },
-    { re: /\b(patria)\b/i, country: "Finland" },
-    { re: /\b(terma)\b/i, country: "Denmark" },
-    { re: /\b(st\s+engineering)\b/i, country: "Singapore" },
-    { re: /\b(austal)\b/i, country: "Australia" },
-  ];
   const PG_REGION_META = { color: "#7fa8c9", fill: "#23303f" };
+  /* the partner's stated region, as stored (competitive_partnership.region). A company-name-to-country
+     guess and a table of country spellings are not kept here: no region stated means no region. */
   function pgRegionsOf(r) {
-    let raw = String((r && r.country) || "").trim();
-    if (!raw && r) {
-      const label = String(r.label || r.name || r.id || "").trim();
-      const match = DEFENSE_FIRM_COUNTRIES.find((m) => m.re.test(label));
-      if (match) raw = match.country;
-    }
+    const raw = String((r && r.country) || "").trim();
     if (!raw) return [];
     return raw.split(/[\/,;]/).map((part) => {
       let t = part.trim();
       const par = t.match(/\(([^)]+)\)/);          // "Europe (France)" -> "France"
       if (par) t = par[1].trim();
-      return PG_REGION_ALIAS[t.toLowerCase()] || t;
+      return t;
     }).filter(Boolean);
   }
   function pgRegionGroups(c) {
@@ -1594,7 +1421,7 @@ const PG_IMG_ONERROR =
       const y = focusY - 150;
       const p = activeNodes[0];
       const titleLines = wrapPartnerTitle(p.label || p.name || "", 18);
-      const sub = tieKindShort(p, 16);
+      const sub = tieKindShort(p, 16, cats);
       kids.push({ p, x, y, lx: x + LEAF_R + 8, ly: y + 4, anchor: "start", titleLines, sub, ang });
     } else {
       let startAng, endAng, Rx_base, Ry_base;
@@ -1622,7 +1449,7 @@ const PG_IMG_ONERROR =
         const sin = Math.sin(ang);
 
         const titleLines = wrapPartnerTitle(p.label || p.name || "", 14);
-        const sub = k <= 6 ? tieKindShort(p, 14) : "";
+        const sub = k <= 6 ? tieKindShort(p, 14, cats) : "";
 
         let anchor, lx, ly;
         if (Math.abs(cos) < 0.48 && sin < -0.65) {
@@ -1763,7 +1590,8 @@ const PG_IMG_ONERROR =
     const kinds = {};
     shared.forEach((p) => {
       const relKey = (p.koel && p.koel.rel) || p.rel;
-      kinds[OV_KIND[relKey] || "tech"] = 1;
+      const ok = categoryOf(relKey).overlapKind;
+      if (ok) kinds[ok] = 1;
     });
     const worst = shared[0];
     const worstN = (idx[keyOf(worst)] || []).length;
@@ -1833,21 +1661,20 @@ const PG_IMG_ONERROR =
     const kinds = {};
     shared.forEach((p) => {
       const relKey = (p.koel && p.koel.rel) || p.rel;
-      kinds[OV_KIND[relKey] || "tech"] = 1;
+      const ok = categoryOf(relKey).overlapKind;
+      if (ok) kinds[ok] = 1;
     });
+    const defs = overlapDefs(d);
+    const sub = (t) => cats.fill(t, c.name, clientName);
     let h = "";
     Object.keys(kinds).forEach((k) => {
-      const def = OV_DEF[k];
+      const def = defs[k];
       if (!def) return;
-      const lbl = def.label.replace(/KSSL/g, clientName);
-      const lead = def.lead.replace(/KSSL/g, clientName);
       h +=
-        `<div class="pg-ov-kind"><b>${lbl}</b><span class="pg-ov-lead"> - ${lead}</span></div>` +
+        `<div class="pg-ov-kind"><b>${esc(sub(def.label))}</b>${def.lead ? `<span class="pg-ov-lead"> - ${esc(sub(def.lead))}</span>` : ""}</div>` +
         '<div class="pg-ov-defs">';
       def.fx.forEach((f) => {
-        const dt = f[0].replace(/KSSL/g, clientName);
-        const dx = f[1].replace(/KSSL/g, clientName);
-        h += `<div class="pg-ov-def"><div class="pg-ov-dt">${dt}</div><div class="pg-ov-dx">${dx}</div></div>`;
+        h += `<div class="pg-ov-def"><div class="pg-ov-dt">${esc(sub(f[0]))}</div><div class="pg-ov-dx">${esc(sub(f[1]))}</div></div>`;
       });
       h += "</div>";
     });
@@ -1872,10 +1699,9 @@ const PG_IMG_ONERROR =
          nothing at all. Removing the block removes both. */
       b += `<div class="pg-r-sec"><span class="eyebrow">Relationships (${rows.length})</span><div class="pg-rellist">`;
       rows.forEach((p) => {
-        const isCore = (p.insight || "").indexOf("[CORE]") >= 0;
         b +=
-          `<div class="pg-rel${isCore ? " core" : ""}" data-pid="${escAll(p.id)}"><span class="rmark rel-${p.rel}"></span>` +
-          `<span class="rtxt"><b>${esc(p.label)}</b> <span class="pg-ctag sm">${esc(p.country || "—")}</span> <span class="rtype">${esc(p.ptype || REL_LABEL[p.rel])}</span>${statusTag(p)}<br>` +
+          `<div class="pg-rel" data-pid="${escAll(p.id)}"><span class="rmark rel-${p.rel}"></span>` +
+          `<span class="rtxt"><b>${esc(p.label)}</b> <span class="pg-ctag sm">${esc(p.country || "—")}</span> <span class="rtype">${esc(p.ptype || REL_LABEL[p.rel] || '—')}</span>${statusTag(p)}<br>` +
           `<span class="rnote">${joinParts([p.note, p.deal !== "n/d" ? p.deal : null, p.date].map(esc))}</span></span></div>`;
       });
       b += "</div></div>";
@@ -1888,15 +1714,11 @@ const PG_IMG_ONERROR =
     }
 
     // ---- synthesis mode ----
-    const core = rows.filter((p) => (p.insight || "").indexOf("[CORE]") >= 0).length;
-    const frgn = rows.filter((p) => p.kind === "Foreign OEM").length;
     let h = "";
     h += `<div class="syn-thesis"><span class="stl">Read on this competitor</span><span class="stx">${esc(syn.thesis)}</span></div>`;
     h +=
       '<div class="syn-stats">' +
       `<div class="syn-stat"><div class="sv">${rows.length}</div><div class="sl">Ties</div></div>` +
-      `<div class="syn-stat core"><div class="sv">${core}</div><div class="sl">On ${clientName} lines</div></div>` +
-      `<div class="syn-stat frgn"><div class="sv">${frgn}</div><div class="sl">Foreign-IP</div></div>` +
       "</div>";
     h += '<div class="syn-sec-l vuln">▸ Structural weaknesses</div>';
     syn.vulns.forEach((v, i) => {
@@ -1995,7 +1817,6 @@ const PG_IMG_ONERROR =
       const typeLabel = real(r.ptype) || cat.label;
       const verdict = verdictOf(r.mean);
       const impact = meanText(r.mean);
-      const close = closenessOf(r.insight);
       const note = real(r.note) || pgThinNote(r, c.name);
       const srcs = (r.srcs || []).filter((x) => x && x.url);
       const facts = [
@@ -2003,7 +1824,6 @@ const PG_IMG_ONERROR =
         ["Territory", real(r.country)],
         ["Since", real(r.date)],
         ["Deal value", real(r.deal)],
-        [`Closeness to ${NO}`, close],
       ].filter(([, v]) => v);
 
       h += `<div style="background: #ffffff; color: #161614; border: 1px solid #e2e0d8; border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">`;
@@ -2185,7 +2005,7 @@ const PG_IMG_ONERROR =
           const px = hub.x + t * dx;
           const py = hub.y + t * dy;
           const dist = Math.hypot(o.x - px, o.y - py);
-          const rad = ((o.insight || "").indexOf("[CORE]") >= 0 ? 11 : 8) + (o.sig || 1) * 1.4;
+          const rad = 8 + (o.sig || 1) * 1.4;
           worstClear = Math.min(worstClear, dist - rad);
           ok(
             dist > rad + 3,
@@ -2196,7 +2016,7 @@ const PG_IMG_ONERROR =
       });
       // labels must not overlap: rectangle test on the anchored text boxes
       const boxes = ptr.map((nd) => {
-        const rad = ((nd.insight || "").indexOf("[CORE]") >= 0 ? 11 : 8) + (nd.sig || 1) * 1.4;
+        const rad = 8 + (nd.sig || 1) * 1.4;
         const L = pgLabel(nd, rad);
         const w = L.t.length * CH;
         const x0 = L.cls === "la-s" ? L.x : L.cls === "la-e" ? L.x - w : L.x - w / 2;
@@ -2256,7 +2076,7 @@ const PG_IMG_ONERROR =
 
     h += `<div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px;">`;
     parts.forEach((p) => {
-      const kinds = [...new Set((p.rows || [p]).map((r) => tieKind(r)))];
+      const kinds = [...new Set((p.rows || [p]).map((r) => tieKind(r, cats)))];
       const kindText = kinds.map((k) => esc(k)).join(`</span><span style="background: #f0efea; padding: 2px 6px; border-radius: 3px; font-weight: 600; max-width: 100%; overflow-wrap: anywhere;">`);
 
       h +=
