@@ -16,7 +16,7 @@
  * And the global search box's footer promises "the open page is filtered to this
  * query where it has a list"; the Innovation list ignored the query entirely. */
 import assert from "node:assert/strict";
-import { positionPill, maturityLabel, filterInnovations, MAT_LAB } from "./src/lib/innovation.js";
+import { positionPill, maturityLabel, filterInnovations } from "./src/lib/innovation.js";
 
 /* the pill is a verdict: absent position, absent pill */
 assert.equal(positionPill(null), null);
@@ -28,14 +28,15 @@ assert.deepEqual(positionPill("behind"), { text: "GAP", cls: "behind" });
 assert.deepEqual(positionPill("parity"), { text: "WATCH", cls: "parity" });
 assert.deepEqual(positionPill("ahead"), { text: "AHEAD", cls: "ahead" });
 
-/* maturity: every served value has a label, and a missing one says so in words */
-for (const m of ["lab", "dev", "prod", "fielded"]) assert.ok(MAT_LAB[m], `MAT_LAB.${m}`);
-assert.equal(maturityLabel("prod"), "In production");
-assert.equal(maturityLabel(null), "not stated");
+/* maturity: the stored word (matLabel), the stored code when no word is stored, and a missing one says so in words */
+assert.equal(maturityLabel({ mat: "prod", matLabel: "In production" }), "In production");
+assert.equal(maturityLabel({ mat: "prod" }), "prod", "no stored word: the stored code, never a browser-owned word");
+assert.equal(maturityLabel({ mat: null }), "not stated");
+assert.equal(maturityLabel({}), "not stated");
 assert.equal(maturityLabel(undefined), "not stated");
-assert.equal(maturityLabel(""), "not stated");
-assert.equal(maturityLabel("weird"), "weird", "an unknown non-empty value is shown as served, never invented");
-assert.doesNotMatch(maturityLabel(null), /null|undefined/);
+assert.equal(maturityLabel({ mat: "" }), "not stated");
+assert.equal(maturityLabel({ mat: "weird" }), "weird", "an unknown non-empty value is shown as served, never invented");
+assert.doesNotMatch(maturityLabel({ mat: null }), /null|undefined/);
 
 /* the list filter: every token somewhere in the row's text, markup ignored, index kept */
 const rows = [

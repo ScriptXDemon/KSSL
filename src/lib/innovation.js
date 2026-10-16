@@ -13,20 +13,15 @@ export const NOT_STATED = "not stated";
 
 export const has = (v) => v != null && String(v).trim() !== "";
 
-/* maturity labels -- one map, covering every `mat` value in the dataset
-   (lab / dev / prod / fielded). 'prod' was once missing and rendered `undefined`. */
-export const MAT_LAB = {
-  lab: "Lab / research",
-  dev: "In development",
-  prod: "In production",
-  fielded: "Fielded / in service",
-};
+/* The maturity and position WORDS are stored (serving.technology_innovation_status.maturity_label / position_label,
+   shipped as `matLabel` / `gapLabel`); the stored codes (`mat`, `gap`) are only the colour keys. A record with no
+   stored word shows its stored code, and one with neither shows nothing: the browser owns no vocabulary for them. */
+export const maturityWord = (iv) => (iv && has(iv.matLabel) ? String(iv.matLabel).trim() : iv && has(iv.mat) ? String(iv.mat) : "");
+export const positionWord = (iv) => (iv && has(iv.gapLabel) ? String(iv.gapLabel).trim() : iv && has(iv.gap) ? String(iv.gap) : "");
 
-/* A missing maturity says so in words; an unknown non-empty value is shown as served,
-   never mapped to something it is not. */
-export function maturityLabel(mat) {
-  if (!has(mat)) return NOT_STATED;
-  return MAT_LAB[mat] || String(mat);
+/* A missing maturity says so in words. */
+export function maturityLabel(iv) {
+  return maturityWord(iv) || NOT_STATED;
 }
 
 /* The header pill is a VERDICT. No assessed position, no pill -- and a value outside

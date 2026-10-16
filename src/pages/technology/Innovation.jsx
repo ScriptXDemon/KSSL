@@ -8,8 +8,9 @@ import { useData } from "../../state/DataProvider";
 import { techReportHtml } from "../../lib/reports";
 import { gapCorrelateStrip } from "../../lib/gapModel";
 import { srcChips, attr } from "../../lib/html";
-import { MAT_LAB, NOT_ASSESSED, has, maturityLabel, positionPill, filterInnovations } from "../../lib/innovation";
+import { NOT_ASSESSED, has, maturityLabel, maturityWord, positionWord, positionPill, filterInnovations } from "../../lib/innovation";
 import { Review } from "../../components/review/Review";
+import { uiText } from "../../lib/uiText";
 
 /* Not every pipeline row carries an assessed position. `gap`, `horizon`, `whatsNew`
    and `compNote` are analyst fields, and the served record leaves them null when
@@ -26,7 +27,9 @@ export default function Innovation() {
   const { setScope, jumpTo, takePending, searchQuery } = useAppState();
   const clientName = clientShort();
 
-  const GAP_LAB = { behind: `${clientName} behind`, parity: `${clientName} at parity`, ahead: `${clientName} ahead` };
+  /* the list heading and the empty text are the stored words of ui.technology_innovation_view */
+  const listHeading = uiText(data, "ui.technology_innovation_view", {}, "list_heading");
+  const emptyText = uiText(data, "ui.technology_innovation_view", {}, "empty_state_text");
   const GAP_HEAD = {
     behind: `Why ${clientName} is behind`,
     parity: `Why ${clientName} is at parity`,
@@ -124,7 +127,7 @@ export default function Innovation() {
      field the record carries, or the domain's list when none is open. Fields the
      record leaves null are printed as "not stated" / "not assessed", never filled. */
   const headerReport = useMemo(() => {
-    const matOf = (x) => MAT_LAB[x.mat] || x.mat || "not stated";
+    const matOf = (x) => maturityLabel(x);
     if (iv) {
       return {
         title: iv.t,
@@ -136,7 +139,7 @@ export default function Innovation() {
               ["Maturity", matOf(iv)],
               ["Driven by", has(iv.driver) ? iv.driver : "not stated"],
               ["Horizon", has(iv.horizon) ? iv.horizon : "not stated"],
-              [`${clientName} position`, has(iv.gap) && GAP_LAB[iv.gap] ? GAP_LAB[iv.gap] : NOT_ASSESSED],
+              [`${clientName} position`, positionWord(iv) || NOT_ASSESSED],
             ],
           },
           has(iv.impact) ? { h: `Why this matters to ${clientName}`, rows: [iv.impact] } : null,
@@ -159,26 +162,26 @@ export default function Innovation() {
       };
     }
     return {
-      title: `${catName} · Innovations`,
+      title: [catName, listHeading].filter(Boolean).join(" · "),
       subtitle: `${list.length} tracked in this domain · none selected`,
       sections: [
         {
-          h: "Innovations",
+          h: listHeading,
           rows: list.map((x) => [x.t, [matOf(x), x.driver, x.horizon].filter(has).join(" · ")]),
         },
       ],
       payload: { domain: catName, innovations: list },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iv, list, catName, clientName]);
+  }, [iv, list, catName, clientName, listHeading]);
   useHeaderReport(headerReport);
 
   const detailBody = () => {
     if (!iv) return "";
     const impactClean = (iv.impact || "").replace(/<b>\[Analysis\][^<]*<\/b>\s*/, "");
-    /* "not stated" for the rows that carry no maturity -- `MAT_LAB[mat] || mat`
+    /* "not stated" for the rows that carry no maturity -- the old label map
        printed the word "null" for them (15 of 1,101 on production) */
-    const matLab = maturityLabel(iv.mat);
+    const matLab = maturityLabel(iv);
     const gapKnown = has(iv.gap) && GAP_VERB[iv.gap];
     const na = `<div class="body na">${NOT_ASSESSED} - not carried on this record</div>`;
     return (
@@ -214,7 +217,7 @@ export default function Innovation() {
       `<div class="tech-kv"><span class="k">Maturity</span><span class="v">${matLab}</span></div>` +
       `<div class="tech-kv"><span class="k">Driven by</span><span class="v${has(iv.driver) ? "" : " na"}">${has(iv.driver) ? iv.driver : "not stated"}</span></div>` +
       `<div class="tech-kv"><span class="k">Horizon</span><span class="v${has(iv.horizon) ? "" : " na"}">${has(iv.horizon) ? iv.horizon : "not stated"}</span></div>` +
-      `<div class="tech-kv"><span class="k">${clientName} position</span><span class="v${gapKnown ? "" : " na"}">${gapKnown ? GAP_LAB[iv.gap] : NOT_ASSESSED}</span></div>` +
+      `<div class="tech-kv"><span class="k">${clientName} position</span><span class="v${gapKnown ? "" : " na"}">${positionWord(iv) || NOT_ASSESSED}</span></div>` +
       '<div class="tech-kv"><span class="k">Sources</span><span class="v">' +
       (srcChips(iv.srcs && iv.srcs.length ? iv.srcs : iv.url ? [{ label: iv.sources || "Source", url: iv.url }] : null) ||
         attr(iv.sources || "—")) +
@@ -257,7 +260,7 @@ export default function Innovation() {
                 serving pass did not land. (shell.css hides .srcbadge outright, so this
                 claim was not even on screen -- it was a lie waiting for one CSS line
                 to make it visible.) */}
-            <span className="eyebrow">{catName} · Innovations</span>
+            <span className="eyebrow">{listHeading}</span>
             {filtering ? (
               <span className="lh-note">
                 {`${shown.length} of ${list.length} match "${String(searchQuery).trim()}"`}
@@ -269,6 +272,7 @@ export default function Innovation() {
               {`no innovation in this domain matches "${String(searchQuery).trim()}" - clear the search box or pick another domain`}
             </div>
           ) : null}
+          {!list.length && emptyText ? <div className="empty-note" style={{ padding: "18px 0" }}>{emptyText}</div> : null}
           {shown.map(({ item, index: i }) => (
             <div
               className={`innov${sel === i ? " sel" : ""}`}
@@ -289,7 +293,7 @@ export default function Innovation() {
                     still carries border:1px solid + padding, leaving a bare ~16x18px
                     rectangle beside the title -- the "small Box symbol" in the report. */}
                 {has(item.mat) ? (
-                  <span className={`mat ${item.mat}`}>{MAT_LAB[item.mat] || item.mat}</span>
+                  <span className={`mat ${item.mat}`}>{maturityWord(item)}</span>
                 ) : null}
               </div>
               <div
@@ -302,9 +306,9 @@ export default function Innovation() {
                 {[
                   has(item.driver) ? <span key="driver">{item.driver}</span> : null,
                   has(item.horizon) ? <span key="horizon">{item.horizon}</span> : null,
-                  has(item.gap) && GAP_LAB[item.gap] ? (
+                  positionWord(item) ? (
                     <span className={`gappill ${item.gap}`} key="gap">
-                      {GAP_LAB[item.gap]}
+                      {positionWord(item)}
                     </span>
                   ) : null,
                 ]
@@ -361,9 +365,9 @@ export default function Innovation() {
                     <Review src={iv._src} />
                     <div className="sub">
                       {[
-                        MAT_LAB[iv.mat] || iv.mat,
+                        maturityWord(iv),
                         has(iv.horizon) ? iv.horizon : null,
-                        has(iv.gap) ? GAP_LAB[iv.gap] : null,
+                        positionWord(iv),
                       ]
                         .filter((p) => p != null && String(p).trim() !== "")
                         .map((p, n) => (

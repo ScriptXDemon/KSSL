@@ -18,6 +18,7 @@ import { metricsFor, tilePredicate, filterMatch } from "./src/lib/overview.js";
 import { uiText, filterOptions, stanceWords, stanceOf } from "./src/lib/uiText.js";
 import { railFor, navTitle, setPillarNames, PILLAR_LABEL } from "./src/lib/route.js";
 import { marketMetrics } from "./src/lib/marketOverview.js";
+import { maturityWord, positionWord, maturityLabel } from "./src/lib/innovation.js";
 
 const fx = JSON.parse(readFileSync("fixtures/kssl_dataset.json", "utf-8"));
 const clone = () => JSON.parse(JSON.stringify(fx));
@@ -214,4 +215,35 @@ console.log("\nok - labels, pills and tiles come from the database rows");
   assert.equal(mk.cards.filter(tilePredicate("opps")).length, served.length, "its door opens exactly those cards");
   assert.equal(mk.cards.filter((c) => filterMatch(c, "opps", mk.filters)).length, served.length, "and so does the pill");
   ok("Perceived opportunities tile counts the opportunity cards (" + served.length + " > 0 on the fixture)");
+}
+
+/* ---- I2: Innovation maturity / position words, list heading and Geo dropdown labels are stored rows ----- */
+{
+  const strip = (f) => readFileSync(f, "utf-8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const ivs = Object.values(fx.innovations).flat();
+  assert.ok(ivs.length > 0);
+  for (const iv of ivs) {
+    assert.equal(maturityWord(iv), iv.matLabel, "the maturity word is the stored maturity_label");
+    assert.equal(positionWord(iv), iv.gapLabel, "the position word is the stored position_label");
+  }
+  assert.ok(ivs.some((x) => x.mat === "fielded" && maturityWord(x) === "Fielded"), "Fielded reads as stored, not as a browser map's 'Fielded / in service'");
+  const renamed = { ...ivs[0], matLabel: "Stored word", gapLabel: "Stored position" };
+  assert.equal(maturityWord(renamed), "Stored word");
+  assert.equal(positionWord(renamed), "Stored position");
+  assert.equal(maturityLabel({ mat: null }), "not stated");
+  assert.equal(positionWord({ gap: null }), "");
+  assert.equal(uiText(fx, "ui.technology_innovation_view", {}, "list_heading"), "Innovations in this category");
+  assert.equal(uiText(fx, "ui.technology_innovation_view", {}, "empty_state_text"), "No innovations on record for this category.");
+  const g = (type, col) => uiText(fx, "ui.competitive_geo_filter", { filter_type: type, selected_value: "all" }, col);
+  assert.deepEqual([g("company", "filter_label"), g("company", "option_label"), g("country", "filter_label"), g("country", "option_label")],
+    ["Company", "All companies", "Country", "All countries"]);
+  const inno = strip("src/pages/technology/Innovation.jsx");
+  assert.ok(!/MAT_LAB|GAP_LAB/.test(inno + strip("src/lib/innovation.js")), "no maturity / position map left in code");
+  assert.ok(!/["'`>]\s*Innovations\s*["'`<]|· Innovations/.test(inno), "the Innovation list heading is not a literal");
+  assert.ok(inno.includes("technology_innovation_view"), "the Innovation page reads ui.technology_innovation_view");
+  const geo = strip("src/pages/competitive/Geo.jsx");
+  assert.ok(!/ddlbl">\s*(Competitor|Country)\s*</.test(geo), "the Geo dropdown labels are not literals");
+  assert.ok(!/country \|\| "All"|: "All";/.test(geo), "the Geo 'all' options are not literals");
+  assert.ok(geo.includes("competitive_geo_filter"), "Geo reads ui.competitive_geo_filter");
+  ok("Innovation maturity / position / heading / empty text and Geo dropdown labels read the stored rows");
 }
