@@ -207,6 +207,27 @@ if (kind(d.COMPSYN) === "dict") for (const [cid, c] of Object.entries(d.COMPSYN)
 if (kind(d.TRACEIDS) === "dict") for (const [cid, v] of Object.entries(d.TRACEIDS)) want(`TRACEIDS.${cid}`, v, "list");
 if (kind(d.FIELDSYN) === "dict") { need("FIELDSYN", d.FIELDSYN, ["patterns", "bottom"]); needAll("FIELDSYN.patterns", d.FIELDSYN.patterns, ["field", "pattern", "implication", "n", "total"]); }
 
+// Card ids are one id space (feed, details, browser-built tender cards): no id may repeat across the three card lists,
+// and every details key must be a card id of one of them or a tender / signal id.
+{
+  const seen = new Map();
+  for (const g of ["competitiveCards", "techCards", "marketCards"])
+    if (kind(d[g]) === "list") d[g].forEach((c) => {
+      if (seen.has(c.id)) bad.push(`${g}: card id ${c.id} repeats ${seen.get(c.id)}`);
+      else seen.set(c.id, g);
+    });
+  if (kind(d.details) === "dict") for (const [k, v] of Object.entries(d.details)) if (v.id !== k) bad.push(`details.${k}: id ${v.id} differs from its key`);
+  // a card's detail panel is keyed by the card id
+  for (const [g, list] of [["marketCards", d.marketCards], ["techCards", d.techCards]])
+    if (kind(list) === "list") list.forEach((c) => { if (kind(d.details) === "dict" && !(c.id in d.details)) bad.push(`${g}: card ${c.id} has no details row`); });
+}
+// awards may have a null date; the list must still be present and ordered by date, nulls last
+if (kind(d.awards) === "list") {
+  const dated = d.awards.map((a) => a.date);
+  const firstNull = dated.indexOf(null);
+  if (firstNull >= 0 && dated.slice(firstNull).some((x) => x !== null)) bad.push("awards: a dated award follows an undated one (nulls must sort last)");
+}
+
 if (bad.length) {
   bad.forEach((b) => console.log("CONTRACT: " + b));
   console.log(`${bad.length} violation(s)`);

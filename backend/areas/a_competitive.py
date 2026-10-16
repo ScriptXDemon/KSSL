@@ -290,13 +290,14 @@ def build_tech_articles(database, competitors, details):
     srcs_by = by_key(table(database, "serving", "technology_overview_source"), "article_id")
     cards = []
     for row in ordered(table(database, "serving", "technology_overview_article"), "sequence_no"):
-        aid = text(row.get("article_id"))
-        if not aid:
+        raw_aid = text(row.get("article_id"))
+        if not raw_aid:
             continue
+        aid = "tech-" + raw_aid   # card / details id: prefixed per source table; _src.id stays the raw key
         primary = companies.get(text(row.get("primary_company_id"))) or {}
         classification = row.get("classification")
         kind = TECH_KIND.get(text(classification).lower())
-        src_rows = ordered(srcs_by.get(aid, []), "display_order")
+        src_rows = ordered(srcs_by.get(raw_aid, []), "display_order")
         srcs, statuses = [], []
         for sr in src_rows:
             info = sources.get(text(sr.get("source_id"))) or {}
@@ -335,10 +336,10 @@ def build_tech_articles(database, competitors, details):
             "dir": lower(row.get("direction")),
             "title": row.get("title"),
             "facts": [[f.get("ui_label"), f.get("fact_value"), f.get("proof_text")]
-                      for f in ordered(facts_by.get(aid, []), "display_order")],
+                      for f in ordered(facts_by.get(raw_aid, []), "display_order")],
             "what": row.get("article_says"),
             "why": row.get("client_narrative"),
-            "lens": [[None, p.get("point_text")] for p in ordered(points_by.get(aid, []), "display_order", "point_no")
+            "lens": [[None, p.get("point_text")] for p in ordered(points_by.get(raw_aid, []), "display_order", "point_no")
                      if p.get("point_text")],
             "url": card["url"],
             "srcs": srcs,

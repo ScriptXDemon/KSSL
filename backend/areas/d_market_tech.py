@@ -79,23 +79,25 @@ def build_tenders(database):
         req = []
         for r in ordered(reqs.get(tid, []), "display_order"):
             quantity = r.get("quantity")
-            req.extend([list(p) for p in clean([
-                ("Description", r.get("description")),
-                ("Scope", r.get("scope_text")),
-                ("Note", r.get("requirement_note")),
-                ("Equipment", r.get("equipment_scope")),
-                ("Rating", r.get("rating_band")),
-                ("Use case", r.get("use_case")),
-                ("Quantity", " ".join(clean([text(quantity) if quantity is not None else "", r.get("quantity_unit")])) or None),
-                (r.get("scope_bullet_label") or "Detail", r.get("scope_bullet_value")),
-                ("Category", r.get("category_text")),
-                ("Stated in", r.get("source_text")),
-            ]) if p[1]])
+            # row key = the source column name (a code the UI maps to its chrome words), or the stored
+            # scope_bullet_label; the backend writes no English label (ruling R12)
+            req.extend([list(p) for p in [
+                ("description", r.get("description")),
+                ("scope_text", r.get("scope_text")),
+                ("requirement_note", r.get("requirement_note")),
+                ("equipment_scope", r.get("equipment_scope")),
+                ("rating_band", r.get("rating_band")),
+                ("use_case", r.get("use_case")),
+                ("quantity", " ".join(clean([text(quantity) if quantity is not None else "", r.get("quantity_unit")])) or None),
+                (r.get("scope_bullet_label"), r.get("scope_bullet_value")),
+                ("category_text", r.get("category_text")),
+                ("source_text", r.get("source_text")),
+            ] if p[1]])
         closing = first_nonempty(row, "closing_date") or window.get("closing_date")
         if row.get("published_date"):
-            req.append(["Published", row.get("published_date")])
+            req.append(["published_date", row.get("published_date")])
         if closing:
-            req.append(["Closes", closing])
+            req.append(["closing_date", closing])
 
         product_matches = []
         for m in ordered(matches.get(tid, []), "display_order"):
@@ -214,8 +216,9 @@ def build_market_cards(database, requirements, details):
     cards = []
     for r in requirements:
         srcs = [{"label": s["label"], "url": s["url"]} for s in r["sources"] if s["url"]]
+        cid = "req-" + r["id"]   # card / details id: prefixed per source table; _src.id stays the raw key
         cards.append({
-            "id": r["id"],
+            "id": cid,
             "dir": None,
             "title": r["title"],
             "meta": _join([r["cat"], r["region"], r["deadline"]]),
@@ -224,8 +227,8 @@ def build_market_cards(database, requirements, details):
             "url": srcs[0]["url"] if srcs else None,
             "_src": r["_src"],
         })
-        details[r["id"]] = {
-            "id": r["id"], "dir": None, "title": r["title"],
+        details[cid] = {
+            "id": cid, "dir": None, "title": r["title"],
             "facts": [list(s) for s in r["specs"]],
             "what": r["desc"], "why": r["strategicAssessment"], "lens": [],
             "url": srcs[0]["url"] if srcs else None, "srcs": srcs, "provenance": None, "image": None,
@@ -237,7 +240,8 @@ def build_market_cards(database, requirements, details):
     categories = {text(o.get("option_code")): o.get("option_label")
                   for o in table(database, "serving", "market_filter_option") if text(o.get("filter_type")).lower() == "category"}
     for u in ordered(table(database, "serving", "market_opportunity_update"), "update_date"):
-        uid = text(u.get("update_id"))
+        raw_uid = text(u.get("update_id"))
+        uid = "upd-" + raw_uid if raw_uid else ""
         oid = text(u.get("opportunity_id"))
         opp = opps.get(oid)
         if not uid or opp is None:
@@ -290,7 +294,8 @@ def build_awards(database):
         "url": r.get("source_url"),
         "source": r.get("source_tier"),
         "_src": src("market_award", "award_id", r.get("award_id")),
-    } for r in ordered(table(database, "serving", "market_award"), "award_date", "award_id")]
+    } for r in sorted(table(database, "serving", "market_award"),
+                    key=lambda r: (r.get("award_date") is None, r.get("award_date") or "", r.get("award_id") or 0))]
 
 
 # ---------------------------------------------------------------- top opportunity

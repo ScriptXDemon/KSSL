@@ -131,7 +131,11 @@ INSERT INTO staging.market_award
    18500000, 'EUR', 'EUR 18.5 million', 2, 'https://awards.example.com/de-fp-2026-0120', 'primary'),
   (70005, 'Unmanned & Counter-UAS', 'Tessera Aerospace (TEST)', 'Drone Killer (TEST)', 'Ministry of Defence (TEST)', 'Bengaluru-Test', 'India', 'Counter-drone fast track (TEST)',
    '60 counter-UAS interceptor batteries (TEST)', NULL, 'IN-MOD-2026-0060', '2026-08-04', 2026,
-   9200000000, 'INR', 'INR 9.2 billion', NULL, 'https://awards.example.org/in-mod-2026-0060', 'independent');
+   9200000000, 'INR', 'INR 9.2 billion', NULL, 'https://awards.example.org/in-mod-2026-0060', 'independent'),
+  -- no award_date, only the year: the backend sort must cope with a null date (task 4 fix round 1)
+  (70006, 'Artillery', 'Meridian Ordnance (TEST)', NULL, 'Ministry of Defence (TEST)', NULL, 'France', 'Mortar refresh (TEST)',
+   '300 mortars (TEST)', NULL, 'FR-MOD-2024-0300', NULL, 2024,
+   NULL, NULL, NULL, NULL, 'https://awards.example.net/fr-mod-2024-0300', 'independent');
 
 -- "What to do" per tender segment (segment = market_tender.category_text). A recommendation is a judgement.
 INSERT INTO staging.market_segment_assessment (segment, recommendation, source_url, source_tier) VALUES
