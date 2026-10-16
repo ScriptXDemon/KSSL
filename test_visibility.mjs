@@ -83,3 +83,19 @@ test("viewMeta drops hidden views and search never indexes a hidden section", ()
   const res = searchDataset(d, "SWOT");
   assert.equal(res.total, 0);
 });
+
+test("every hideable key has a host that reads it", async () => {
+  const { readdirSync, statSync } = await import("node:fs");
+  const files = [];
+  const walk = (dir) => readdirSync(dir).forEach((f) => {
+    const p = `${dir}/${f}`;
+    statSync(p).isDirectory() ? walk(p) : /\.jsx?$/.test(f) && !p.endsWith("visibility.js") && files.push(p);
+  });
+  walk("./src");
+  const text = files.map((f) => readFileSync(f, "utf8")).join("\n");
+  for (const k of HIDEABLE) {
+    // finances and gap-analysis also gate their rail views through VIEW_KEY
+    assert.ok(text.includes(`isVisible("${k}")`) || text.includes(`viewVisible(`), `${k} is read nowhere`);
+    if (!["finances"].includes(k)) assert.ok(text.includes(`isVisible("${k}")`), `${k} has no isVisible host`);
+  }
+});
