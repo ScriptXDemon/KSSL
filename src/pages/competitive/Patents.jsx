@@ -36,7 +36,14 @@ export default function Patents() {
   const [lens, setLens] = useState(savedPat.lens || "rival");
   const [compQuery, setCompQuery] = useState("");
   const [techQuery, setTechQuery] = useState("");
-  const [cid, setCid] = useState(savedPat.cid || data.compOrder[0]);
+  /* The rail lists the client first when the dataset holds a row for it (as the reference does), then the rivals in
+     order; the client's own filings are whatever the dataset stores under it (none, today). */
+  const clientId = data.client && data.client.id;
+  const railIds = useMemo(
+    () => (clientId && data.competitors[clientId] && !data.compOrder.includes(clientId) ? [clientId, ...data.compOrder] : data.compOrder),
+    [data, clientId],
+  );
+  const [cid, setCid] = useState(savedPat.cid || railIds[0]);
   const [catFilter, setCatFilter] = useState(savedPat.catFilter || "");
   const [compRes, setCompRes] = useState(null);
 
@@ -137,7 +144,7 @@ export default function Patents() {
   }, [lens, cid, area, catFilter, compRes, techRes, data.competitors]);
   useHeaderReport(report);
 
-  const compList = data.compOrder.filter(
+  const compList = railIds.filter(
     (k) =>
       data.competitors[k] &&
       (!compQuery.trim() ||

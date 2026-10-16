@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { bucketTenders } from "../../lib/overview";
-import { uiList } from "../../lib/uiText";
+import { uiList, uiText } from "../../lib/uiText";
 import { formatDate } from "../../utils/formatDate";
 import MarketOutlook from "../../components/marketOutlook/MarketOutlook";
 import { outlook } from "../../lib/marketOutlook";
@@ -187,13 +187,16 @@ function ColumnChart({ rows, total, examples }) {
 
 /* A chart card: heading, note, and whatever chart the question deserves. */
 function Chart({ title, note, empty, show, children }) {
+  const { data } = useData();
+  // a card with no note of its own says the page's stored empty text (ui.market_view, market-intelligence)
+  const pageEmpty = uiText(data, "ui.market_view", { view_id: "market-intelligence" }, "empty_state_text");
   return (
     <section aria-label={title} className="ovc">
       <div className="ovc-h">
         <span className="eyebrow">{title}</span>
         {note ? <span className="ovc-note">{note}</span> : null}
       </div>
-      {show ? children : <div className="ovc-empty">{empty || "nothing on record in this corpus"}</div>}
+      {show ? children : <div className="ovc-empty">{empty || pageEmpty}</div>}
     </section>
   );
 }
@@ -202,6 +205,9 @@ export default function MarketOverview() {
   const { data } = useData();
   const { setScope, takePending, jumpTo } = useAppState();
   const SECTIONS = useMemo(() => sectionsOf(data), [data]);
+  // the filter labels are the stored words of ui.market_tenders_view; the page's empty text is ui.market_view
+  const tvCountryLabel = uiText(data, "ui.market_tenders_view", { view_code: "tenders" }, "country_filter_label");
+  const tvCategoryLabel = uiText(data, "ui.market_tenders_view", { view_code: "tenders" }, "category_filter_label");
   const [section, setSectionRaw] = useState(() => savedSection(sectionsOf(data)));
   const [rows, setRows] = useState(TABLE_PAGE);
   const [country, setCountry] = useState("all");
@@ -472,7 +478,7 @@ export default function MarketOverview() {
       <div className="tp-fbar">
         <span className="eyebrow">Filter</span>
         <label className="ovf-sel">
-          <span className="ddlbl">Country</span>
+          <span className="ddlbl">{tvCountryLabel}</span>
           <select
             aria-label="Filter by country"
             onChange={(e) => setCountry(e.target.value)}
@@ -507,7 +513,7 @@ export default function MarketOverview() {
               style={{ background: CATEGORY_COLOR(sliceLabel(cat)) }}
             />
           ) : null}
-          <span className="ddlbl">Category</span>
+          <span className="ddlbl">{tvCategoryLabel}</span>
           <select
             aria-label="Filter by category"
             onChange={(e) => setCat(e.target.value === "all" ? null : e.target.value)}

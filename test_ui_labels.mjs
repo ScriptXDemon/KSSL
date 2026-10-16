@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { wireDataset } from "./src/lib/dataset.js";
 import { metricsFor, tilePredicate, filterMatch } from "./src/lib/overview.js";
 import { uiText, filterOptions, stanceWords, stanceOf } from "./src/lib/uiText.js";
-import { railFor, navTitle } from "./src/lib/route.js";
+import { railFor, navTitle, setPillarNames, PILLAR_LABEL } from "./src/lib/route.js";
 import { marketMetrics } from "./src/lib/marketOverview.js";
 
 const fx = JSON.parse(readFileSync("fixtures/kssl_dataset.json", "utf-8"));
@@ -143,6 +143,21 @@ ok("uiText returns the stored cell, or an empty string: never a literal");
   ok("the rail's words, order and headings are the navigation rows; a view with no row is not drawn");
 }
 
+/* ---- pillar names, Product Evaluation tabs, section titles ---------------------------------------- */
+{
+  setPillarNames(fx);
+  assert.deepEqual([PILLAR_LABEL.competitive, PILLAR_LABEL.market, PILLAR_LABEL.technology], ["Competitive", "Market", "Technology"]);
+  const r = clone();
+  r.database.ui.market_pillar = [{ display_name: "Commerce" }];
+  setPillarNames(r);
+  assert.equal(PILLAR_LABEL.market, "Commerce", "the Market pillar name is the stored display_name");
+  setPillarNames({});
+  assert.equal(PILLAR_LABEL.market, "", "no stored name, no name");
+  assert.equal(PILLAR_LABEL.technology, "");
+  setPillarNames(fx);
+  ok("pillar names Market and Technology are the stored names (Competitive is chrome: no ui table holds it)");
+}
+
 /* ---- no literal labels in the lane code, and no third stance anywhere ------------------------------ */
 {
   const walk = (dir, out = []) => {
@@ -161,6 +176,19 @@ ok("uiText returns the stored cell, or an empty string: never a literal");
   const LITERALS = ["Competitive threats", "Watch signals", "Companies tracked", "Competitor advances", "Adoptable advances", "Domains tracked",
     "Latest tenders", "Strong fits", "Perceived opportunities", "Latest Tenders", "Perceived Opportunities", "Competitor Advancements",
     "Adoptable Advances", "Technology Knowledge", "Top opportunity", "Signals"];
+  // the words the later pages read from their tables: none of them is a literal there either
+  const PAGE_LITERALS = {
+    "src/pages/market/Tenders.jsx": ["Country", "Category", "sorted by deadline", "No tenders match this filter", "No tenders served yet"],
+    "src/components/tenderCockpit/TenderCockpit.jsx": ["Top tenders", "Projects to win before they tender", "Next moves"],
+    "src/components/matchupDossier/MatchupDossier.jsx": ["Analytics", "Spec Comparison"],
+    "src/components/detailPanel/DetailPanel.jsx": ["Demand in a client line", "Technology advance", "Competitor advance", "Tender"],
+    "src/pages/market/GlobalRequirement.jsx": ["Global Requirements", "No requirements on record"],
+    "src/lib/route.js": ["Market", "Technology"],
+  };
+  for (const [f, lits] of Object.entries(PAGE_LITERALS)) {
+    const code = readFileSync(f, "utf-8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    for (const lit of lits) assert.ok(!code.includes(`"${lit}"`), `${f} carries the literal "${lit}"`);
+  }
   for (const f of ["src/lib/overview.js", "src/lib/dataset.js", "src/lib/lanes.js", "src/pages/overview/Overview.jsx",
     "src/components/layout/Layout.jsx", "src/components/sidebar/Sidebar.jsx", "src/lib/route.js"]) {
     const code = readFileSync(f, "utf-8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

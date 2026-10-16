@@ -4,11 +4,16 @@ import HtmlBlock from "../htmlBlock/HtmlBlock";
 import { specPanelHtml, matchupGapHtml, advantageText } from "../../lib/specs";
 import { isVisible } from "../../lib/visibility";
 import { Review } from "../review/Review";
+import { uiList } from "../../lib/uiText";
 
-const TABS = [
-  ["adv", "Analytics"],
-  ["specs", "Spec Comparison"],
-];
+/* The two tabs this dossier renders, by the stored tab_code of ui.competitive_positioning_tab; the label and the order
+   are that row's, and a tab that is disabled or has no row is not drawn. */
+const TAB_CODES = { adv: "analytics", specs: "spec_comparison" };
+const tabsOf = (data) =>
+  uiList(data, "ui.competitive_positioning_tab", {}, "display_order")
+    .filter((r) => r.is_enabled !== false && String(r.tab_label || "").trim())
+    .map((r) => [Object.keys(TAB_CODES).find((k) => TAB_CODES[k] === r.tab_code), String(r.tab_label).trim()])
+    .filter(([k]) => k);
 
 /* The right-hand dossier for one matchup: verdict, gap block, product identity,
    then two tabs: Analytics and Spec Comparison. */
@@ -125,7 +130,7 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
         </div>
 
         <div className="mu-tabs">
-          {TABS.map(([k, label]) => (
+          {tabsOf(data).map(([k, label]) => (
             <div
               className={`mu-tab${tab === k ? " on" : ""}`}
               key={k}

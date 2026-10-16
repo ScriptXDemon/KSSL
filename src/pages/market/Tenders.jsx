@@ -5,6 +5,7 @@ import ScopeChat from "../../components/scopeChat/ScopeChat";
 import { isVisible } from "../../lib/visibility";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
+import { uiText } from "../../lib/uiText";
 import { gapCorrelateStrip } from "../../lib/gapModel";
 import { productOwner } from "../../lib/productLink";
 import { srcChips } from "../../lib/html";
@@ -96,6 +97,12 @@ const DASHBOARD_PARAM_KEYS = new Set(["buyer", "country", "category", "value", "
 
 export default function Tenders({ mode = "tender" }) {
   const { data, gapModel } = useData();
+  /* the filter labels and the sort note are the stored words of ui.market_tenders_view (view_code 'tenders') */
+  const tvLabel = {
+    country: uiText(data, "ui.market_tenders_view", { view_code: "tenders" }, "country_filter_label"),
+    cat: uiText(data, "ui.market_tenders_view", { view_code: "tenders" }, "category_filter_label"),
+    sort: uiText(data, "ui.market_tenders_view", { view_code: "tenders" }, "sort_label"),
+  };
   const { setScope, takePending, searchQuery, jumpTo } = useAppState();
   const clientName = clientShort();
   /* a model named on a tender opens that product in Products; a label that is not a model stays text */
@@ -385,13 +392,13 @@ export default function Tenders({ mode = "tender" }) {
       <div className="tp-list">
         <div className="tp-fbar">
           <span className="eyebrow">Filter</span>
-          {dd("country", "Country", country, setCountry)}
-          {dd("cat", "Category", cat, setCat)}
+          {tvLabel.country ? dd("country", tvLabel.country, country, setCountry) : null}
+          {tvLabel.cat ? dd("cat", tvLabel.cat, cat, setCat) : null}
           {/* the one deadline hint the operator kept; the verbose count line and the
               "no fit assessment" note below it are cut as redundant noise. Fit is now
               shown per card WHEN a tender carries it, and silent when it does not --
               no list-level placeholder. */}
-          <span className="sortnote">sorted by deadline</span>
+          {tvLabel.sort ? <span className="sortnote">{tvLabel.sort}</span> : null}
         </div>
         <div id="tp-cards">
           {list.length ? (
@@ -477,9 +484,7 @@ export default function Tenders({ mode = "tender" }) {
             })
           ) : (
             <div className="tp-list-empty">
-              {productType || country || cat
-                ? "No tenders match this filter"
-                : "No tenders served yet"}
+              {uiText(data, "ui.market_view", { view_id: "tenders" }, "empty_state_text")}
             </div>
           )}
         </div>

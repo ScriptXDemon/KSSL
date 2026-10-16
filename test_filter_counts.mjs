@@ -51,6 +51,8 @@ const tender = (id, over) => ({
 });
 
 export const fixture = {
+  /* the filter labels and the sort note are the stored words of ui.market_tenders_view */
+  database: { ui: { market_tenders_view: [{ view_code: "tenders", country_filter_label: "Country", category_filter_label: "Category", sort_label: "sorted by deadline" }] } },
   POS_CATS: [["art", "Artillery"], ["ammo", "Ammunition"], ["sa", "Small Arms"]],
   CAT_KEY: { Artillery: "art", Ammunition: "ammo", "Small Arms": "sa" },
   client: { id: "client-co", name: "Client Co", short: "CC" },
@@ -277,6 +279,10 @@ for (const [which, want] of [["country", WANT.openTenderCountries], ["cat", WANT
       fail(`market country: counts ${JSON.stringify(counts)} disagree with the rows`);
   }
 }
+
+/* ---------------------------------------------------------- 3b. stored words ---- */
+if (!/class="sortnote">sorted by deadline</.test(html.tenders)) fail("tenders: the sort note is not the stored sort_label");
+else ok("tenders: filter labels and sort note are the stored ui.market_tenders_view words");
 
 /* ---------------------------------------------------------- 4. closing dates ---- */
 {

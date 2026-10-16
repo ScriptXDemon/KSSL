@@ -14,11 +14,19 @@ import { viewVisible, firstVisibleView } from "./visibility.js";
 import { uiText, uiRows } from "./uiText.js";
 
 export const PILLARS = ["competitive", "market", "technology"];
+/* The pillar names: Market and Technology are stored (ui.market_pillar.display_name, ui.technology_pillar.pillar_name),
+   set from the dataset by setPillarNames before anything renders (like visibility). No ui table holds the Competitive
+   name (ui.competitive_pillar carries the account, brand and the active-pillar code), so it is chrome. A name the
+   database does not hold is empty, never a literal. */
 export const PILLAR_LABEL = {
   competitive: "Competitive",
-  market: "Market",
-  technology: "Technology",
+  market: "",
+  technology: "",
 };
+export function setPillarNames(data) {
+  PILLAR_LABEL.market = uiRows(data, "ui.market_pillar")[0] ? String(uiRows(data, "ui.market_pillar")[0].display_name || "").trim() : "";
+  PILLAR_LABEL.technology = uiRows(data, "ui.technology_pillar")[0] ? String(uiRows(data, "ui.technology_pillar")[0].pillar_name || "").trim() : "";
+}
 
 /* Which rail item each pillar opens on, and the pillar each rail belongs to. */
 /* The rail's WORDS are database rows, not literals: `nav` is the row key in the pillar's navigation table (NAV

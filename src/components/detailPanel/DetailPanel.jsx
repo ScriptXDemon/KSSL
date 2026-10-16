@@ -144,19 +144,9 @@ export default function DetailPanel({ detail, onClose, badge }) {
             knows at a glance whether to worry, act, or note it. */}
         {!isTender && detail.ksslImpact ? (
           <div className={detail.ksslImpactKind ? `ctx-sec cd-kssl kssl-${detail.ksslImpactKind}` : "ctx-sec cd-kssl"}>
-            <span className="eyebrow">
-              {{
-                threat: `Threat to ${clientShort()}`,
-                // These name WHAT THE SIGNAL IS. "Opportunity for KSSL" and "Adoptable
-                // by KSSL" were a recommendation the article never made -- the reader
-                // decides whether to bid or adopt; the panel reports the facts.
-                demand: "Demand in a client line",
-                "tech-advance": "Technology advance",
-                "rival-advance": "Competitor advance",
-                opportunity: "Demand in a client line",   // rows written before 2026-09-16
-                adoptable: "Technology advance",
-              }[detail.ksslImpactKind] || `How ${clientShort()} is impacted`}
-            </span>
+            {/* the eyebrow is the stored impact_eyebrow of the signal's detail row (serving.competitive_signal_detail);
+                none stored, none drawn */}
+            {detail.eyebrow ? <span className="eyebrow">{detail.eyebrow}</span> : null}
             <div className="cd-prose">{detail.ksslImpact}</div>
           </div>
         ) : null}

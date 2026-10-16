@@ -412,6 +412,45 @@ test("e2e: empty dataset renders every route without a crash", async ({ page }) 
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
+// -------------------------------------------------- stored words on the later pages
+test("stored words: pillar names, tender filters and sort note, cockpit titles, positioning tabs, eyebrow, patent rail", async ({ page }) => {
+  const j = await (await page.request.get("/api/dataset")).json();
+  const ui = j.database.ui;
+  const lc = (t) => t.trim().toLowerCase();
+  // pillar names
+  await boot(page, "#p=market&v=tender");
+  const pills = (await page.locator(".topnav .pill").allInnerTexts()).map(lc);
+  expect(pills).toContain(lc(ui.market_pillar[0].display_name));
+  expect(pills).toContain(lc(j.database.ui.technology_pillar[0].pillar_name));
+  // tenders: filter labels and sort note
+  const tv = ui.market_tenders_view.find((r) => r.view_code === "tenders");
+  const labels = (await page.locator(".tp-fbar .ddlbl").allInnerTexts()).map(lc);
+  expect(labels).toEqual([lc(tv.country_filter_label), lc(tv.category_filter_label)]);
+  expect(lc(await page.locator(".tp-fbar .sortnote").innerText())).toBe(lc(tv.sort_label));
+  // top opportunity: the three section titles
+  await boot(page, "#p=market&v=m-overview");
+  const top = ui.market_top_opportunity_view[0];
+  const eyebrows = (await page.locator(".ti-simple .ovc-h .eyebrow").allInnerTexts()).map(lc);
+  expect(eyebrows).toEqual([top.top_tenders_section_label, top.projects_section_label, top.next_moves_section_label].map(lc));
+  // product evaluation: the stored enabled tabs, in order, once a matchup is open
+  await boot(page, "#p=competitive&v=positioning");
+  await page.locator(".mu-item").first().click();
+  const tabs = ui.competitive_positioning_tab.filter((r) => r.is_enabled && ["analytics", "spec_comparison"].includes(r.tab_code))
+    .sort((a, b) => a.display_order - b.display_order).map((r) => lc(r.tab_label));
+  expect((await page.locator(".mu-tabs .mu-tab").allInnerTexts()).map(lc)).toEqual(tabs);
+  // a signal's impact eyebrow is its stored impact_eyebrow
+  await boot(page, "#p=competitive&v=overview");
+  await page.locator(".alert").first().click();
+  const id = await page.locator(".alert").first().getAttribute("data-id");
+  const stored = j.details[id].eyebrow;
+  expect(stored, "the seed stores an eyebrow for the first signal").toBeTruthy();
+  await expect(page.locator(".cd-kssl .eyebrow").first()).toHaveText(stored);
+  // patent rail: the client heads the list, as the reference does
+  await boot(page, "#p=competitive&v=patents-comp");
+  const first = (await page.locator("#patc-list .pli-n").first().innerText()).trim();
+  expect(first).toBe(j.competitors[j.client.id].name);
+});
+
 // -------------------------------------------------- operator console (separate app)
 for (const [id, what] of [
   ["FE-060", "/ops serves the operator console"],

@@ -3,6 +3,7 @@ import { datasetService } from "../api/datasetService";
 import { wireDataset } from "../lib/dataset";
 import { setClient, clientName } from "../lib/client.js";
 import { setVisibility } from "../lib/visibility.js";
+import { setPillarNames } from "../lib/route.js";
 import { createGeo } from "../lib/geo";
 import { createPartners } from "../lib/partners";
 import { buildGapModel } from "../lib/gapModel";
@@ -50,6 +51,7 @@ export function DataProvider({ children }) {
     setClient(raw.client);
     /* which sections the database switched on; read before anything below counts or routes */
     setVisibility(raw.sectionVisibility);
+    setPillarNames(raw);
     const data = wireDataset(raw);
     const gapModel = buildGapModel(data);
     const geo = createGeo(data);
