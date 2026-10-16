@@ -27,7 +27,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
   }, [detail]);
 
   if (!detail) return null;
-  const dir = badge ? badge.cls || "none" : detail.dir || "watch";
+  const dir = badge ? badge.cls || "none" : detail.dir || "none";
   /* A TENDER IS NOT AN ARTICLE, AND detail.kind NEVER SAID SO.
      Market's overview opens on "Live Opportunities" -- 126 tender cards. A tender has
      no document body, which is why the summary backfill selects `id LIKE 'pl\_%'` and

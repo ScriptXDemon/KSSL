@@ -170,7 +170,7 @@ export default function Overview({
       const upd = Array.isArray(project.updates) ? project.updates : [];
       const src = Array.isArray(project.sources) ? project.sources : [];
       return select(id, {
-        id, dir: "watch", title: project.title,
+        id, title: project.title,
         facts: [["Issuer", project.issuer], ["Country", project.country], ["Stage", project.stage]]
           .filter((f) => f[1] != null && String(f[1]).trim() !== ""),
         summary: (upd[0] && upd[0].narrative) || "", what: "", why: "",
@@ -178,7 +178,7 @@ export default function Overview({
       });
     }
     return select(`tender-${t.id}`, {
-      id: `tender-${t.id}`, dir: "watch", title: t.title, facts: [], summary: "", what: "", why: "",
+      id: `tender-${t.id}`, title: t.title, facts: [], summary: "", what: "", why: "",
       lens: "Market", actions: [], match: t.matches || null, url: t.url,
     });
   };
