@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { fetchTrending, fetchStockHistory } from "./src/lib/pulseFetch.js";
-import { tickerFor } from "./src/lib/tickers.js";
+import { fetchTrending } from "./src/lib/pulseFetch.js";
 
 const apiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8600";
 const reviewApiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8601";
@@ -41,39 +40,22 @@ async function apiMiddleware(req, res, next) {
   if (req.url && req.url.startsWith("/api/dataset")) {
     return next(); // forwarded to the FastAPI backend by the /api proxy
   }
-  if (req.url && req.url.startsWith("/api/pulse/history")) {
-    /* Cummins stock-history lane (hidden:stock for KSSL; Task 10 strips it). No mock fallback:
-       an unknown ticker or a failed fetch answers with an empty series. */
-    const q = new URL(req.url, "http://localhost").searchParams;
-    const cid = q.get("cid") || "";
-    const name = q.get("name") || "";
-    const range = q.get("range") || "1y";
-    const ticker = tickerFor(cid);
-    res.setHeader("Content-Type", "application/json");
-    try {
-      const data = ticker ? await fetchStockHistory({ ticker, range, name }) : null;
-      if (data && data.points && data.points.length) res.setHeader("Cache-Control", "public, max-age=300");
-      return res.end(JSON.stringify(data && data.points && data.points.length ? data : { points: [] }));
-    } catch (e) {
-      return res.end(JSON.stringify({ points: [] }));
-    }
-  }
-  if (req.url && req.url.startsWith("/api/pulse")) {
+  /* Exact path match: no sub-path of /api/pulse is served here (there is no stock lane). */
+  if (req.url && new URL(req.url, "http://localhost").pathname === "/api/pulse") {
     try {
       const q = new URL(req.url, "http://localhost").searchParams;
-      const cid = q.get("cid") || "";
       const name = q.get("name") || "";
       const product = q.get("product") || "";
-      /* Decision: live Google News headlines stay (not from the DB, not reviewed); stock
-         is hidden, so no quote is fetched. */
-      const data = { stock: null, trending: await fetchTrending(name, product), fetchedAt: new Date().toISOString() };
+      /* Decision: live Google News headlines stay (not from the DB, not reviewed). There is no
+         stock lane. The query is the request's own name/product -- no default is injected. */
+      const data = { trending: await fetchTrending(name, product), fetchedAt: new Date().toISOString() };
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "public, max-age=300"); // 5 min
       return res.end(JSON.stringify(data));
     } catch (e) {
       res.statusCode = 200; // never break the page on a data-source hiccup
       res.setHeader("Content-Type", "application/json");
-      return res.end(JSON.stringify({ stock: null, trending: [], error: String((e && e.message) || e) }));
+      return res.end(JSON.stringify({ trending: [], error: String((e && e.message) || e) }));
     }
   }
   return next();

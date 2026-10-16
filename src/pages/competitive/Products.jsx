@@ -633,7 +633,7 @@ export default function Products() {
   }, [data, selectedProduct, selectedCompany]);
 
   /* LIVE WEB MENTIONS for the selected product -- Google News RSS, anchored to the maker,
-     fetched server-side via /api/pulse (same lane as the company pulse). This is SEPARATE
+     fetched server-side via the Vite /api/pulse lane. This is SEPARATE
      from the corpus-sourced product news above and clearly labelled live/unverified: it
      fills the common gap where the pipeline has no sourced story yet, without ever being
      counted as "sourced". Null-safe; a dead feed just yields []. */

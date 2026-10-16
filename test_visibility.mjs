@@ -94,6 +94,8 @@ test("every hideable key has a host that reads it", async () => {
   walk("./src");
   const text = files.map((f) => readFileSync(f, "utf8")).join("\n");
   for (const k of HIDEABLE) {
+    // stock has no host: its Vite lanes and UI were removed in Task 10 (no data source); the key stays in the contract
+    if (k === "stock") continue;
     // finances and gap-analysis also gate their rail views through VIEW_KEY
     assert.ok(text.includes(`isVisible("${k}")`) || text.includes(`viewVisible(`), `${k} is read nowhere`);
     if (!["finances"].includes(k)) assert.ok(text.includes(`isVisible("${k}")`), `${k} has no isVisible host`);

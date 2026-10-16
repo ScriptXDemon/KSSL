@@ -10,7 +10,7 @@ const gone = (f) => ck(`${f} is deleted`, !fs.existsSync(f));
 const lacks = (f, re, what) => { const s = src(f); ck(`${f} has no ${what}`, s !== null && !re.test(s)); };
 
 ["src/lib/competitorProjects.js", "src/lib/newsLenses.js", "src/lib/glance.js", "src/lib/signalCountry.js",
- "src/lib/dedupeCompanies.js", "src/lib/ipc.js", "src/lib/footprint.js", "src/lib/shortlist.js"].forEach(gone);
+ "src/lib/dedupeCompanies.js", "src/lib/ipc.js", "src/lib/footprint.js", "src/lib/shortlist.js", "src/lib/tickers.js"].forEach(gone);
 
 lacks("src/lib/projects.js", /export const (PROJECTS_DATA|PROJECT_STAGES|PROJECT_FILTERS|PROJECT_SEQ)/, "project constants");
 lacks("src/lib/roster.js", /export const ROSTER|applyRoster/, "company roster");
@@ -23,7 +23,6 @@ lacks("src/lib/patents.js", /const COUNTRY_ALIAS/, "country alias table");
 lacks("src/lib/countryFacet.js", /const REGIONS\s*=/, "region word list");
 lacks("src/lib/orgident.js", /isJunkPartner|const (NATIONAL|ALIASES)\b/, "junk gate or alias maps");
 lacks("src/lib/revenueFacet.js", /REVENUE_LABEL|CRORE_PER_BN/, "tier labels or FX");
-lacks("src/lib/tickers.js", /export const (TICKERS|ID_ALIAS|NOT_LISTED_NOTE)/, "ticker tables");
 lacks("src/lib/gapModel.js", /CR_PER_MILLION|parseCr/, "FX table");
 lacks("src/lib/reports.js", /MAT_LAB_REPORT|real, sourced competitor|real where sourced/, "invented report sentences");
 lacks("src/lib/dataset.js", /VERIFIED_KSSL_ROSTER|applyRoster|dedupeCompanies/, "fallback partner roster or merge");
