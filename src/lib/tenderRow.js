@@ -26,7 +26,6 @@
  * Each parameter names the field it was resolved FROM (`from`), so a reader of the
  * report, a test, or the next engineer can see which link of the chain fired.
  */
-import { clientShort } from "./client.js";
 import { formatDate } from "../utils/formatDate.js";
 
 export const NOT_ON_RECORD = "not on record";
@@ -213,11 +212,8 @@ export function tenderSummary(t) {
     ? `${buyer} is procuring ${item}${catClause}${where}.`
     : `Procurement of ${item}${catClause}${where}.`;
 
-  const lean = str(rec.lean).toLowerCase();
-  const fit =
-    lean === "go" ? ` Graded a strong fit for ${clientShort()}'s portfolio.`
-    : lean === "maybe" ? ` Graded worth qualifying against ${clientShort()}'s portfolio.`
-    : "";
+  // the stored lean sentence (serving.market_tender.lean_text), as it is
+  const fit = has(rec.leanTxt) ? ` ${str(rec.leanTxt)}` : "";
 
   const closes = servedDeadline(rec);
   const closeClause = closes ? ` Closes ${formatDate(closes)}.` : "";

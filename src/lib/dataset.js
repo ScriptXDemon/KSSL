@@ -432,13 +432,9 @@ export function wireDataset(raw) {
                           (t.deadline || "").includes("Closed"));
       const open = tenders.filter((t) => !isAwarded(t) && !isClosed(t));
       const hasValue = (t) => t.value != null && String(t.value).trim() !== "";
-      /* The "Latest Tenders" shortlist -- the same set metricsFor counts for that tile,
-         so the visible list, the header count and the tile can never disagree. Scored on
-         fit + geo presence + value + recency: the geo set is the countries KSSL is present
-         in (its own footprint), so a tender in a market KSSL already sells into ranks up. */
-      const clientGeoKey = (d.client && (d.client.id || d.client.short || d.client.name));
-      const geoSet = new Set(Object.keys((d.geoData && d.geoData[clientGeoKey]) || {}));
-      const shown = marketAttention(open, { geo: geoSet });
+      /* The "Latest Tenders" head -- the same set metricsFor counts for that tile, so the visible
+         list, the header count and the tile can never disagree. Stored rank order, no score. */
+      const shown = marketAttention(open);
 
       const details = { ...(d.details || {}) };
       const cards = shown.map((t, i) => {
@@ -469,7 +465,7 @@ export function wireDataset(raw) {
         /* The genuine fit, when the pipeline graded it -- a stored grade, NOT invented.
            Surfaced in the so-what, separate from the LIVE BID status. Absent -> omitted,
            no placeholder. */
-        const fitWord = isGo ? "Strong fit" : t.lean === "maybe" ? "Worth qualifying" : "";
+        const fitWord = hasStr(t.leanTxt) ? String(t.leanTxt).trim().replace(/\.$/, "") : "";
         const matches = Array.isArray(t.matches) && t.matches.length ? t.matches : null;
         // No invented prose: every clause below is a stored field or omitted. `Closes`
         // labels the date so the corner date never reads as a publish date.

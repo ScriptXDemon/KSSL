@@ -287,7 +287,7 @@ else ok("rendered: a one-word title is surrounded by the buyer, country and cate
 {
   const t = tender("g1", {
     title: "Vane Large", issuer: "Dept Of Defense", country: "United States",
-    cat: "Ammunition", lean: "go", deadline: "28 Sep 2026",
+    cat: "Ammunition", lean: "go", leanTxt: "Strong match for the portfolio.", deadline: "28 Sep 2026",
   });
   const g = tenderGist(t);
   if (g !== "Vane Large — Ammunition · United States")
@@ -306,10 +306,10 @@ else ok("rendered: a one-word title is surrounded by the buyer, country and cate
   const s = tenderSummary(t);
   if (!/Dept Of Defense is procuring Vane Large/.test(s) ||
       !/Ammunition category/.test(s) ||
-      !/strong fit/i.test(s) ||
+      !/Strong match for the portfolio\./.test(s) ||
       !/not disclosed/.test(s))
     fail(`summary missing a grounded clause: ${JSON.stringify(s)}`);
-  else ok("summary states buyer, item, category, fit grade, and the value/qty record");
+  else ok("summary states buyer, item, category, the stored lean sentence, and the value/qty record");
 
   // No invention: a value that is not on record never appears as a number.
   if (/\bvalue\s+[€$₹]?\d/i.test(s)) fail("summary invented a value");

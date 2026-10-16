@@ -397,8 +397,8 @@ export function groundedAnswer(d, question, ctx) {
   // fallback: orient the user with what IS answerable
   return (
     "I can answer from the platform's intelligence across all three pillars. Try:<br><br>" +
-    '• "Who are the competitors in <i>India</i>?" (or any market)<br>' +
-    '• "Who competes in <i>Artillery</i>?" (or any category)<br>' +
+    '• "Who are the competitors in <i>a country</i>?"<br>' +
+    '• "Who competes in <i>a category</i>?"<br>' +
     `• "Which tenders fit ${clientName} best?"<br>`
   );
 }

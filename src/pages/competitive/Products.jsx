@@ -569,7 +569,7 @@ export default function Products() {
     if (pendingProduct === null) return;
     const want = nameKey(pendingProduct);
     /* exact name first; else the entry this one was folded into when the catalogue was de-duplicated
-       ("MGS2500B (60 Hz)" is listed as "MGS2500B", see sameProduct) */
+       ("Alpha 155 (Mk2)" is listed as "Alpha 155", see sameProduct) */
     const hit = companyProducts.find((p) => nameKey(p.name) === want)
       || companyProducts.find((p) => sameProduct(prodKey(p.name), prodKey(pendingProduct)));
     if (hit) setSelectedProduct(hit);

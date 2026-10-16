@@ -376,36 +376,27 @@ export function bucketTenders(tenders) {
   };
 }
 
-/* The Market OVERVIEW "Latest Tenders" section is a shortlist, not the pipeline. The
-   report and the Tender Pipeline list every tender; the overview lists the ATTENTION_HEAD
-   that best fit KSSL right now, scored on the four things the brief names -- a strong KSSL
-   fit, a market KSSL is present in, a sizeable published value, and recency (latest
-   published / soonest closing). Everything else is one tab over.
+/* The Market OVERVIEW "Latest Tenders" section is the head of the pipeline, not the pipeline. The report and the
+   Tender Pipeline list every tender; the overview lists the first ATTENTION_HEAD open tenders in the order the
+   database ranks them (serving.market_tender.rank_position), the unranked after them, newest first.
 
-   SCORED, THEN TOP-N. The count is deterministic -- min(head, open) -- and independent of
-   the optional geo ctx, so marketSelfCheck (which recomputes this without a ctx) always
-   agrees with the promoter (dataset.js) on HOW MANY tenders were shown, even if the geo
-   boost reorders them. Pure: the promoter and the metric strip (metricsFor) both read
-   this, so the visible list and the "Latest tenders" tile count can never drift. */
+   No score is computed: a fit weight, a market bonus or a closing-soon bonus would be a judgement the database does
+   not hold. The count is deterministic -- min(head, open) -- and pure: the promoter (dataset.js) and the metric
+   strip (metricsFor) both read this, so the visible list and the "Latest tenders" tile count can never drift. */
 export const ATTENTION_DAYS = 14;
 export const ATTENTION_HEAD = 20;
-export function marketAttention(openTenders, ctx = {}) {
+export function marketAttention(openTenders) {
   const open = openTenders || [];
-  const geo = ctx && ctx.geo instanceof Set ? ctx.geo : null;
   const rec = (t) => dateVal(t.posted || t.closingDate || t.ago);
-  const score = (t) => {
-    let s = 0;
-    if (t.lean === "go") s += 100;            // strong KSSL fit
-    else if (t.lean === "maybe") s += 40;     // worth qualifying
-    if (geo && t.country && geo.has(t.country)) s += 25;   // geo presence
-    if (t.dl >= 1 && t.dl <= ATTENTION_DAYS) s += 20;      // closing soon
-    return s;
-  };
+  const rank = (t) => (t.rank != null && t.rank !== "" && Number.isFinite(Number(t.rank)) ? Number(t.rank) : null);
   return open
-    .map((t) => [t, score(t)])
-    .sort((a, b) => b[1] - a[1] || rec(b[0]) - rec(a[0]) || (a[0].dl || 9999) - (b[0].dl || 9999))
-    .slice(0, ATTENTION_HEAD)
-    .map((x) => x[0]);
+    .slice()
+    .sort((a, b) => {
+      const x = rank(a);
+      const y = rank(b);
+      return (x === y ? 0 : x === null ? 1 : y === null ? -1 : x - y) || rec(b) - rec(a);
+    })
+    .slice(0, ATTENTION_HEAD);
 }
 
 /* The Technology OVERVIEW is KNOWLEDGE, not a threat board. Competitive already owns the

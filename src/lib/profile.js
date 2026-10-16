@@ -41,8 +41,9 @@ const txt = (s) => unescapeEntities(s || "").trim();
  * Aerospace' -- 136 of 178 served competitors have no hq value. A default belongs to
  * the field that wants one, not to the formatter every field shares. */
 /* No acronym list lives here (it held defence, currency and company abbreviations): casing follows the
-   stored text. A word is capitalised by the label rule below unless it carries a digit, and stored
-   capitals are not corrected. */
+   stored text. The label rule below raises the first letter of a lower-case or mixed-case word and lower-cases
+   the rest of it; a word that carries a digit, and a word that is ALL capitals (ARI, BAE, UK), is kept exactly
+   as stored. An all-capitals token is never altered. */
 /* A separator that separates nothing is a defect, not a word. Partner labels arrive
    as "Saab," and "Merlin,", and one of those joined into a list prints "Saab,, Foo" --
    the double comma reported on L&T's product content (FE 31). Collapse a repeated
@@ -94,6 +95,9 @@ export function formatLabel(raw) {
        case is part of the name. No list can hold every designation, and lower-casing
        the tail of one is exactly how Eviden's receiver came to print "P3ts" (FE 32). */
     if (/\d/.test(word)) return word;
+    /* An all-capitals token of the stored text is kept as stored: ARI stays ARI, BAE stays BAE. Lower-casing
+       its tail was how a company acronym printed as "Ari". */
+    if (/[A-Z]/.test(word) && word === word.toUpperCase()) return word;
     const low = word.toLowerCase();
     // one spelling of the word this whole product is about
     if (low === "defense" || low === "defence") return "Defence";
@@ -232,7 +236,8 @@ export function formatCompanyName(rawName) {
           .map((part) => formatCompanyName(part))
           .join(" / ");
       }
-      if (word.length <= 3 && word === word.toUpperCase() && /^[A-Z]+$/.test(word)) return word;
+      // an all-capitals token of the stored name is kept as stored (ARI, BAE, KONGSBERG)
+      if (/[A-Z]/.test(word) && word === word.toUpperCase()) return word;
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
     .join(" ");
