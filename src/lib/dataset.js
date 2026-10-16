@@ -17,6 +17,8 @@ import { cutGroupsByDirection, marketAttention, technologyAttention, isRivalCard
 import { sortCompaniesByName } from "./roster.js";
 import { rosterIndex, rosterLookup } from "./partners.js";
 import { markOverlaps } from "./overlap.js";
+import { competitiveLane, technologyLane, marketLane } from "./lanes.js";
+import { stanceOf } from "./uiText.js";
 import { logger } from "../utils/logger.js";
 
 /* THE PUBLISHER'S DATED PERMALINK IS AUTHORITATIVE FOR THE DAY.
@@ -134,7 +136,12 @@ export function wireDataset(raw) {
   try {
     ["competitiveCards", "marketCards", "techCards"].forEach((lane) => {
       d[lane] = (d[lane] || []).map((c) => {
-        const out = { ...c, title: titleCaseHeadline(c.title) };
+        /* a stance is threat or watch: any other stored value (a legacy one) means no stance, never a relabel */
+        const out = { ...c, title: titleCaseHeadline(c.title), dir: stanceOf(c.dir) };
+        /* the competitive overview shows only threat and watch cards (the Cummins rule that dropped its
+           third stance from that feed, stated neutrally): a card with a stored stance that is neither is
+           marked here and left out of that lane; it still reads, stance-less, everywhere else */
+        if (c.dir != null && String(c.dir).trim() !== "" && !out.dir) out.noStance = true;
         // The per-pillar rewrite (gen_signal_text) is already a headline; title-case it
         // the same way so an enriched card and a not-yet-enriched one read alike.
         if (c.uiTitle) out.uiTitle = titleCaseHeadline(c.uiTitle);
@@ -231,7 +238,7 @@ export function wireDataset(raw) {
     };
     d.matchups = mapValues(d.matchups, (m) =>
       m && typeof m === "object"
-        ? { ...m, comp: caseSegment(m.comp), bf: caseSegment(m.bf), anchor: caseSegment(m.anchor) }
+        ? { ...m, comp: caseSegment(m.comp), bf: caseSegment(m.bf), anchor: caseSegment(m.anchor), dir: stanceOf(m.dir) }
         : m);
   } catch (e) {
     logger.warn("wiring:headlineCase", e);
@@ -258,54 +265,22 @@ export function wireDataset(raw) {
     d.overviewConfig = {
       competitive: {
         ...d.overviewConfig.competitive,
-        /* No "Favourable" on the competitive overview (owner request): the filter and the cards
-           that carried it are gone. The lane array d.competitiveCards still holds them for search. */
-        filters: (d.overviewConfig.competitive.filters || []).filter((f) => f.f !== "fav"),
-        cards: (d.competitiveCards || []).filter((c) => c.dir !== "fav"),
+        ...competitiveLane(d),
+        cards: (d.competitiveCards || []).filter((c) => !c.noStance),
         groups: cutGroupsByDirection(d.overviewConfig.competitive.groups),
       },
-      market: { ...d.overviewConfig.market, cards: d.marketCards || [], title: "Top opportunity" },
+      market: { ...d.overviewConfig.market, ...marketLane(d), cards: d.marketCards || [] },
       technology: {
         ...d.overviewConfig.technology,
-        /* TECHNOLOGY IS KNOWLEDGE, NOT A THREAT BOARD. Competitive owns the threat
-           comparison; anything that directly impacts KSSL is a competitive threat there.
-           So this pillar drops the gap/watch framing and reads as two knowledge streams:
-           COMPETITOR ADVANCEMENTS (a tech move by a tracked competitor -- card.competitor
-           is set) and ADOPTABLE ADVANCES (defence-tech from anyone else KSSL could adopt).
-           technologyAttention tags each rival/adopt, neutralises dir to 'watch' (no red
-           gap band) and caps a head with both streams present. d.techCards stays whole for
-           global search. */
+        /* TECHNOLOGY IS KNOWLEDGE, NOT A THREAT BOARD: two streams (a tracked rival's tech move, and defence tech
+           from anyone else), each cut by the tag technologyAttention stamps. The words (pills, groups, badges,
+           tiles) are ui.filter_option 'technology-feed' and serving.technology_metric rows (lanes.js). The
+           All / Competitor / Adoptable buttons are off on this pillar (owner request); `filters` stays for the
+           tiles and the count line. */
+        ...technologyLane(d),
         cards: technologyAttention(d.techCards, isRivalCard),
-        title: "Technology Knowledge",
         cnt: "technology articles",
-        /* No Gap/Watch/Edge words anywhere. Every card is knowledge. */
-        dirWord: { fav: "Advancement", watch: "Advancement", threat: "Advancement" },
-        /* The card badge must name WHICH stream a card is in, not stamp a flat
-           "Advancement" on every one (that made the "All" view read as one category).
-           The feed is tagged by kind (rival/adopt), so the label reads off that. */
-        /* only ADOPTABLE is labelled on a row (owner request); a competitor row carries no badge */
-        tagWord: { rival: "", adopt: "Adoptable" },
-        /* The All / Competitor / Adoptable buttons are OFF on this pillar (owner request):
-           the kind is read off each row's own badge. `filters` stays -- the metric tiles
-           still filter through it. */
         hideFilterButtons: true,
-        filters: [
-          { f: "all", l: "All" },
-          { f: "rival", l: "Competitor Advancements", tag: "rival", c: "var(--threat)" },
-          { f: "adopt", l: "Adoptable Advances", tag: "adopt", c: "var(--watch)" },
-        ],
-        metrics: [
-          { l: "Competitor advances", act: "rival" },
-          { l: "Adoptable advances", act: "adopt" },
-          { l: "Domains tracked", act: "all" },
-          { l: "Analytical lenses", act: "all" },
-          { l: "All signals", act: "all" },
-        ],
-        /* Groups cut by the tag technologyAttention stamps (buildFeed reads `tags`). */
-        groups: [
-          { h: "Competitor Advancements", tags: ["rival"] },
-          { h: "Adoptable Advances", tags: ["adopt"] },
-        ],
       },
     };
   } catch (e) {
@@ -393,7 +368,7 @@ export function wireDataset(raw) {
 
      A PROMOTED TENDER IS MARKED `kind: "tender"` AND CARRIES NO `dir`. Whether a tender
      publishes a price is not a stance, so the browser no longer splits tenders into
-     threat/fav on it; the facets, groups and tiles select on `kind` (asserted by
+     a stance on it; the facets, groups and tiles select on `kind` (asserted by
      test_market_facets). CONCLUDED tenders are never promoted: awarded and closed have
      their own two views.
 
@@ -460,7 +435,7 @@ export function wireDataset(raw) {
              `tender-` prefix on detail.id (and then glances it through tenderFactRows and
              drops the stance pill). Nothing else stamps it -- served details have no id
              field -- so without this the tender path never fired and every promoted
-             tender opened as an "article" with a Favourable/Threat stance pill. */
+             tender opened as an "article" with a stance pill. */
           id,
           kind: "tender",   // what the card IS; it carries no dir, because the data holds no stance for a tender
           title: gist,
@@ -536,44 +511,15 @@ export function wireDataset(raw) {
           market: {
             ...d.overviewConfig.market,
             cards: marketFeed,
-            title: "Top opportunity",
+            ...marketLane(d),
             cnt: marketFeed.length
               ? "latest tenders and perceived opportunities"
               : d.overviewConfig.market.cnt,
-            /* Card badges: a tender reads "TENDER", an opportunity "OPPORTUNITY". The
-               tender is marked by its `kind`, not by a stance. */
-            dirWord: {
-              ...(d.overviewConfig.market.dirWord || {}),
-              watch: "OPPORTUNITY",
-            },
-            tagWord: { tender: "TENDER" },
-            /* Two filter pills, one per stream. "Latest Tenders" selects the cards of kind
-               tender; "Perceived Opportunities" selects the watch stream.
-               filterMatch (lib/overview) reads `kinds` and `dirs`. */
-            /* The All / Latest Tenders / Perceived Opportunities buttons are OFF on this pillar (owner request);
-               `filters` stays for the tiles and the count line. */
+            /* The pills, group headings, tiles and the TENDER / OPPORTUNITY badge words are database rows
+               (lanes.js). A tender is marked by its `kind`, not by a stance. The All / Latest Tenders /
+               Perceived Opportunities buttons are OFF on this pillar (owner request); `filters` stays for the
+               tiles and the count line. */
             hideFilterButtons: true,
-            filters: [
-              { f: "all", l: "All" },
-              { f: "tenders", l: "Latest Tenders", kinds: ["tender"], c: "var(--threat)" },
-              { f: "opps", l: "Perceived Opportunities", dirs: ["watch"], c: "var(--watch)" },
-            ],
-            /* Tiles: counted by metricsFor(market) from the served feed. Labels MUST
-               match metricsFor's byLabel keys. */
-            metrics: [
-              { l: "Latest tenders", act: "open" },
-              { l: "Strong fits", act: "fit" },
-              { l: "Tender value", act: "valued" },
-              { l: "Perceived opportunities", act: "opps" },
-              { l: "All signals", act: "all" },
-            ],
-            /* The two content groups, cut by kind and direction (buildFeed reads `kinds` and `dirs`). Banners
-               are off in the feed, but the order (tenders then opportunities) and the
-               exported report read these. */
-            groups: [
-              { h: "Latest Tenders", kinds: ["tender"] },
-              { h: "Perceived Opportunities", dirs: ["watch"] },
-            ],
           },
         };
       }
@@ -819,7 +765,7 @@ function adaptPatents(d) {
        bar chart is guaranteed to render identical bars. What actually separates
        holders here is whether the filing is GRANTED (enforceable now) vs merely
        published, where it is filed, how recent it is, and its assessed threat. */
-    const THREAT_RANK = { threat: 3, watch: 2, fav: 1 };
+    const THREAT_RANK = { threat: 2, watch: 1 };
     const byName = {};
     recs.forEach((r) => {
       if (!r.assignee) return;

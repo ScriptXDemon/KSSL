@@ -10,10 +10,11 @@ const panel = readFileSync(new URL("./src/components/detailPanel/DetailPanel.jsx
 const overview = readFileSync(new URL("./src/pages/overview/Overview.jsx", import.meta.url), "utf8");
 
 assert.ok(!/detail\.dir \|\| "watch"/.test(panel), "no default stance in DetailPanel");
-assert.ok(/detail\.dir \|\| "none"/.test(panel));
-// DIR_WORD has no entry for "none", so no pill is drawn
-const m = panel.match(/const DIR_WORD = (\{[^}]*\})/);
-assert.ok(m && !/none/.test(m[1]));
+// only a threat or watch stance is read off a detail; anything else is "none"
+assert.ok(/stanceOf\(detail\.dir\) \|\| "none"/.test(panel));
+// the stance words are the ui.filter_option rows (stanceWords holds threat and watch only), so "none" draws no pill
+assert.ok(/const DIR_WORD = stanceWords\(data\)/.test(panel));
+assert.ok(!/favou?rable|fav/i.test(panel), "no third stance in DetailPanel");
 // the ad-hoc details opened from the cockpit hold no dir
 const adhoc = overview.match(/select\(id, \{[\s\S]*?\}\);|select\(`tender-\$\{t\.id\}`, \{[\s\S]*?\}\);/g);
 assert.equal(adhoc.length, 2);

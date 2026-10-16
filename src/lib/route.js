@@ -11,6 +11,7 @@
  * that route to localStorage, so it came back on every reload. */
 
 import { viewVisible, firstVisibleView } from "./visibility.js";
+import { uiText, uiRows } from "./uiText.js";
 
 export const PILLARS = ["competitive", "market", "technology"];
 export const PILLAR_LABEL = {
@@ -20,37 +21,51 @@ export const PILLAR_LABEL = {
 };
 
 /* Which rail item each pillar opens on, and the pillar each rail belongs to. */
+/* The rail's WORDS are database rows, not literals: `nav` is the row key in the pillar's navigation table (NAV
+   below), and the label, the order and the page heading are that row's columns (read by railFor / navTitle with
+   uiText). A view with no row, or no label in it, is not drawn. Only the route (view id), its index glyph and the
+   overview flag live here. */
 export const RAIL = {
   /* `gap-competitive` is ARCHIVED, not deleted: it is off the rail but Layout still
      routes it, so a saved route or a pasted #v=gap-competitive link still resolves.
      Same for `awarded-tenders` / `closed-tenders`, which the Market overview now
      carries as tabs. */
   competitive: [
-    { view: "overview", label: "Overview", ix: "grid", overview: true },
-    { view: "profile", label: "Competitor Profile", ix: "01" },
-    { view: "threat-analysis", label: "Competitor Moment", ix: "02" },
-    { view: "products", label: "Products", ix: "03" },
-    { view: "positioning", label: "Product Evaluation", ix: "04" },
-    { view: "partnerships", label: "Partnership", ix: "05" },
-    { view: "projects", label: "Projects", ix: "06" },
-    { view: "geo", label: "Geo Footprint", ix: "07" },
-    { view: "patents-comp", label: "Patent", ix: "08" },
+    { view: "overview", nav: "overview", ix: "grid", overview: true },
+    { view: "profile", nav: "profile", ix: "01" },
+    { view: "threat-analysis", nav: "moment", ix: "02" },
+    { view: "products", nav: "products", ix: "03" },
+    { view: "positioning", nav: "evaluation", ix: "04" },
+    { view: "partnerships", nav: "partnerships", ix: "05" },
+    { view: "projects", nav: "projects", ix: "06" },
+    { view: "geo", nav: "geo", ix: "07" },
+    { view: "patents-comp", nav: "patents", ix: "08" },
   ],
   market: [
-    { view: "m-overview", label: "Top opportunity", ix: "grid", overview: true },
-    { view: "tender", label: "Tenders", ix: "01" },
-    { view: "global-requirement", label: "Global Requirements", ix: "02" },
-    { view: "m-report", label: "Market Intelligence", ix: "03" },
+    { view: "m-overview", nav: "top-opportunity", ix: "grid", overview: true },
+    { view: "tender", nav: "tenders", ix: "01" },
+    { view: "global-requirement", nav: "global-requirement", ix: "02" },
+    { view: "m-report", nav: "market-intelligence", ix: "03" },
   ],
   technology: [
-    { view: "t-overview", label: "Overview", ix: "grid", overview: true },
-    // "Innovations", not "Innovation Pipeline": the rail is 244px at its widest and the
-    // longer label needed 119px of a 107px slot, so it rendered "Innovation Pip..." at
-    // EVERY viewport, 1920 included. The page's own header still reads Innovation
-    // Pipeline -- a nav label is not the page title.
-    { view: "innovation", label: "Innovations", ix: "01" },
+    { view: "t-overview", nav: "overview", ix: "grid", overview: true },
+    { view: "innovation", nav: "innovation", ix: "01" },
   ],
 };
+
+/* where each pillar's navigation words live */
+const NAV = {
+  competitive: { table: "ui.competitive_navigation", key: "view_key", label: "view_label", order: "view_sequence", heading: "view_label" },
+  market: { table: "ui.market_view", key: "view_id", label: "rail_label", order: "rail_order", heading: "view_title" },
+  technology: { table: "ui.technology_ui_view", key: "view_key", label: "view_label", order: "display_order", heading: "page_heading" },
+};
+
+/* a view's page heading, from its navigation row; "" when there is none */
+export function navTitle(data, pillar, view) {
+  const item = (RAIL[pillar] || []).find((r) => r.view === view);
+  const n = NAV[pillar];
+  return item && n ? uiText(data, n.table, { [n.key]: item.nav }, n.heading) : "";
+}
 
 /* Views Layout still renders that are on no rail. */
 export const ARCHIVED_VIEWS = {
@@ -75,9 +90,25 @@ PILLARS.forEach((p) => {
   VIEWS_OF[p] = new Set(RAIL[p].map((r) => r.view).concat(ARCHIVED_VIEWS[p] || []));
 });
 
-/* the rail a reader sees: items whose section the database has switched off are left out */
-export function railFor(pillar) {
-  return (RAIL[pillar] || []).filter((r) => viewVisible(r.view));
+/* The rail a reader sees: items whose section the database has switched off are left out. With the dataset, each
+   item also carries its stored label and is placed by its stored order (the overview stays first); an item with no
+   label in the navigation table is not drawn, and the index glyphs follow the order. Without the dataset (route
+   tests) it is the visible routes alone. */
+export function railFor(pillar, data) {
+  const items = (RAIL[pillar] || []).filter((r) => viewVisible(r.view));
+  const n = NAV[pillar];
+  if (!data || !n) return items;
+  const rows = uiRows(data, n.table);
+  const withLabel = items
+    .map((r, i) => {
+      const row = rows.find((x) => x && x[n.key] === r.nav);
+      const label = row && row[n.label] != null ? String(row[n.label]).trim() : "";
+      return { ...r, label, _order: row ? Number(row[n.order]) || 0 : 0, _i: i };
+    })
+    .filter((r) => r.label);
+  const head = withLabel.filter((r) => r.overview);
+  const rest = withLabel.filter((r) => !r.overview).sort((a, b) => a._order - b._order || a._i - b._i);
+  return head.concat(rest.map((r, i) => ({ ...r, ix: String(i + 1).padStart(2, "0") })));
 }
 
 export function isKnownView(view, pillar) {

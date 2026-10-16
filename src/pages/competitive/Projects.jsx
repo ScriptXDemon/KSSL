@@ -5,7 +5,8 @@ import { useData } from "../../state/DataProvider";
 import { rosterOf } from "../../lib/profile";
 import { competitorFullName } from "../../lib/companyNames";
 import FeedFilters from "../../components/subHead/FeedFilters.jsx";
-import { STANCE_CLASS, STANCE_WORD, projectFeed, sortableSeq, latestWhen, day } from "../../lib/projects";
+import { stanceOf, stanceWords } from "../../lib/uiText";
+import { projectFeed, sortableSeq, latestWhen, day } from "../../lib/projects";
 import { srcChips } from "../../lib/html";
 import { formatDate } from "../../utils/formatDate";
 import { Review } from "../../components/review/Review";
@@ -35,16 +36,17 @@ const Facts = ({ rows }) => (
   </div>
 );
 
-function ProjectPanel({ p, steps, regionLabel, onClose }) {
+function ProjectPanel({ p, steps, regionLabel, words, onClose }) {
   const stance = p.assessment.stance;
-  const cls = STANCE_CLASS[stance];   // no stored stance, no stance class
+  const cls = stanceOf(stance);   // no threat/watch stance stored, no stance class
+  const STANCE_WORD = words;
   return (
     <div className="ctx v-overview revealed">
       <div className="ctx-scroll" key={p.id}>
         <div className={cls ? `ctx-h dir-${cls}` : "ctx-h"}>
           <div className="ctx-h-actions">
             <button aria-label="Close" className="col-close" onClick={onClose} title="Close" type="button">✕</button>
-            {STANCE_WORD[stance] ? <span className={cls ? `dirpill dir-${cls}` : "dirpill"}>{STANCE_WORD[stance]}</span> : null}
+            {cls && STANCE_WORD[cls] ? <span className={`dirpill dir-${cls}`}>{STANCE_WORD[cls]}</span> : null}
           </div>
           <div className="ct">{p.name}</div>
           <Review src={p._src} />
@@ -106,6 +108,7 @@ function ProjectPanel({ p, steps, regionLabel, onClose }) {
 
 export default function Projects({ onSelectionChange }) {
   const { data } = useData();
+  const words = stanceWords(data);
   const { setScope } = useAppState();
   const [cid, setCid] = useState(ALL);
   const cfg = (data && data.projectsConfig) || {};
@@ -159,7 +162,7 @@ export default function Projects({ onSelectionChange }) {
     >
       <span className="pli-n" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
         <span style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {dot ? <span className={`wdot ${dot === "fav" ? "fav" : dot === "threat" ? "threat" : "watch"}`} /> : null}
+          {stanceOf(dot) ? <span className={`wdot ${dot}`} /> : null}
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
         </span>
         <span className="pli-ct">{n}</span>
@@ -202,7 +205,7 @@ export default function Projects({ onSelectionChange }) {
           <div className="feed v-overview" id="feed">
             <div className="feed-grp">
               {rows.map((p, i) => {
-                const cls = STANCE_CLASS[p.assessment.stance];
+                const cls = stanceOf(p.assessment.stance);
                 return (
                   <div
                     className={`alert${selected === p.id ? " sel" : ""}`}
@@ -224,7 +227,7 @@ export default function Projects({ onSelectionChange }) {
                       <Review src={p._src} />
                     </div>
                     <div className="aside">
-                      {cls && STANCE_WORD[p.assessment.stance] ? <span className={`dirtag ${cls}`}>{STANCE_WORD[p.assessment.stance]}</span> : null}
+                      {cls && words[cls] ? <span className={`dirtag ${cls}`}>{words[cls]}</span> : null}
                       <span className="ago">{latestWhen(p) || "—"}</span>
                     </div>
                   </div>
@@ -235,7 +238,7 @@ export default function Projects({ onSelectionChange }) {
               <div className="pager"><div className="pager-range">showing 1–{rows.length} of {rows.length}{rows.length !== projects.length ? ` filtered · ${projects.length} total` : " projects"}</div></div>
             )}
           </div>
-          {sel ? <ProjectPanel onClose={() => setSelected(null)} p={sel} regionLabel={((cfgFilters.find((f) => f.f === sel.region) || {}).l) || sel.region || ""} steps={cfg.stageSteps || []} /> : null}
+          {sel ? <ProjectPanel onClose={() => setSelected(null)} words={words} p={sel} regionLabel={((cfgFilters.find((f) => f.f === sel.region) || {}).l) || sel.region || ""} steps={cfg.stageSteps || []} /> : null}
         </div>
       </div>
     </div>

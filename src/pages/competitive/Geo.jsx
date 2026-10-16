@@ -420,7 +420,7 @@ export default function Geo() {
         )
         .join("") +
       `<div class="geo-d-row" style="border-bottom:none"><span class="gt" style="color:var(--l-txt-3);min-width:90px">Source</span><span class="gt" style="flex:1;text-align:right;font-family:var(--mono);font-size:11px;color:${
-        p.src === "syn" ? "var(--synthetic)" : "var(--fav)"
+        p.src === "syn" ? "var(--synthetic)" : "var(--ok)"
       }">${p.src === "syn" ? '<span class="syn" title="Analytical estimate"></span> ' : ""}${attr(
         p.srcnote && !/^https?:/i.test(p.srcnote)
           ? p.srcnote
@@ -517,7 +517,7 @@ export default function Geo() {
   const head = relHeader();
   const co = pair ? data.geoComps.find((x) => x.id === pair.cid) : null;
   /* the header carries a stance class only for the client's own row, which is the one the data marks */
-  const dir = prod && co && co.isBf ? "fav" : null;
+  const dir = prod && co && co.isBf ? "client" : null;
 
   return (
     <div className="geo-view v-geo" ref={rootRef} style={{ position: "relative" }}>
@@ -642,7 +642,7 @@ export default function Geo() {
                     {}
                   : {};
                 const bf = !!ownData[ct];
-                const dot = !bf && n > 0 ? "threat" : bf ? "fav" : "none";
+                const dot = !bf && n > 0 ? "threat" : bf ? "client" : "none";
                 return (
                   <div
                     className={`geo-pick${country === ct ? " sel" : ""}`}

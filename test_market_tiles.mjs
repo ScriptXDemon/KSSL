@@ -56,6 +56,17 @@ const raw = {
       ],
     },
   },
+  /* the lane's words are database rows: the four tile labels and the two feed pills */
+  database: { ui: {
+    market_top_opportunity_view: [{
+      page_heading: "Top opportunity", latest_tenders_metric_label: "Latest tenders", strong_fits_metric_label: "Strong fits",
+      tender_value_metric_label: "Tender value", perceived_opportunities_metric_label: "Perceived opportunities",
+    }],
+    filter_option: [
+      { filter_group: "market-feed", option_code: "tenders", option_label: "Latest Tenders", badge_label: "TENDER", display_order: 1 },
+      { filter_group: "market-feed", option_code: "opportunities", option_label: "Perceived Opportunities", badge_label: "OPPORTUNITY", display_order: 2 },
+    ],
+  } },
   techCats: [], innovations: {}, matchups: {}, details: {}, competitorNews: {},
   patents: {}, competitors: {},
   marketCards: [
@@ -85,9 +96,24 @@ promoted.forEach((c) => {
 //    agree with the visible list. The 3 open tenders here are far-future and ungraded,
 //    so marketAttention falls back to the soonest head and shows all 3.
 const m = metricsFor(cfg, "market", d);
-const v = (l) => (m.find((x) => x.l === l) || {}).v;
-const act = (l) => (m.find((x) => x.l === l) || {}).act;
-if (v("All signals") !== String(cfg.cards.length)) fail(`All signals reads ${v("All signals")}, feed holds ${cfg.cards.length}`);
+// a tile is found by its KEY (the column it came from), never by its label text
+const KEY = { "Latest tenders": "latest_tenders", "Strong fits": "strong_fits", "Tender value": "tender_value", "Perceived opportunities": "perceived_opportunities" };
+const tile = (l) => m.find((x) => x.key === KEY[l]) || {};
+const v = (l) => tile(l).v;
+const act = (l) => tile(l).act;
+if (m.length !== 5 || m.filter((x) => x.blank).length !== 1) fail(`the strip is four stored tiles and one empty slot, got ${m.length} tiles`);
+if (tile("Latest tenders").l !== "Latest tenders") fail("the tile label is the stored label");
+{
+  // editing the stored label changes the tile's words and nothing else
+  const d2 = wireDataset({ ...JSON.parse(JSON.stringify(raw)), database: { ui: { ...raw.database.ui, market_top_opportunity_view: [{ ...raw.database.ui.market_top_opportunity_view[0], latest_tenders_metric_label: "Fresh bids" }] } } });
+  const m3 = metricsFor(d2.overviewConfig.market, "market", d2);
+  const t3 = m3.find((x) => x.key === "latest_tenders");
+  if (t3.l !== "Fresh bids" || t3.v !== "3") fail(`a renamed label must follow the database and keep its count, got ${t3.l} ${t3.v}`);
+  // no label rows, no tiles and no pills
+  const d3 = wireDataset({ ...JSON.parse(JSON.stringify(raw)), database: { ui: {} } });
+  if (metricsFor(d3.overviewConfig.market, "market", d3).length !== 0) fail("no stored tile labels must draw no tiles");
+  if ((d3.overviewConfig.market.filters || []).length !== 0) fail("no stored pill labels must draw no pills");
+}
 if (v("Latest tenders") !== "3") fail(`Latest tenders reads ${v("Latest tenders")}, 3 are on the shortlist`);
 if (v("Strong fits") !== "—") fail(`Strong fits reads ${v("Strong fits")}, no tender is graded so it must read "—"`);
 // the tile shows the stored amount in its own currency; nothing is converted
@@ -99,7 +125,7 @@ if (v("Perceived opportunities") !== "2") fail(`Perceived opportunities reads ${
 // 3. a hostile shape on one card degrades that card, not the strip
 const hostile = { ...cfg, cards: cfg.cards.concat([{ id: "x", dir: "watch", sec: "Artillery" }]) };
 const m2 = metricsFor(hostile, "market", d);
-if ((m2.find((x) => x.l === "All signals") || {}).v !== String(hostile.cards.length))
+if ((m2.find((x) => x.key === "latest_tenders") || {}).v !== "3")
   fail("a string `sec` on one card still takes the whole strip back to the baked values");
 
 // 4. doors -- each tile filters the feed to the rows it counts

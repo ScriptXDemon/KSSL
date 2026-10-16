@@ -24,7 +24,7 @@
   .geo-pick .pk-nm{flex:1;font-size:12.5px;color:var(--d-txt);font-weight:500}
   .geo-pick .pk-meta{font-family:var(--mono);font-size:10px;color:var(--d-txt-3)}
   .geo-pick .pk-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-  .geo-pick .pk-dot.threat{background:var(--threat)} .geo-pick .pk-dot.watch{background:var(--watch)} .geo-pick .pk-dot.fav{background:var(--fav)} .geo-pick .pk-dot.none{background:transparent}
+  .geo-pick .pk-dot.threat{background:var(--threat)} .geo-pick .pk-dot.watch{background:var(--watch)} .geo-pick .pk-dot.client{background:var(--ok)} .geo-pick .pk-dot.none{background:transparent}
   /* competitor dropdown: the dot marks overlap with KOEL, not threat level */
   /* The overlap dot in the country picker, on --overlap like every other overlap mark.
      This is the one place the operator can read an overlap "at a glance" without opening
@@ -36,7 +36,7 @@
   /* 'not assessed' is not 'no overlap': a dashed ring, so a rival nobody could test
      never wears the dot a rival earns by being tested and cleared. */
   .geo-pick .pk-dot.ovl-unk{background:transparent;border:1px dashed var(--d-txt-4);opacity:.75}
-  .geo-pick .pk-dot.bf{background:var(--fav)}
+  .geo-pick .pk-dot.bf{background:var(--ok)}
   .geo-content{flex:1;display:grid;grid-template-columns:1fr clamp(300px, 25vw, 380px);overflow:hidden;min-height:0;height:100%}
   .geo-content.empty{display:flex;align-items:center;justify-content:center}
   .geo-empty-state{text-align:center;color:var(--l-txt-4);font-family:var(--mono);font-size:12px;max-width:380px;line-height:1.6}
@@ -53,7 +53,7 @@
   .geo-rel-item:hover{background:var(--l-bg)}
   .geo-rel-item.active{background:var(--l-bg-2);box-shadow:inset 3px 0 0 var(--l-txt)}
   .geo-rel-item .ri-act{width:9px;height:9px;border-radius:2px;flex-shrink:0;margin-top:4px}
-  .geo-rel-item .ri-act.lp{background:rgba(181,52,31,.85)} .geo-rel-item .ri-act.pt{background:rgba(181,52,31,.42)} .geo-rel-item .ri-act.ex{background:rgba(154,106,8,.6)} .geo-rel-item .ri-act.sv{background:var(--l-bg-3)} .geo-rel-item .ri-act.bf{background:var(--fav)}
+  .geo-rel-item .ri-act.lp{background:rgba(181,52,31,.85)} .geo-rel-item .ri-act.pt{background:rgba(181,52,31,.42)} .geo-rel-item .ri-act.ex{background:rgba(154,106,8,.6)} .geo-rel-item .ri-act.sv{background:var(--l-bg-3)} .geo-rel-item .ri-act.bf{background:var(--ok)}
   .geo-rel-item .ri-main{flex:1}
   .geo-rel-item .ri-nm{font-size:13.5px;font-weight:600;color:var(--l-txt);margin-bottom:3px}
   .geo-rel-item .ri-desc{font-size:12px;color:var(--l-txt-2);line-height:1.45}
@@ -109,15 +109,15 @@
     padding-top:7px;border-top:1px dotted var(--l-line)}
   .geo-rel-item.active .ri-chev{color:var(--l-txt-2)}
   .ri-actlab{font-weight:600}
-  .ri-counter{margin-top:6px;font-size:11px;line-height:1.4;padding:4px 8px;background:rgba(31,110,69,.08);border-left:2px solid var(--fav)}
+  .ri-counter{margin-top:6px;font-size:11px;line-height:1.4;padding:4px 8px;background:rgba(31,110,69,.08);border-left:2px solid var(--ok)}
   .ri-counter.none{background:var(--l-bg-2);border-left-color:var(--l-line-2)}
-  .ri-counter .rc-lab{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--fav)}
+  .ri-counter .rc-lab{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok)}
   .ri-counter.none .rc-lab{color:var(--l-txt-4)}
   .ri-counter .rc-prod{color:var(--l-txt);font-weight:600}
   .ri-counter .rc-prod.muted{color:var(--l-txt-4);font-weight:400;font-style:italic}
-  .geo-counter{background:rgba(31,110,69,.08);border:1px solid rgba(31,110,69,.3);border-left:3px solid var(--fav);padding:12px 15px;margin:14px 18px 0}
+  .geo-counter{background:rgba(31,110,69,.08);border:1px solid rgba(31,110,69,.3);border-left:3px solid var(--ok);padding:12px 15px;margin:14px 18px 0}
   .geo-counter.none{background:var(--l-bg-2);border-color:var(--l-line-2);border-left-color:var(--l-line-2)}
-  .geo-counter .tl{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fav);margin-bottom:6px}
+  .geo-counter .tl{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:6px}
   .geo-counter.none .tl{color:var(--l-txt-4)}
   .geo-counter .gc-prod{font-size:14px;font-weight:700;color:var(--l-txt);margin-bottom:4px}
   .geo-counter .gc-prod.muted{font-weight:500;color:var(--l-txt-3)}
@@ -126,14 +126,14 @@
   .geo-mix{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;margin-left:6px;vertical-align:middle}
   .geo-mix-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;letter-spacing:.03em;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid #475569;padding:2px 7px;border-radius:4px;white-space:nowrap}
   .geo-mix-chip .mc-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
-  .geo-mix-chip.lp .mc-dot{background:rgba(181,52,31,.85)}.geo-mix-chip.pt .mc-dot{background:rgba(181,52,31,.42)}.geo-mix-chip.ex .mc-dot{background:rgba(154,106,8,.6)}.geo-mix-chip.bf .mc-dot{background:var(--fav)}.geo-mix-chip.sv .mc-dot{background:var(--l-bg-3)}
+  .geo-mix-chip.lp .mc-dot{background:rgba(181,52,31,.85)}.geo-mix-chip.pt .mc-dot{background:rgba(181,52,31,.42)}.geo-mix-chip.ex .mc-dot{background:rgba(154,106,8,.6)}.geo-mix-chip.bf .mc-dot{background:var(--ok)}.geo-mix-chip.sv .mc-dot{background:var(--l-bg-3)}
   .geo-rel-empty{padding:40px 22px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--l-txt-4)}
   /* geo detail panel (light) */
   .geo-det{border-left:1px solid var(--d-line);background:var(--l-bg);color:var(--l-txt);overflow-y:auto;display:flex;flex-direction:column}
   .geo-d-h{padding:16px 18px;border-bottom:1px solid var(--l-line);background:var(--l-bg-2);border-left:3px solid transparent}
   .geo-d-h.dir-threat{border-left-color:var(--threat)}
   .geo-d-h.dir-watch{border-left-color:var(--watch)}
-  .geo-d-h.dir-fav{border-left-color:var(--fav)}
+  .geo-d-h.dir-client{border-left-color:var(--ok)}
   .geo-d-h .eyebrow{color:var(--l-txt-3);display:block;margin-bottom:8px}
   .geo-d-h .ct{font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--l-txt);line-height:1.25}
   .geo-d-h .gd-sub{font-size:11.5px;color:var(--l-txt-3);margin-top:6px;line-height:1.5}
@@ -143,7 +143,7 @@
   .geo-d-row:last-child{border-bottom:none}
   .geo-d-row .gm{width:8px;height:8px;border-radius:2px;flex-shrink:0;margin-top:4px}
   .geo-d-row .gm.lp{background:rgba(181,52,31,.85)} .geo-d-row .gm.pt{background:rgba(181,52,31,.42)}
-  .geo-d-row .gm.ex{background:rgba(154,106,8,.5)} .geo-d-row .gm.sv{background:var(--l-bg-3)} .geo-d-row .gm.bf{background:var(--fav)}
+  .geo-d-row .gm.ex{background:rgba(154,106,8,.5)} .geo-d-row .gm.sv{background:var(--l-bg-3)} .geo-d-row .gm.bf{background:var(--ok)}
   .geo-d-row .gt b{color:var(--l-txt);font-weight:600}
   .geo-d-row .gt{color:var(--l-txt-2)}
   .geo-d-row .gtype{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--l-txt-4);display:block;margin-top:2px}
@@ -279,7 +279,7 @@
 
 .gm-koel-badge.present {
   background: rgba(63, 168, 106, 0.18);
-  color: var(--fav-badge);
+  color: var(--ok-badge);
   border: 1px solid rgba(63, 168, 106, 0.35);
 }
 
@@ -491,7 +491,7 @@
   white-space: nowrap;
 }
 /* a country the CLIENT holds and the map draws: the same green as its dot */
-.geo-note-chip.own { color: var(--fav-badge); border-color: rgba(63,168,106,.42) }
+.geo-note-chip.own { color: var(--ok-badge); border-color: rgba(63,168,106,.42) }
 .geo-note-chip.none { color: var(--d-txt-4); font-style: italic }
 /* every row behind this country is an analytical estimate, not a sourced activity */
 .geo-note-chip i {
@@ -526,7 +526,7 @@
   font-family: var(--mono);
   font-size: 10.5px;
   line-height: 1.45;
-  color: var(--fav-badge);
+  color: var(--ok-badge);
   background: rgba(9, 11, 13, 0.88);
   border: 1px solid #24262b;
   border-radius: 4px;

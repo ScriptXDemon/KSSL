@@ -16,7 +16,9 @@ assert.equal(threatOf({ threat: "" }), null);
 assert.equal(threatOf({ threat: null }), null);
 assert.equal(threatOf({ threat: "threat" }), "threat");
 assert.equal(threatOf({ threat: "watch" }), "watch");
-assert.equal(threatOf({ threat: "fav" }), "fav");
+// a stance is threat or watch: a legacy third value is no stance, never relabelled
+assert.equal(threatOf({ threat: "fav" }), null);
+assert.equal(threatOf({ threat: "high" }), null);
 assert.equal(threatOf(null), null);
 
 // no keyword engine: the regex re-grader and its severity grades are gone
@@ -25,17 +27,23 @@ for (const gone of ["refineThreat", "refineThreats", "SEV", "NON_KSSL", "PLATFOR
 const src = readFileSync(new URL("./src/lib/threat.js", import.meta.url), "utf8");
 assert.ok(!/RegExp|\/\b\(|saudi|spanish|qatari|ISR|electro|howitzer|india/i.test(src), "no keyword regexes in threat.js");
 
-// the loader does not move a stored dir (threat / watch / fav) on any competitor signal
+// the loader does not move a stored dir (threat or watch) on any competitor signal
 const fx = JSON.parse(readFileSync(new URL("./fixtures/kssl_dataset.json", import.meta.url)));
 const wired = wireDataset(JSON.parse(JSON.stringify(fx)));
 const stored = new Map(fx.competitiveCards.map((c) => [c.id, c.dir]));
 assert.ok(stored.size > 0);
+const isStance = (w) => w === "threat" || w === "watch";
 for (const c of wired.competitiveCards) {
-  assert.equal(c.dir, stored.get(c.id), `${c.id}: dir is the stored word`);
+  // a stored threat or watch is kept word for word; any other stored value is no stance (never relabelled)
+  assert.equal(c.dir, isStance(stored.get(c.id)) ? stored.get(c.id) : "", `${c.id}: dir is the stored stance or none`);
   assert.equal("threatWhy" in c, false, "no browser-written threat reason");
 }
-// a partner's signal is not downgraded, an export signal is not capped: same cards, same words
-assert.deepEqual(wired.competitiveCards.map((c) => c.dir), fx.competitiveCards.map((c) => c.dir));
+const legacy = fx.competitiveCards.filter((c) => c.dir && !isStance(c.dir));
+assert.ok(legacy.length > 0, "the fixture carries a card stored with a third stance");
+const lane = wired.overviewConfig.competitive.cards.map((c) => c.id);
+for (const c of legacy) assert.equal(lane.includes(c.id), false, `${c.id}: a card with no threat/watch stance is not on the competitive overview`);
+for (const c of legacy) assert.ok(wired.competitiveCards.some((w) => w.id === c.id && w.noStance), "it is still served, marked as having no stance");
+assert.equal(lane.length, fx.competitiveCards.filter((c) => isStance(c.dir) || !c.dir).length, "every other card is on the overview");
 
 // the competitor rows carry their threat word to the profile unchanged
 for (const [id, c] of Object.entries(fx.competitors)) {

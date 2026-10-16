@@ -10,8 +10,7 @@ import { useData } from "../../state/DataProvider";
 import { useAppState } from "../../state/AppState";
 import { productOwner } from "../../lib/productLink";
 import { Review } from "../review/Review";
-
-const DIR_WORD = { threat: "Threat", watch: "Watch", fav: "" };
+import { stanceWords, stanceOf, filterOptions } from "../../lib/uiText";
 
 /* `badge` (optional): the ROW's own label for this signal, { word, cls }. A pillar that
    labels its rows by kind rather than by stance (Technology: ADOPTABLE, or nothing for a
@@ -29,7 +28,10 @@ export default function DetailPanel({ detail, onClose, badge }) {
   }, [detail]);
 
   if (!detail) return null;
-  const dir = badge ? badge.cls || "none" : detail.dir || "none";
+  /* the stance words are ui.filter_option rows; a stance is threat or watch, anything else has none */
+  const DIR_WORD = stanceWords(data);
+  const tenderWord = (filterOptions(data, "market-feed").find((o) => o.code === "tenders") || {}).badge || "";
+  const dir = badge ? badge.cls || "none" : stanceOf(detail.dir) || "none";
   /* A TENDER IS NOT AN ARTICLE, AND detail.kind NEVER SAID SO.
      Market's overview opens on "Live Opportunities" -- 126 tender cards. A tender has
      no document body, which is why the summary backfill selects `id LIKE 'pl\_%'` and
@@ -106,9 +108,9 @@ export default function DetailPanel({ detail, onClose, badge }) {
                 neutral "Tender" type label (QA: the title section must name the kind);
                 a signal keeps its coloured stance pill. */}
             {isTender ? (
-              <span className="dirpill dir-tender">Tender</span>
+              tenderWord ? <span className="dirpill dir-tender">{tenderWord}</span> : null
             ) : badge ? (
-              badge.word && !/^favou?rable$/i.test(badge.word) ? <span className={`dirpill dir-${dir}`}>{badge.word}</span> : null
+              badge.word ? <span className={`dirpill dir-${dir}`}>{badge.word}</span> : null
             ) : DIR_WORD[dir] ? (
               <span className={`dirpill dir-${dir}`}>{DIR_WORD[dir]}</span>
             ) : null}

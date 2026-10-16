@@ -13,7 +13,7 @@ console.log("== market ==");
 marketSelfCheck(d.tenders);
 const { open, awarded, closed } = bucketTenders(d.tenders);
 console.log("open/awarded/closed:", open.length, awarded.length, closed.length, "of", d.tenders.length);
-console.log("tiles:", marketMetrics(d.tenders).map((m) => `${m.l}=${m.v}${m.unit || ""}`).join("  "));
+console.log("tiles:", marketMetrics(d.tenders, d).map((m) => `${m.l}=${m.v}${m.unit || ""}`).join("  "));
 console.log("split :", demandSplit(open).map((s) => `${s.label} ${s.count}`).join(" | "));
 console.log("window:", closingWindows(open).map((w) => `${w.label} ${w.count} (${w.pct}%)`).join(" | "));
 console.log("portals:", portalRows(d.tenders).map((p) => `${p.host} ${p.total}/${p.open}`).join(" | "));

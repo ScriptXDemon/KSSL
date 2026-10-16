@@ -49,10 +49,12 @@ import { emptyNote, TILE_LABELS, readFeedSeq, writeFeedSeq, SEQ_OPTIONS } from "
 
 /* 3. every tile the served configs use has a label, and none is blank */
 {
-  for (const act of ["threat", "watch", "all", "fav", "atstake"]) {
+  for (const act of ["threat", "watch", "all", "atstake"]) {
     assert.ok(typeof TILE_LABELS[act] === "string" && TILE_LABELS[act].trim(), `TILE_LABELS.${act} is missing or blank`);
   }
 }
+
+assert.equal("fav" in TILE_LABELS, false, "there is no third stance tile");
 
 /* 4. the sequence is remembered per pillar in a Storage-shaped object and validated */
 {

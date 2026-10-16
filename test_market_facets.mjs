@@ -41,6 +41,11 @@ const raw = {
     competitive: {}, technology: {},
     market: { cnt: "6 demand signals · sorted by urgency" },
   },
+  /* the pills and groups are database rows (lanes.js) */
+  database: { ui: { filter_option: [
+    { filter_group: "market-feed", option_code: "tenders", option_label: "Latest Tenders", badge_label: "TENDER", display_order: 1 },
+    { filter_group: "market-feed", option_code: "opportunities", option_label: "Perceived Opportunities", badge_label: "OPPORTUNITY", display_order: 2 },
+  ] } },
   techCats: [], innovations: {}, matchups: {}, details: {}, competitorNews: {},
   patents: {}, competitors: {},
   marketCards: [

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { srcChips } from "../../lib/html";
-import { BLANK_TILES } from "../../lib/overview";
 
 /* Count-up on the numeric value. The original animated by writing into the text node
    directly; here it is state, so React still owns the DOM. Non-numeric values (—, a
@@ -90,12 +89,12 @@ export default function MetricsStrip({ metrics, active, onPick, inert = false })
            count, which the report and the strip's own unbound-tile warning read, and
            test_market_tiles.mjs holds metricsFor to producing it. Blanking it upstream
            broke that test — correctly. Presentation belongs here. */
-        BLANK_TILES.includes(m.l) ? (
-          <div className="metric metric-blank" key={`blank-${m.act}-${m.l}`} />
+        m.blank ? (
+          <div className="metric metric-blank" key={m.key || m.act} />
         ) : (
         <div
           className={`metric${active === m.act ? " on" : ""}${inert ? " inert" : ""}`}
-          key={`${m.act}-${m.l}`}
+          key={m.key || m.act}
           onClick={inert ? undefined : () => onPick(m, m.act)}
           role={inert ? undefined : "button"}
           tabIndex={inert ? undefined : 0}

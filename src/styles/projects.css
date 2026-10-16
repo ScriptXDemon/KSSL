@@ -39,7 +39,7 @@
 
 .v-projects .pat-li.active {
   background: var(--d-bg-2);
-  border-left: 3px solid var(--fav-badge);
+  border-left: 3px solid var(--ok-badge);
 }
 
 .v-projects .pat-li.active .pli-n {
@@ -161,7 +161,7 @@
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 600;
-  color: var(--fav-badge);
+  color: var(--ok-badge);
   padding: 6px 14px;
   border-radius: 6px;
   background: rgba(63, 168, 106, 0.08);
@@ -170,9 +170,9 @@
 }
 
 .product-card:hover .product-card-view-specs {
-  background: var(--fav-badge);
+  background: var(--ok-badge);
   color: #ffffff;
-  border-color: var(--fav-badge);
+  border-color: var(--ok-badge);
 }
 
 /* 3. DETAILS PAGE (12-SECTION TAXONOMY) */
@@ -325,7 +325,7 @@
 }
 
 .proj-gate-card.active {
-  border-color: var(--fav-badge);
+  border-color: var(--ok-badge);
   background: rgba(63, 168, 106, 0.05);
 }
 
@@ -354,12 +354,12 @@
 
 .proj-gate-status.completed {
   background: rgba(63, 168, 106, 0.15);
-  color: var(--fav-badge);
+  color: var(--ok-badge);
 }
 
 .proj-gate-status.active {
   background: rgba(63, 168, 106, 0.2);
-  color: var(--fav-badge);
+  color: var(--ok-badge);
 }
 
 .proj-gate-status.upcoming {
@@ -424,7 +424,7 @@
 .proj-tag-pill.kssl {
   background: rgba(63, 168, 106, 0.12);
   border: 1px solid rgba(63, 168, 106, 0.3);
-  color: var(--fav-badge);
+  color: var(--ok-badge);
 }
 
 .proj-tag-pill.watch {
@@ -458,7 +458,7 @@
 .cm-list { display: flex; flex-direction: column; border-top: 1px solid var(--d-line); }
 .cm-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; padding: 18px 8px; cursor: pointer; border-bottom: 1px solid var(--d-line); color: inherit; text-decoration: none; }
 .cm-row:hover, .cm-row:focus-visible { background: var(--d-bg-2, rgba(255,255,255,0.03)); outline: none; }
-.cm-row.sel { background: var(--d-bg-2, rgba(255,255,255,0.05)); box-shadow: inset 3px 0 0 var(--fav-badge, #34d399); }
+.cm-row.sel { background: var(--d-bg-2, rgba(255,255,255,0.05)); box-shadow: inset 3px 0 0 var(--ok-badge, #34d399); }
 .cm-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .cm-img { width: 100%; height: 112px; display: block; box-sizing: border-box; flex: none; }
 .cm-when, .cm-src { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em; color: var(--d-txt-3); line-height: 1.6; }
@@ -509,6 +509,6 @@
 .pc-spec dt { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--d-txt-3); margin: 0 0 4px; }
 .pc-spec dd { margin: 0; font-size: 12.5px; color: var(--d-txt); line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 2px; }
-.pc-dc { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--fav-badge, #34d399); }
-.pc-view { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--fav-badge, #38bdf8); }
+.pc-dc { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ok-badge, #34d399); }
+.pc-view { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ok-badge, #38bdf8); }
 .product-card:hover .pc-view { text-decoration: underline; text-underline-offset: 3px; }

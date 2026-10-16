@@ -5,6 +5,9 @@ import { globalRequirements } from "./globalRequirements.js";
 import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
 import { cockpit } from "./tenderIntel.js";
 import { isVisible, viewVisible } from "./visibility.js";
+import { navTitle } from "./route.js";
+import { uiRows } from "./uiText.js";
+import { COMPETITIVE_TITLE } from "./lanes.js";
 
 export const SEQ_LABEL = {
   recency: "Most Recent First",
@@ -61,7 +64,7 @@ export function dateVal(s) {
 
    The first group claims the threat direction; the last takes everything else (the
    `last` rule inside buildFeed). Groups that already declare `dirs` -- market's, which
-   names threat AND fav as "Live Opportunities" -- are left as declared. A config with
+   names more than one direction -- are left as declared. A config with
    one group has nothing to split and is passed through.
 
    Why: the served group defs carry only a heading and a size (competitive 6 + 99,
@@ -80,7 +83,7 @@ export function cardHasTag(card, tag) {
 
 /* Does a card belong under a direction-filter pill? A pill may select by a single `dir`
    (the default, e.g. competitive threat/watch), an array of `dirs` (market "Latest
-   Tenders" = fav+threat), or a `tag` (technology "Competitor Advancements" = rival). One
+   Tenders" = kind tender), or a `tag` (technology "Competitor Advancements" = rival). One
    resolver so Overview.jsx's feed, its filter counts and Layout.jsx's count line agree. */
 export function filterMatch(card, filterKey, filters) {
   if (!filterKey || filterKey === "all") return true;
@@ -100,7 +103,7 @@ export function cutGroupsByDirection(groups, firstDirs = ["threat"]) {
 
 /* THE ONE COMPARATOR. Every surface that orders signal cards calls this.
 
-   Direction first (threat, watch, fav), then the card's date, newest first, then the sequence number the database
+   Direction first (threat, watch; no stance last), then the card's date, newest first, then the sequence number the database
    stores for the card (ruling R5). Nothing here grades a card: severity, impact and shortlist ordering are
    judgements the browser does not make, and a severity field on a card is never read.
 
@@ -108,7 +111,7 @@ export function cutGroupsByDirection(groups, firstDirs = ["threat"]) {
    bottom of its direction band rather than sorting as though it were published today; SignalCard prints "date not
    known" on it rather than an empty corner. A card with no stored sequence follows the sequenced ones of its date,
    in the order it was served. */
-export const DIR_RANK = { threat: 0, watch: 1, fav: 2 };
+export const DIR_RANK = { threat: 0, watch: 1 };
 export const NO_DATE_LABEL = "date not known";
 
 const seqOf = (c) => {
@@ -146,6 +149,8 @@ export function buildFeed(cfg, seqMode, data) {
      never the order inside a tie. */
   if (seqMode === "recency") {
     cards.sort((a, b) => when(b) - when(a) || cmp(a, b));
+  } else if (seqMode === "oldest") {
+    cards.sort((a, b) => when(a) - when(b) || cmp(a, b));
   } else if (seqMode === "category") {
     cards.sort((a, b) => String(a.meta).localeCompare(String(b.meta)) || cmp(a, b));
   } else {
@@ -303,8 +308,28 @@ export const emptyNote = (args) => emptyFeedNote(args);
    and since the remembered page is keyed by the sequence, the page that survived was
    page 1 of a sequence they had not chosen. Only a mode this build offers is
    restored; storage access is wrapped for the same reason as the page's. */
+/* The sequence menu of a pillar whose menu is stored: the Technology overview reads ui.technology_ui_view
+   (sequence_label, sequence_options [{code, label}], search_placeholder, row view_key 'overview'). Each stored code
+   is a sort the browser implements (newest = recency, oldest, threat = priority); a code with no sort is not
+   offered. Competitive and Market keep the chrome menu (MAPPING E2); null = use it. */
+const SEQ_OF_CODE = { newest: "recency", oldest: "oldest", threat: "priority" };
+export function seqConfigFor(pillar, data) {
+  if (pillar !== "technology") return null;
+  const row = uiRows(data, "ui.technology_ui_view").find((r) => r && r.view_key === "overview");
+  if (!row) return null;
+  const options = (Array.isArray(row.sequence_options) ? row.sequence_options : [])
+    .filter((o) => o && SEQ_OF_CODE[o.code] && String(o.label || "").trim())
+    .map((o) => [SEQ_OF_CODE[o.code], String(o.label).trim()]);
+  return {
+    options,
+    label: String(row.sequence_label || "").trim(),
+    placeholder: String(row.search_placeholder || "").trim(),
+    first: options.length ? options[0][0] : "",
+  };
+}
+
 export const FEED_SEQ_KEY = "kssl_feed_seq";
-const SEQ_MODES = new Set(SEQ_OPTIONS.map(([v]) => v));
+const SEQ_MODES = new Set([...SEQ_OPTIONS.map(([v]) => v), "oldest"]);
 
 export function readFeedSeq(store, pillar) {
   try {
@@ -446,18 +471,11 @@ export function technologyAttention(cards, isRival = isRivalCard, head = TECH_AT
 /* Live counts from the served data, so the strip can never drift from the feed.
    Every pillar computes its tiles — the config carries labels and phrasing only;
    a number the service didn't back is never rendered. */
-/* Tiles the strip reserves a slot for but prints nothing in. This is a DISPLAY decision
-   and it is enforced in MetricsStrip, not here: metricsFor's contract is "what does this
-   tile measure", and test_market_tiles.mjs holds it to that -- it asserts "All signals"
-   reads the served card count, which is a measurement the report and the strip's own
-   unbound-tile warning both still depend on. Blanking it here made that test fail, which
-   is the test doing its job. Exported so the render has one list to read. */
-export const BLANK_TILES = ["Analytical lenses", "All signals"];
-
 export function metricsFor(cfg, pillar, d) {
   /* EVERY TILE STARTS AT "NOT MEASURED".
 
-     The binding at the bottom of this function is by LABEL STRING, and a label no
+     The binding at the bottom of this function is by KEY (metric_key, lanes.js), never by the tile's
+     label text -- the label is a database word that may be edited -- and a key no
      branch computes used to keep whatever `v` the config shipped -- the sample
      constants baked into overviewConfig ("13", "73,895", "6") -- which CountUp then
      animated up exactly like a measured figure. Two ways that happened with nothing
@@ -495,33 +513,21 @@ export function metricsFor(cfg, pillar, d) {
         ? `every one of the ${cards.length} served signals - no other direction is assigned`
         : null;
     };
-    const lensSet = new Set();
-    cards.forEach((c) => {
-      if (c.lens) lensSet.add(c.lens);
-      /* Tolerate a card whose `sec` is not an array: one malformed card must cost
-         the lens count, never the whole strip. */
-      (Array.isArray(c.sec) ? c.sec : []).forEach((s) => {
-        if (s.lens) lensSet.add(s.lens);
-      });
-    });
-    let byLabel = { "All signals": cards.length };
-    const subByLabel = {};
+    let byKey = {};
+    const subByKey = {};
     /* The sublines above that report a MISSING measurement rather than describing a
        present one. See the note where m.warn is set. */
     const WARN_SUBS = new Set();
-    let actByLabel = {};
     if (pillar === "competitive") {
-      byLabel = {
-        ...byLabel,
-        "Competitive threats": dirCount("threat"),
-        "Watch signals": dirCount("watch"),
-        "Companies tracked": new Set(cards.map((c) => c.company).filter(Boolean)).size,
-        "Analytical lenses": lensSet.size,
+      byKey = {
+        threats: dirCount("threat"),
+        watch: dirCount("watch"),
+        companies_tracked: new Set(cards.map((c) => c.company).filter(Boolean)).size,
       };
       const tSub = dirSub("threat", "threat");
-      if (tSub) { subByLabel["Competitive threats"] = tSub; WARN_SUBS.add(tSub); }
+      if (tSub) { subByKey.threats = tSub; WARN_SUBS.add(tSub); }
       const wSub = dirSub("watch", "watch") || dirIsAll("watch");
-      if (wSub) { subByLabel["Watch signals"] = wSub; WARN_SUBS.add(wSub); }
+      if (wSub) { subByKey.watch = wSub; WARN_SUBS.add(wSub); }
     } else if (pillar === "market") {
       const tenders = (d && d.tenders) || [];
       const { open } = bucketTenders(tenders);
@@ -544,83 +550,61 @@ export function metricsFor(cfg, pillar, d) {
       // The Perceived Opportunities stream on the same feed: watch cards (geopolitical /
       // demand moves), which need no tender. Counted from the served set the feed shows.
       const opps = (cards || []).filter((c) => c.dir === "watch").length;
-      byLabel = {
-        ...byLabel,
-        "Latest tenders": shown.length,
-        "Strong fits": anyFit ? go.length : "—",
-        "Tender value": formatTotals(totals),
-        "Perceived opportunities": opps,
+      byKey = {
+        latest_tenders: shown.length,
+        strong_fits: anyFit ? go.length : "—",
+        tender_value: formatTotals(totals),
+        perceived_opportunities: opps,
       };
       const goSub = anyFit ? null : "no fit assessment was served for these tenders";
-      if (goSub) { subByLabel["Strong fits"] = goSub; WARN_SUBS.add(goSub); }
+      if (goSub) { subByKey.strong_fits = goSub; WARN_SUBS.add(goSub); }
       const valSub = priced.length
         ? `${priced.length} of ${shown.length} publish a value` +
           (totals.length > 1 ? ` · ${totals.length} currencies, not converted` : "")
         : "no tender on this shortlist publishes a value";
-      subByLabel["Tender value"] = valSub;
+      subByKey.tender_value = valSub;
       if (!priced.length) WARN_SUBS.add(valSub);
       /* no line under this tile (owner request): the count alone, so it sits at the same
          height as its neighbours */
       /* The doors: each tile filters the feed to the rows it counts. "Latest tenders"
-         opens the promoted open tenders (fav+threat); "Strong fits" and "Live bid value"
+         opens the promoted open tenders (kind tender); "Strong fits" and "Live bid value"
          narrow that by the tag/price the promoter stamps; "Perceived opportunities" opens
          the watch stream. tilePredicate reads those. */
-      actByLabel = {
-        "Latest tenders": "open",
-        "Strong fits": "fit",
-        "Tender value": "valued",
-        "Perceived opportunities": "opps",
-      };
     } else if (pillar === "technology") {
       const innovations = (d && d.innovations) || {};
-      const domains = Object.keys(innovations).filter((k) => (innovations[k] || []).length);
       // Technology is knowledge, not a threat board: the two streams are competitor
       // advancements (a tracked rival's tech move) and adoptable advances (everyone
       // else's). Counted from the tags the promoter (technologyAttention) stamps.
       const tagCount = (t) => cards.filter((c) => cardHasTag(c, t)).length;
-      byLabel = {
-        ...byLabel,
-        "Competitor advances": tagCount("rival"),
-        "Adoptable advances": tagCount("adopt"),
-        "Domains tracked": domains.length,
-        "Analytical lenses": lensSet.size,
+      byKey = {
+        competitor_advances: tagCount("rival"),
+        adoptable: tagCount("adopt"),
+        // innovations tracked: every innovation row served, over all domains
+        innovations_tracked: Object.values(innovations).reduce((n, rows) => n + (rows || []).length, 0),
       };
-      actByLabel = { "Competitor advances": "rival", "Adoptable advances": "adopt" };
       const rSub = tagCount("rival") ? null : "no competitor advancement is served";
-      if (rSub) { subByLabel["Competitor advances"] = rSub; WARN_SUBS.add(rSub); }
+      if (rSub) { subByKey.competitor_advances = rSub; WARN_SUBS.add(rSub); }
       const aSub = tagCount("adopt") ? null : "no adoptable advance is served";
-      if (aSub) { subByLabel["Adoptable advances"] = aSub; WARN_SUBS.add(aSub); }
-      const nameOf = (id) => {
-        const c = ((d && d.techCats) || []).find((x) => x.id === id);
-        return c ? c.name : id;
-      };
-      subByLabel["Domains tracked"] = domains.length
-        ? domains.map(nameOf).join("·")
-        : "no domains served yet";
+      if (aSub) { subByKey.adoptable = aSub; WARN_SUBS.add(aSub); }
     }
     metrics.forEach((m) => {
-      if (byLabel[m.l] == null) {
-        /* LOUD, NOT SILENT. Nothing above computed a value for this label, so there
-           is no measurement to show: the tile keeps its "—" and says why, and the
-           served subtitle goes with it -- "rivals ahead / closing" over an unbound
-           tile is a claim about a number that was never taken. */
-        m.sub = `not wired - no measurement is computed for "${m.l}"`;
+      if (m.blank) { m.v = ""; return; } // an empty slot of the strip: nothing to measure
+      if (byKey[m.key] == null) {
+        /* LOUD, NOT SILENT. Nothing above computed a value for this key, so there
+           is no measurement to show: the tile keeps its "—" and says why. */
+        m.sub = `not wired - no measurement is computed for "${m.key}"`;
         m.warn = true;
         if (typeof console !== "undefined" && console.warn)
-          console.warn(`metricsFor(${pillar}): no measurement bound to tile label "${m.l}"`);
+          console.warn(`metricsFor(${pillar}): no measurement bound to tile key "${m.key}"`);
         return;
       }
-      m.v = String(byLabel[m.l]);
-      if (subByLabel[m.l] != null) {
-        m.sub = subByLabel[m.l];
-        /* AN ABSENCE OF MEASUREMENT STILL HAS TO SPEAK. The tile sublines are hidden on
-           screen now (MetricsStrip renders them only when `warn` is set) -- but the ones
-           produced by dirSub()/dirIsAll() are not decoration, they are the sentence that
-           stops a "—" or a coincidental count being read as a finding. Those keep
-           showing; the descriptive ones do not. */
-        if (WARN_SUBS.has(subByLabel[m.l])) m.warn = true;
+      m.v = String(byKey[m.key]);
+      if (subByKey[m.key] != null) {
+        m.sub = subByKey[m.key];
+        /* AN ABSENCE OF MEASUREMENT STILL HAS TO SPEAK. The sublines marked `warn` are the sentence that
+           stops a "—" or a coincidental count being read as a finding; they keep showing. */
+        if (WARN_SUBS.has(subByKey[m.key])) m.warn = true;
       }
-      if (actByLabel[m.l] != null) m.act = actByLabel[m.l];
     });
   } catch (e) {
     /* The strip is cosmetic; a missing field must never blank the feed. Values were
@@ -635,7 +619,6 @@ export function metricsFor(cfg, pillar, d) {
 export const TILE_LABELS = {
   atstake: "at-stake items",
   threat: "threat-marked items",
-  fav: "favourable-marked items",
   /* the Watch tile's `act` is "watch"; without this the count line ended in a bare
      " · " -- "13 of 26 signals ·" */
   watch: "watch signals",
@@ -660,7 +643,7 @@ export function tilePredicate(act) {
   if (act === "all") return () => true;
   if (act === "atstake") return (c) => c.dir === "threat" || c.dir === "atstake" || has(c, "atstake");
   if (act === "threat") return (c) => c.dir === "threat" || has(c, "threat");
-  if (act === "fav" || act === "watch") return (c) => c.dir === "fav" || c.dir === "watch" || has(c, "opening") || has(c, "fav") || has(c, "watch");
+  if (act === "watch") return (c) => c.dir === "watch" || has(c, "opening") || has(c, "watch");
   /* The promoted open tenders are the cards of kind `tender`; the opportunity cards on
      the same feed are `watch` and are not open tenders. */
   if (act === "open") return (c) => c.kind === "tender";
@@ -816,38 +799,38 @@ export function viewMetaFor(d) {
     .reduce((n, [, v]) => n + (v ? v.length : 0), 0);
   const meta = {
     overview: {
-      title: "Competitive Intelligence",
+      title: COMPETITIVE_TITLE,
       cnt: `${alertCount} signals`,
       filters: true,
     },
     profile: {
-      title: "Competitor Profile",
+      title: navTitle(d, "competitive", "profile"),
       cnt: `${partnerCount} companies tracked`,
       filters: false,
     },
     "threat-analysis": {
-      title: "Competitor Moment",
+      title: navTitle(d, "competitive", "threat-analysis"),
       cnt: `${momentCount} competitor moves on record · newest first`,
       filters: false,
     },
     products: {
-      title: "Products",
+      title: navTitle(d, "competitive", "products"),
       /* British spelling and singular "catalogue", as every other heading (FE 18) */
       cnt: "Competitor and client products",
       filters: false,
     },
     positioning: {
-      title: "Product Evaluation",
+      title: navTitle(d, "competitive", "positioning"),
       cnt: `${Object.keys(d.matchups || {}).length} product matchups`,
       filters: true,
     },
     partnerships: {
-      title: "Partnership",
+      title: navTitle(d, "competitive", "partnerships"),
       cnt: `${partnerCount} competitors · ${allianceCount} alliances mapped`,
       filters: false,
     },
     projects: {
-      title: "Projects",
+      title: navTitle(d, "competitive", "projects"),
       cnt: `${(d.projects || []).length} competitor projects on record`,
       filters: false,
     },
@@ -857,7 +840,7 @@ export function viewMetaFor(d) {
       filters: false,
     },
     geo: {
-      title: "Geo Footprint",
+      title: navTitle(d, "competitive", "geo"),
       cnt: `${geoCompCount} competitors · ${geoCountries.size} markets · competitor activity by country`,
       filters: false,
     },
@@ -866,17 +849,17 @@ export function viewMetaFor(d) {
        four tender views, so the page labelled "Tender Pipeline" on the rail rendered
        under the heading "Market Report". */
     "m-report": {
-      title: "Market Intelligence",
+      title: navTitle(d, "market", "m-report"),
       cnt: "Demand shape, spec and requirement",
       filters: false,
     },
     tender: {
-      title: "Tenders",
+      title: navTitle(d, "market", "tender"),
       cnt: "Open tenders",
       filters: false,
     },
     "global-requirement": {
-      title: "Global Requirements",
+      title: navTitle(d, "market", "global-requirement"),
       cnt: "Global requirements",
       filters: false,
     },
@@ -891,12 +874,12 @@ export function viewMetaFor(d) {
       filters: false,
     },
     innovation: {
-      title: "Innovation Pipeline",
+      title: navTitle(d, "technology", "innovation"),
       cnt: "Technology developments",
       filters: false,
     },
     "patents-comp": {
-      title: "Patent",
+      title: navTitle(d, "competitive", "patents-comp"),
       cnt: "Patent filings",
       filters: false,
     },

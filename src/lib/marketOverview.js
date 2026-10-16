@@ -9,6 +9,7 @@
    And `bucketTenders`' `t.dl <= 0` is TRUE for the served `null`, so raw rows bucket
    as 100% closed. Wired input is a correctness requirement, not a convention. */
 import { clientShort } from "./client.js";
+import { uiText } from "./uiText.js";
 import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
 import { facetOptionsByName } from "./countryFacet.js";
 import { bucketTenders, marketAttention } from "./overview.js";
@@ -137,31 +138,31 @@ export function hostOf(url) {
   }
 }
 
-/* The four tiles. Each one is counted from the rows on screen; a measure the corpus
-   does not carry returns null so the strip can print "—" rather than 0. */
-export function marketMetrics(tenders) {
+/* The four tiles above the Market pages. Each one is counted from the rows on screen, bound by its
+   ui.market_metric metric_id (never by its label); its LABEL is that row's metric_label, and a tile whose row has
+   no label is not drawn. A measure the corpus does not carry prints "—" rather than 0. */
+export function marketMetrics(tenders, data) {
   const list = tenders || [];
   const { open, awarded, closed } = bucketTenders(list);
   const countries = new Set(list.map((t) => t.country).filter(Boolean));
   const portals = new Set(list.map((t) => hostOf(t.url)).filter(Boolean));
   const priced = list.filter(hasAmount);
   const totals = valueTotals(list);
-  return [
+  const tiles = [
     {
-      l: "Active tenders",
+      id: "active-tenders",
       act: "active",
       v: String(open.length),
-      dot: "var(--fav)",
       sub: `open of ${list.length} tracked · ${awarded.length} awarded, ${closed.length} closed`,
     },
     {
-      l: "Markets",
+      id: "markets",
       act: "markets",
       v: String(countries.size),
       sub: topOf(list, "country"),
     },
     {
-      l: "Source portals",
+      id: "source-portals",
       act: "portals",
       v: String(portals.size),
       sub: `distinct portals feeding this slice`,
@@ -169,7 +170,7 @@ export function marketMetrics(tenders) {
     {
       /* An unmeasured total is "—", never 0 — a zero here would read as "these
          contracts are worth nothing". */
-      l: "Value disclosed",
+      id: "value-disclosed",
       act: "value",
       v: formatTotals(totals),
       unit: "",
@@ -178,6 +179,9 @@ export function marketMetrics(tenders) {
         : "no tender on record publishes an amount",
     },
   ];
+  return tiles
+    .map(({ id, ...t }) => ({ ...t, key: id, l: uiText(data, "ui.market_metric", { metric_id: id }, "metric_label") }))
+    .filter((t) => t.l);
 }
 
 function topOf(list, field) {

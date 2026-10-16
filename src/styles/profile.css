@@ -12,7 +12,7 @@
 .cp-threat{text-transform:uppercase;letter-spacing:.1em;font-size:12px;padding:3px 8px;border:1px solid var(--d-line-2);border-radius:3px;color:var(--d-txt-2)}
 .cp-threat.high{color:var(--threat-badge);border-color:var(--threat)}
 .cp-threat.medium{color:var(--watch-badge);border-color:var(--watch)}
-.cp-threat.low{color:var(--fav-badge);border-color:var(--fav)}
+.cp-threat.low{color:var(--ok-badge);border-color:var(--ok)}
 
 .cp-sec{padding:22px 24px 24px;border-bottom:1px solid var(--d-line)}
 .cp-sec-h{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:16px}
@@ -32,7 +32,6 @@
 .cp-tag{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--d-txt-3);background:var(--d-bg-2);border:1px solid var(--d-line);padding:2px 7px;white-space:nowrap}
 .cp-tag.dir-threat{color:var(--threat-badge)}
 .cp-tag.dir-watch{color:var(--watch-badge)}
-.cp-tag.dir-fav{color:var(--fav-badge)}
 
 .cp-thin{color:var(--d-txt-4)}
 .cp-empty{padding:26px 24px;font-family:var(--mono);font-size:12px;color:var(--d-txt-4);line-height:1.6}
@@ -56,7 +55,7 @@
 .cp-src-d{font-family:var(--mono);font-size:12px;color:var(--d-txt-3);white-space:nowrap}
 .cp-src-q{font-family:var(--mono);font-size:12px;color:var(--d-txt-4);opacity:.5;
   flex-shrink:0;transition:opacity .12s,color .12s}
-.cp-src-row:hover .cp-src-q{opacity:1;color:var(--fav-badge)}
+.cp-src-row:hover .cp-src-q{opacity:1;color:var(--ok-badge)}
 
 /* ============ COMPANY METADATA GRID ============ */
 .cp-meta-grid {
@@ -709,8 +708,8 @@
 .cp-fact-k{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--d-txt-3)}
 .cp-fact-v{color:var(--d-txt);font-weight:500}
 .cp-chip-btn{cursor:pointer;transition:border-color .12s,background .12s}
-.cp-chip-btn:hover{background:var(--d-bg-3);border-color:var(--fav);color:var(--d-txt)}
-.cp-lead-src{font-size:10.5px;color:var(--fav-badge);text-decoration:none;font-family:var(--mono)}
+.cp-chip-btn:hover{background:var(--d-bg-3);border-color:var(--ok);color:var(--d-txt)}
+.cp-lead-src{font-size:10.5px;color:var(--ok-badge);text-decoration:none;font-family:var(--mono)}
 .cp-lead-src:hover{text-decoration:underline}
 
 /* ============ PRODUCT SPECS TAB ============ */
@@ -781,13 +780,13 @@
 .product-card:hover,
 .product-card:focus-visible {
   transform: translateY(-3px);
-  border-color: var(--fav-badge) !important;
+  border-color: var(--ok-badge) !important;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
   outline: none;
 }
 .product-card:hover .product-card-view-specs {
   background: rgba(56, 189, 248, 0.18) !important;
-  border-color: var(--fav-badge) !important;
+  border-color: var(--ok-badge) !important;
 }
 .product-card img {
   width: 100%;
@@ -819,7 +818,7 @@
   display: flex; align-items: center; gap: 14px; padding: 14px 18px;
   background: var(--d-bg-1); border: 1px solid var(--d-line); border-radius: 6px;
 }
-.cp-person-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fav-badge); flex-shrink: 0; }
+.cp-person-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok-badge); flex-shrink: 0; }
 .cp-person-row-main { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
 .cp-person-role { font-size: 14.5px; font-weight: 600; color: var(--d-txt); }
 .cp-person-org { font-size: 13px; color: var(--d-txt-3); }

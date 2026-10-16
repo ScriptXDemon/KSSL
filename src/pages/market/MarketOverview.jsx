@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { bucketTenders } from "../../lib/overview";
+import { uiList } from "../../lib/uiText";
 import { formatDate } from "../../utils/formatDate";
 import MarketOutlook from "../../components/marketOutlook/MarketOutlook";
 import { outlook } from "../../lib/marketOutlook";
@@ -41,21 +42,22 @@ const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
 const TABLE_PAGE = 25;
 const NO_DATE = "No date published";
 
-const SECTIONS = [
-  { id: "outlook", label: "Market outlook" },
-  { id: "active", label: "Number of active tenders" },
-  { id: "category", label: "By category" },
-  { id: "awarded", label: "Awarded" },
-  { id: "closed", label: "Closed" },
-];
+/* The tabs are the rows of ui.market_intelligence_tab (tab_id, tab_label, tab_order). The section a tab opens is
+   chosen by its stored tab_id; a tab with no row, or no label, is not drawn. */
+const SECTION_OF_TAB = { outlook: "outlook", active: "active", "by-category": "category", awarded: "awarded", closed: "closed" };
+const sectionsOf = (data) =>
+  uiList(data, "ui.market_intelligence_tab", {}, "tab_order")
+    .filter((r) => SECTION_OF_TAB[r.tab_id] && String(r.tab_label || "").trim())
+    .map((r) => ({ id: SECTION_OF_TAB[r.tab_id], label: String(r.tab_label).trim() }));
 
 const SECTION_KEY = "kssl_market_section";
-const savedSection = () => {
+const savedSection = (sections) => {
+  const first = sections.length ? sections[0].id : "";
   try {
     const s = localStorage.getItem(SECTION_KEY);
-    return SECTIONS.some((x) => x.id === s) ? s : "outlook";
+    return sections.some((x) => x.id === s) ? s : first;
   } catch (e) {
-    return "outlook";
+    return first;
   }
 };
 
@@ -173,7 +175,7 @@ function ColumnChart({ rows, total, examples }) {
           <span className="ovb-n">{fmt(r.n)}</span>
           <span className="ovb-track">
             {/* min 2px so a bucket of 1 is a mark, not an invisible zero */}
-            <i style={{ height: `max(2px, ${(r.n / max) * 100}%)`, background: WINDOW_COLORS[r.key] || "var(--fav-badge)" }} />
+            <i style={{ height: `max(2px, ${(r.n / max) * 100}%)`, background: WINDOW_COLORS[r.key] || "var(--ok-badge)" }} />
           </span>
           <span className="ovb-lab">{r.key}</span>
           <span className="ovb-pct">{total ? `${Math.round((r.n / total) * 100)}%` : ""}</span>
@@ -199,7 +201,8 @@ function Chart({ title, note, empty, show, children }) {
 export default function MarketOverview() {
   const { data } = useData();
   const { setScope, takePending, jumpTo } = useAppState();
-  const [section, setSectionRaw] = useState(savedSection);
+  const SECTIONS = useMemo(() => sectionsOf(data), [data]);
+  const [section, setSectionRaw] = useState(() => savedSection(sectionsOf(data)));
   const [rows, setRows] = useState(TABLE_PAGE);
   const [country, setCountry] = useState("all");
   const [cat, setCat] = useState(null);
@@ -635,7 +638,7 @@ export default function MarketOverview() {
                 context line is cut as redundant noise: the table below is self-evidently
                 the rows, the count sits on the tab, and the rows are visibly links. */}
             <div className="ovc-h">
-              <span className="eyebrow">{SECTIONS.find((s) => s.id === section).label}</span>
+              <span className="eyebrow">{(SECTIONS.find((s) => s.id === section) || {}).label || ""}</span>
             </div>
             {section === "awarded" && !list.length && awardsList.length
               ? null

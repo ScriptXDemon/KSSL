@@ -7,8 +7,8 @@ import { useData } from "../../state/DataProvider";
    navCounts() — every one is computed from the loaded corpus, never hardcoded. */
 export default function Sidebar() {
   const { pillar, view, setView } = useAppState();
-  const { counts } = useData();
-  const items = railFor(pillar);
+  const { counts, data } = useData();
+  const items = railFor(pillar, data);
 
   const row = (item) => (
     <div
@@ -42,9 +42,10 @@ export default function Sidebar() {
   return (
     <div className="rail">
       <div className="rail-pillar" data-railpillar={pillar}>
-        <div className="rail-sec svc-sec">{row(items[0])}</div>
+        {/* a view the navigation table does not label is not drawn, so any item may be missing */}
+        <div className="rail-sec svc-sec">{items.filter((i) => i.overview).map(row)}</div>
         <div className="rail-sec svc-sec" style={{ borderTop: "none" }}>
-          {items.slice(1).map(row)}
+          {items.filter((i) => !i.overview).map(row)}
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
  *
  *     node test_card_order_edge.mjs
  *
- *   - direction (threat > watch > fav) leads everything, incl. an unknown dir;
+ *   - direction (threat > watch) leads everything; a card with no stance, or an unknown dir, sorts last;
  *   - within a direction DATE leads (newest first); an undated card sorts to the bottom;
  *   - the stored sequence number breaks a same-date tie; severity fields are never read.
  */
@@ -30,12 +30,12 @@ ck("newer outranks older whatever the sequence", "new,old",
 ck("undated card sorts below a dated card", "dated,undated",
    order([card("undated", { ago: "", seq: 1 }), card("dated", { ago: "1 Jan 2020", seq: 2 })]));
 
-ck("direction leads: threat, then watch, then fav", "t,w,f",
-   order([card("f", { dir: "fav", ago: "9 Sep 2026", seq: 1 }), card("w", { dir: "watch", ago: "9 Sep 2026", seq: 1 }),
+ck("direction leads: threat, then watch", "t,w",
+   order([card("w", { dir: "watch", ago: "9 Sep 2026", seq: 1 }),
           card("t", { dir: "threat", ago: "1 Jan 2019", seq: 9 })]));
 
-ck("an unknown dir sorts last of all", "t,w,f,x",
-   order([card("x", { dir: "mystery", ago: "9 Sep 2026", seq: 1 }), card("f", { dir: "fav", ago: "1 Jan 2019", seq: 1 }),
+ck("an unknown dir, or no stance, sorts last of all", "t,w,x,n",
+   order([card("x", { dir: "mystery", ago: "9 Sep 2026", seq: 1 }), card("n", { dir: "", ago: "9 Sep 2026", seq: 2 }),
           card("t", { dir: "threat", ago: "1 Jan 2019", seq: 1 }), card("w", { dir: "watch", ago: "1 Jan 2019", seq: 1 })]));
 
 ck("a card with no sequence follows sequenced cards of the same date", "s,u",

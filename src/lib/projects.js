@@ -3,9 +3,8 @@
    sequence menu and the stage steps are data.projectsConfig (ui.ui_project_*). Nothing here is a record. */
 import { formatDate } from "../utils/formatDate.js";
 
-/* the analyst's read for the client, in the Overview's own tag colours */
-export const STANCE_CLASS = { threat: "threat", watch: "watch", fav: "fav" };
-export const STANCE_WORD = { threat: "Threat", watch: "Watch", fav: "" };
+/* The stance of a project is its stored `assessment.stance`: threat or watch, nothing else (uiText.stanceOf);
+   its word is the ui.filter_option 'stance' row (uiText.stanceWords). */
 
 export const day = (d) => (d && /^\d{4}/.test(d) ? (/^\d{4}$/.test(d) ? `${d}-01-01` : /^\d{4}-\d{2}$/.test(d) ? `${d}-01` : d) : "");
 

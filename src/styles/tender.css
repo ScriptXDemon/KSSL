@@ -291,7 +291,7 @@
   .tcard .fittrack i {
     display: block;
     height: 100%;
-    background: var(--fav);
+    background: var(--ok);
   }
   .tcard .fittrack i.mid {
     background: var(--watch);
@@ -410,7 +410,7 @@
     margin-bottom: 4px;
   }
   /* the same grade colours as the list card's fit bar: strong green, partial amber, weak red */
-  .tp-fit-verdict.high { color: var(--fav); }
+  .tp-fit-verdict.high { color: var(--ok); }
   .tp-fit-verdict.mid { color: var(--watch); }
   .tp-fit-verdict.low { color: var(--threat); }
 
@@ -558,10 +558,10 @@
   .tp-lean b {
     font-weight: 600;
   }
-  .tp-lean.go { border-left: 3px solid var(--fav); }
+  .tp-lean.go { border-left: 3px solid var(--ok); }
   .tp-lean.maybe { border-left: 3px solid var(--watch); }
   .tp-lean.pass { border-left: 3px solid var(--threat); }
-  .tp-lean.won { border-left: 3px solid var(--fav); }
+  .tp-lean.won { border-left: 3px solid var(--ok); }
   .tp-lean.closed { border-left: 3px solid var(--l-line-2); }
   .tp-lean.na { border-left: 3px dashed var(--l-line-2); }
 

@@ -25,6 +25,7 @@ import { useAppState, isOverview } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { projectMetrics } from "../../lib/projects";
 import { metricsFor, tilePredicate, filterMatch, readFeedSeq, writeFeedSeq, TILE_LABELS, bucketTenders } from "../../lib/overview";
+import { navTitle } from "../../lib/route";
 import { marketMetrics } from "../../lib/marketOverview";
 import { isVisible, viewVisible } from "../../lib/visibility";
 
@@ -102,7 +103,7 @@ export default function Layout() {
       onProjects
         ? projectMetrics(data.projects)
         : onMarketReport
-          ? marketMetrics(data.tenders)
+          ? marketMetrics(data.tenders, data)
           : metricsFor(cfg, overviewPillar, data),
     [cfg, overviewPillar, data, onMarketReport, onProjects],
   );
@@ -115,14 +116,15 @@ export default function Layout() {
      Gating those on `isOverview` alone left it rendering into a two-column grid with a
      third column reserved for a drawer that never opens. */
   const wideNoDrawer = onOverview || onMarketReport || onProjects || view === "innovation";
-  const showMetricsStrip = onOverview || onMarketReport || onProjects;
+  /* no tile rows in the database -> no strip (the slot is not reserved) */
+  const showMetricsStrip = (onOverview || onMarketReport || onProjects) && metrics.length > 0;
   /* Each pillar's overview carries its own heading ("Market Intelligence"), which lives
      on the served config; viewMeta only has the competitive one. */
   /* onMarketReport gates LAYOUT (metric strip, collapsed third column) and covers
      m-report, tender, awarded-tenders and closed-tenders. It must not also pick the
      title, or all four render as "Market Report". Every heading now comes from
      viewMeta; only a pillar overview overrides it, from its served config. */
-  const headTitle = onOverview ? cfg.title || meta.title : meta.title;
+  const headTitle = (onOverview ? cfg.title || meta.title : meta.title) || "";
 
   /* The count line reflects whichever filter is active — the original rewrote it in
      applyFilter(), with the tile label or the direction word. */
@@ -230,7 +232,7 @@ export default function Layout() {
                 onSelectionChange={setHasSelection}
                 onSeq={setSeqMode}
                 cardFilter={isGlobalCard}
-                title="Global Requirements"
+                title={navTitle(data, "market", "global-requirement")}
                 part="feed"
                 pillarKey="market"
                 seqMode={seqMode}

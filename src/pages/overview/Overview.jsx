@@ -19,6 +19,7 @@ import {
   writeFeedPage,
   SEQ_LABEL,
   TILE_LABELS,
+  seqConfigFor,
 } from "../../lib/overview";
 
 /* sessionStorage, guarded: a private window throws on the property itself */
@@ -35,7 +36,7 @@ const pageStore = () => {
    exactly how the original's buildOverviewFeed(pillarKey) worked. */
 export default function Overview({
   pillarKey,
-  seqMode,
+  seqMode: seqModeIn,
   dirFilter,
   tile,
   filters,
@@ -47,6 +48,10 @@ export default function Overview({
   part,   // market only: "cockpit" = the tender tables (Market overview), "feed" = the signal cards (Global Requirements)
 }) {
   const { data } = useData();
+  /* the Technology overview's sequence menu, label and search placeholder are stored (seqConfigFor); a remembered
+     mode its stored menu does not offer falls to the first stored option */
+  const seqCfg = seqConfigFor(pillarKey, data);
+  const seqMode = seqCfg && seqCfg.options.length && !seqCfg.options.some((o) => o[0] === seqModeIn) ? seqCfg.first : seqModeIn;
   const { setScope, takePending } = useAppState();
   const [selected, setSelected] = useState(null);
   /* A detail the feed does not carry: a Top-tenders row can be a tender outside the Latest Tenders
@@ -83,7 +88,7 @@ export default function Overview({
      fall through to the dir word. */
   const labelFor = (c) => {
     const w = cfg.tagWord && c.kind && c.kind in cfg.tagWord ? cfg.tagWord[c.kind] : cfg.dirWord[c.dir] || c.dir;
-    return /^(fav|favou?rable)$/i.test(w) ? "" : w; // no "Favourable" tag anywhere (owner request)
+    return w || "";
   };
   // the badge's colour class: a config may repaint a dir without changing the dir itself
   const badgeFor = (c) => (cfg.badgeClass && cfg.badgeClass[c.dir]) || c.dir;
@@ -156,7 +161,7 @@ export default function Overview({
        announced under a page it is not listed on (FE 18). */
     setScope("signal", { type: "signal", data: detail }, {
       pillar: PILLAR_LABEL[pillarKey] || "Competitive",
-      view: cfg.title || "Overview",
+      view: cfg.title || "",
       selection: detail.title,
     });
   };
@@ -244,7 +249,7 @@ export default function Overview({
         ? ((filters || []).find((f) => f.f === dirFilter) || {}).l || dirFilter
         : "all signals";
     return {
-      title: cfg.title || "Signals",
+      title: cfg.title || "",
       subtitle: `${SEQ_LABEL[seqMode] || seqMode} · ${filterLabel} · page ${pageView.page} of ${pageView.pageCount}`,
       sections: [
         {
@@ -317,7 +322,7 @@ export default function Overview({
   let topHeaderSub = "";
 
   if (isFiltered && activeFilterObj) {
-    topHeaderTitle = activeFilterObj.l || "Filtered Signals";
+    topHeaderTitle = activeFilterObj.l || "";
     /* No group strapline here. The filtered feed is flat, and the first group's
        sub-heading ("what's live now") described a grouping the rows on screen no
        longer follow -- a heading that names a structure the page is not showing. */
@@ -329,10 +334,10 @@ export default function Overview({
        is by INDEX (`cards.slice(idx, idx + g.n)`), not by content, so the label was
        never a property of what the reader was looking at. Each group now carries its
        own inline header instead; see the `gi > 0` guard removed below. */
-    topHeaderTitle = cfg.title || "Signals";
+    topHeaderTitle = cfg.title || "";
     topHeaderSub = "";
   } else {
-    const fallback = (cfg.groups || [])[0] || { h: cfg.title || "Signals", s: "" };
+    const fallback = (cfg.groups || [])[0] || { h: cfg.title || "", s: "" };
     topHeaderTitle = fallback.h;
     topHeaderSub = "";           // no straplines under section titles (owner request)
   }
@@ -350,6 +355,7 @@ export default function Overview({
           onFilter={onFilter}
           onSeq={onSeq}
           seqMode={seqMode}
+          {...(seqCfg ? { seqOptions: seqCfg.options, seqLabel: seqCfg.label, placeholder: seqCfg.placeholder } : {})}
           searchQuery={feedSearchQuery}
           onSearch={setFeedSearchQuery}
           counts={filterCounts}
@@ -468,7 +474,7 @@ export default function Overview({
                 if (!cfg.tagWord) return undefined;
                 const card = (cfg.cards || []).find((c) => c.id === selected);
                 if (!card || !card.kind) return undefined;
-                return { word: labelFor(card), cls: card.kind === "adopt" ? "fav" : null };
+                return { word: labelFor(card), cls: card.kind === "adopt" ? "adopt" : null };
               })()}
             />
           </ErrorBoundary>
