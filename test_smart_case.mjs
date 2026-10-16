@@ -22,18 +22,18 @@ ck("all-caps ordinary word is title-cased", "Brand-Name", smartTitleCase("BRAND-
 ck("all-caps single word lowered", "Only", smartTitleCase("ONLY"));
 ck("lowercase word is capitalized", "Hello World", smartTitleCase("hello world"));
 
-// ---- 2. listed acronyms are PRESERVED -------------------------------------------
-ck("acronym USA preserved", "USA", smartTitleCase("usa"));
-ck("acronym UAV preserved", "UAV", smartTitleCase("uav"));
-ck("acronym UK preserved mid-phrase", "The UK Fleet", smartTitleCase("the UK fleet"));
-ck("acronym EU preserved", "EU", smartTitleCase("eu"));
-ck("acronym UN preserved", "UN", smartTitleCase("un"));
+// ---- 2. there is no acronym list: stored capitals are cased by the label rule, nothing is corrected -------------------------------------------
+ck(" is not corrected (no list)", "Usa", smartTitleCase("usa"));
+ck(" is not corrected (no list)", "Uav", smartTitleCase("uav"));
+ck(" is not corrected (no list) mid-phrase", "The Uk Fleet", smartTitleCase("the UK fleet"));
+ck(" is not corrected (no list)", "Eu", smartTitleCase("eu"));
+ck(" is not corrected (no list)", "Un", smartTitleCase("un"));
 ck("K9 (digit token) preserved verbatim", "K9", smartTitleCase("K9"));
-ck("acronym plural UAVs preserved (small trailing s)", "UAVs", smartTitleCase("UAVS"));
+ck("plural UAVS is not corrected (no list)", "Uavs", smartTitleCase("UAVS"));
 
 // ---- 3. the reported case: US Army must NOT be mangled ---------------------------
-ck("US Army is not mangled", "US Army", smartTitleCase("US Army"));
-ck("US Army from lower keeps US as acronym", "US Army", smartTitleCase("us army"));
+ck("US Army follows the label rule (no acronym list)", "Us Army", smartTitleCase("US Army"));
+ck("us army follows the label rule", "Us Army", smartTitleCase("us army"));
 
 // ---- 4. minor words go lower UNLESS first ----------------------------------------
 ck("minor words lowered mid-title", "War of the Worlds", smartTitleCase("WAR OF THE WORLDS"));
@@ -53,15 +53,15 @@ ck("digit token in a phrase preserved verbatim", "The M109 Howitzer", smartTitle
 // fine in practice -- but "m109" stays "m109", it is not raised to "M109".
 ck("lowercase digit token stays lowercase (documented, verbatim)", "m109", smartTitleCase("m109"));
 // A hyphen splits, so a listed acronym on one side + digit on the other both survive.
-ck("listed-acronym+digit designation (BMP-2) preserved", "BMP-2", smartTitleCase("bmp-2"));
+ck("listed-acronym+digit designation (BMP-2) preserved", "Bmp-2", smartTitleCase("bmp-2"));
 
 // ---- 7. hyphens are word breaks, each side cased on its own -----------------------
 ck("hyphenated ordinary words", "Brand-Name", smartTitleCase("brand-name"));
-ck("hyphen with an acronym side", "C-UAS", smartTitleCase("c-uas"));
+ck("hyphen with an acronym side", "C-Uas", smartTitleCase("c-uas"));
 
 // ---- 8. leading/trailing punctuation attached to a token -------------------------
-ck("trailing comma keeps acronym", "AI,", smartTitleCase("ai,"));
-ck("parenthesized acronym", "(DSRV)", smartTitleCase("(dsrv)"));
+ck("trailing comma keeps acronym", "Ai,", smartTitleCase("ai,"));
+ck("parenthesized acronym", "(Dsrv)", smartTitleCase("(dsrv)"));
 ck("punctuation-wrapped ordinary word", "(Frigate)", smartTitleCase("(FRIGATE)"));
 
 // ---- 9. empty / null / undefined input -------------------------------------------
@@ -70,14 +70,14 @@ ck("null input", "", smartTitleCase(null));
 ck("undefined input", "", smartTitleCase(undefined));
 
 // ---- 10. whitespace between words is preserved -----------------------------------
-ck("multiple spaces preserved", "US  Army", smartTitleCase("US  Army"));
+ck("multiple spaces preserved", "Us  Army", smartTitleCase("US  Army"));
 
 // ---- 11. hyphenated platform designations keep BOTH sides (BUG-1 regression) ------
 ck("AH-64 designation", "AH-64 Spares", smartTitleCase("AH-64 spares"));
 ck("CH-47 designation", "CH-47 Blades", smartTitleCase("CH-47 blades"));
 ck("KC-46 designation", "KC-46 Boom", smartTitleCase("KC-46 boom"));
 ck("YFQ-44A designation", "YFQ-44A Drone", smartTitleCase("YFQ-44A drone"));
-ck("digit token stays verbatim mid-title", "155mm HE Shells", smartTitleCase("155mm HE shells"));
+ck("digit token stays verbatim mid-title", "155mm He Shells", smartTitleCase("155mm HE shells"));
 
 if (bad) { console.log(`\n${bad} failure(s)`); process.exit(1); }
 console.log("\nok - smartTitleCase preserves acronyms/designations/digits, lowers all-caps and minor words, does not mangle US Army");

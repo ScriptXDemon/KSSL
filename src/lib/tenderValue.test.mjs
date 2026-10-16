@@ -26,3 +26,17 @@ test("no exchange rate lives in code", () => {
     assert.ok(!/CR_PER_MILLION|parseCr|CRORE_PER_BN/.test(src), f);
   }
 });
+
+test("awards: one total per stored currency, a missing value is not summed, nothing reads value_usd", async () => {
+  const { winners } = await import("./marketOutlook.js");
+  const { AWARD_FIELDS } = await import("./tenderValue.js");
+  const t = valueTotals(d.awards, AWARD_FIELDS);
+  assert.deepEqual(t.map((e) => e.currency), ["EUR", "INR", "USD"]);
+  assert.equal(t.find((e) => e.currency === "EUR").amount, 410000000 + 18500000);
+  assert.equal(t.reduce((n, e) => n + e.n, 0), d.awards.filter((a) => a.value && a.currency).length);
+  const w = winners(d);
+  assert.equal(w.priced, d.awards.filter((a) => a.winner && a.value && a.currency).length);
+  assert.deepEqual(w.totals, valueTotals(d.awards.filter((a) => a.winner), AWARD_FIELDS));
+  w.rows.forEach((r) => assert.ok(Array.isArray(r.totals) && !("usd" in r) && !("share" in r)));
+  assert.ok(!/value_usd/.test(fs.readFileSync(new URL("./marketOutlook.js", import.meta.url), "utf8")));
+});

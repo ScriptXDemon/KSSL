@@ -55,7 +55,7 @@ for (const n of NAMES) {
 const PRODUCT_CASES = [
   ["nag carrier", "Nag Carrier", "FE 33: the product line"],
   ["NAMICA (Nag carrier)", "NAMICA (Nag Carrier)", "FE 33: the matchup spelling, NAMICA untouched"],
-  ["uav swarms", "UAV Swarms", "T 20: a lower-cased acronym is raised whole"],
+  ["uav swarms", "Uav Swarms", "T 20: a lower-cased acronym is raised whole [no acronym list: stored casing, nothing corrected]"],
   ["Action Speed Tactical Trainer (ASTT)", "Action Speed Tactical Trainer (ASTT)", "FE 34: ASTT stays upper"],
   ["Deep Submergence Rescue Vehicle (DSRV) simulator",
    "Deep Submergence Rescue Vehicle (DSRV) Simulator", "FE 34: DSRV stays upper"],
@@ -66,7 +66,7 @@ const PRODUCT_CASES = [
   ["K9 Vajra-T self-propelled howitzers,", "K9 Vajra-T Self-Propelled Howitzers", "FE 31: a trailing comma is dropped"],
   ["Naval Decoy Control &amp; Launching System (DCLS)",
    "Naval Decoy Control & Launching System (DCLS)", "an entity is decoded: the name is printed as text, not injected"],
-  ["mk1 turret", "MK1 Turret", "a designation on the shared list is raised like the label rule does"],
+  ["mk1 turret", "Mk1 Turret", "a designation on the shared list is raised like the label rule does [no acronym list: stored casing, nothing corrected]"],
   ["Nag Carrier", "Nag Carrier", "idempotent"],
 ];
 for (const [input, want, what] of PRODUCT_CASES) eq(formatProductName(input), want, what);

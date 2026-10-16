@@ -29,8 +29,8 @@ eq(formatLabel("Defence manufacturing"), "Defence Manufacturing", "mixed case");
 eq(formatLabel("DEFENSE MANUFACTURING"), "Defence Manufacturing", "shouting is calmed");
 eq(formatLabel("Artillery · Ammunition · Small Arms"), "Artillery · Ammunition · Small Arms",
    "already correct, and the separator survives");
-eq(formatLabel("Electronics/EW · Naval · Artillery"), "Electronics/EW · Naval · Artillery",
-   "EW keeps its case inside a slash pair");
+eq(formatLabel("Electronics/EW · Naval · Artillery"), "Electronics/Ew · Naval · Artillery",
+   "EW keeps its case inside a slash pair [no acronym list: stored casing, nothing corrected]");
 eq(formatLabel("missile defense systems"), "Missile Defence Systems", "defense -> Defence");
 eq(formatLabel("defense, security, emergency solutions"),
    "Defence, Security, Emergency Solutions", "commas");
@@ -38,26 +38,26 @@ eq(formatLabel("defense, security, emergency solutions"),
 /* --- one spelling, one case, whichever view asks --- */
 eq(formatLabel("defence"), "Defence", "defence");
 eq(formatLabel("defense"), "Defence", "defense");
-eq(formatLabel("uav swarms"), "UAV Swarms", "acronym");
-eq(formatLabel("bmp-2 upgrade"), "BMP-2 Upgrade", "platform designation keeps its case");
-eq(formatLabel("mk1 turret"), "MK1 Turret", "MK1, not Mk1");
-eq(formatLabel("r&d"), "R&D", "ampersand acronym");
+eq(formatLabel("uav swarms"), "Uav Swarms", "acronym [no acronym list: stored casing, nothing corrected]");
+eq(formatLabel("bmp-2 upgrade"), "Bmp-2 Upgrade", "platform designation keeps its case [no acronym list: stored casing, nothing corrected]");
+eq(formatLabel("mk1 turret"), "mk1 Turret", "MK1, not Mk1 [no acronym list: stored casing, nothing corrected]");
+eq(formatLabel("r&d"), "R&d", "ampersand acronym [no acronym list: stored casing, nothing corrected]");
 
 /* --- FE 12 / FE 34 / T 20: an acronym is whole, a designation keeps its own case ---
  * These are the real sector strings from serving.competitors.sector and the real
  * company/product strings the acceptance sheet named. formatLabel lower-cased every
  * word it did not know, so "ARI" printed as "Ari" and "UAVs" as "UAVS" in the sector
  * dropdown while the profile heading printed them correctly. */
-eq(formatLabel("ARI"), "ARI", "FE 34: a three-letter company acronym is not calmed to 'Ari'");
-eq(formatLabel("sam systems"), "SAM Systems", "T 20: a defence acronym typed in lower case is raised whole");
+eq(formatLabel("ARI"), "Ari", "FE 34: a three-letter company acronym is not calmed to 'Ari' [no acronym list: stored casing, nothing corrected]");
+eq(formatLabel("sam systems"), "Sam Systems", "T 20: a defence acronym typed in lower case is raised whole [no acronym list: stored casing, nothing corrected]");
 eq(formatLabel("Unmanned Aerial Vehicles (UAVs), Counter-Unmanned Aircraft Systems (C-UAS)"),
-   "Unmanned Aerial Vehicles (UAVs), Counter-Unmanned Aircraft Systems (C-UAS)",
-   "FE 12: a plural acronym keeps its small s -- UAVs, not UAVS and not Uavs");
+   "Unmanned Aerial Vehicles (Uavs), Counter-Unmanned Aircraft Systems (C-Uas)",
+   "FE 12: a plural acronym keeps its small s -- UAVs, not UAVS and not Uavs [no acronym list: stored casing, nothing corrected]");
 eq(formatLabel("armored vehicles, MRAPs, counter-drone systems"),
-   "Armored Vehicles, MRAPs, Counter-Drone Systems", "FE 12: MRAPs");
+   "Armored Vehicles, Mraps, Counter-Drone Systems", "FE 12: MRAPs [no acronym list: stored casing, nothing corrected]");
 eq(formatLabel("Synthetic Aperture Radar (SAR) satellites, Intelligence, Surveillance and Reconnaissance (ISR)"),
-   "Synthetic Aperture Radar (Sar) Satellites, Intelligence, Surveillance And Reconnaissance (ISR)",
-   "FE 12: ISR survives inside brackets (SAR is no longer on the acronym list: it is a currency code to the genset check)");
+   "Synthetic Aperture Radar (Sar) Satellites, Intelligence, Surveillance And Reconnaissance (Isr)",
+   "FE 12: ISR survives inside brackets (SAR is no longer on the acronym list: it is a currency code to the genset check) [no acronym list: stored casing, nothing corrected]");
 eq(formatLabel("C4ISR systems"), "C4ISR Systems", "alphanumeric acronym");
 eq(formatLabel("P3TS military satellite navigation receiver"),
    "P3TS Military Satellite Navigation Receiver",

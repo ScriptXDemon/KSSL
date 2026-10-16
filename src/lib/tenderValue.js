@@ -7,7 +7,11 @@
 export const TENDER_FIELDS = { amount: "valueAmount", currency: "valueCurrency" };
 export const AWARD_FIELDS = { amount: "value", currency: "currency" };
 
-export const hasAmount = (t, f = TENDER_FIELDS) => !!t && Number(t[f.amount]) > 0 && !!String(t[f.currency] || "").trim();
+/* `f` is ignored unless it names fields, so `list.filter(hasAmount)` (which passes an index) stays a tender test */
+export const hasAmount = (t, f) => {
+  const k = f && f.amount ? f : TENDER_FIELDS;
+  return !!t && Number(t[k.amount]) > 0 && !!String(t[k.currency] || "").trim();
+};
 
 /* [{ currency, amount, n }], one per stored currency, in currency-code order */
 export function valueTotals(list, f = TENDER_FIELDS) {

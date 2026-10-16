@@ -32,5 +32,13 @@ lacks("src/pages/competitive/Partnerships.jsx", /VERIFIED_KSSL_PARTNERS/, "secon
 lacks("src/pages/competitive/Products.jsx", /PRODUCT_IMAGE_MAP|CATEGORY_POOLS|getResolvedSpecs|getProductPrograms|Counterpart|"Verified"|"Sovereign"/, "stock photos, fabricated specs/programmes or matchups");
 lacks("src/pages/competitive/Profile.jsx", /DUMMY_NEWS_DATES|FALLBACK_NEWS_IMAGES|getLeaderPsychology|cleanNewsCategory|policy-watch|Key Executive/, "invented dates, photos, leader profiles or role");
 
+lacks("src/lib/profile.js", /ACRONYMS|acronymForm/, "acronym list");
+lacks("src/lib/gapAnalysis.js", /DAP 2020|SCOMET|Indian defence orders/, "procurement-rule prose");
+lacks("src/lib/partners.js", /\|\| "Other"/, "Other fallback");
+/* no client name typed into logic: a quoted "KSSL" or Kalyani literal outside comments */
+["src/lib/specs.js", "src/lib/gapModel.js", "src/lib/search.js", "src/pages/competitive/Products.jsx"].forEach((f) => {
+  const code = (src(f) || "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  ck(`${f} has no KSSL / Kalyani literal in code`, !/["'`(\/^]\s*(KSSL|Kalyani)/.test(code));
+});
 console.log(bad ? `\n${bad} FAILED` : "\nok - no record constant is left in code");
 process.exit(bad ? 1 : 0);
