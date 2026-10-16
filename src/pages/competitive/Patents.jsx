@@ -43,7 +43,9 @@ export default function Patents() {
     () => (clientId && data.competitors[clientId] && !data.compOrder.includes(clientId) ? [clientId, ...data.compOrder] : data.compOrder),
     [data, clientId],
   );
-  const [cid, setCid] = useState(savedPat.cid || railIds[0]);
+  // opens on the first entry that holds filings (the client heads the rail but may hold none), else the first entry
+  const withFilings = railIds.find((k) => (((data.PATENTS || {}).byCompetitor || {})[k] || { records: [] }).records.length > 0);
+  const [cid, setCid] = useState(savedPat.cid || withFilings || railIds[0]);
   const [catFilter, setCatFilter] = useState(savedPat.catFilter || "");
   const [compRes, setCompRes] = useState(null);
 

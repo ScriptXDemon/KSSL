@@ -1130,7 +1130,13 @@ New table (db/setup/09_ui_port_tables.sql, staging_ui + ui, guard trigger, seede
 | Moment time-window chips and the Profile news windows | ui.competitive_competitor_moment_time_window (label, day_count, is_default); the "All" reset chip is chrome | wired |
 | Moment level words and class | ui.competitive_competitor_moment_level; only a threat or watch tag draws a word or a pill | wired |
 | Country, category, revenue, origin filters (options and counts) | distinct stored values of the rows on screen; the word "All" is chrome | data |
-| Tender / Global Requirements filter labels ("Country", "Category"), sort notes, empty-state texts, Top-opportunity section titles, Product Evaluation tab labels, pillar names (Market, Technology), impact eyebrows | the ui tables E3/E4 name | NOT WIRED yet: still literals in code (listed in VERIFY.md "Label sources") |
+| Tenders and Market Intelligence filter labels, Tenders sort note | ui.market_tenders_view (country_filter_label, category_filter_label, sort_label) | wired (fix round 2) |
+| Top-opportunity section titles | ui.market_top_opportunity_view (top_tenders_, projects_, next_moves_section_label) | wired |
+| Product Evaluation tab labels, order, enabled flag | ui.competitive_positioning_tab | wired |
+| Pillar names Market, Technology | ui.market_pillar.display_name, ui.technology_pillar.pillar_name | wired; Competitive is chrome (no ui table holds it) |
+| Impact eyebrow | serving.competitive_signal_detail.impact_eyebrow (details[id].eyebrow); none stored, none drawn | wired |
+| Page empty texts: Tenders, Top opportunity, Market Intelligence, Global Requirements | ui.market_view.empty_state_text by view_id; ui.market_global_requirement_view.empty_state_text | wired |
+| Global Requirements filter labels and sort note | ui.market_global_requirement_filter, ui.market_global_requirement_view | no place to render (that page has no filter controls) |
 | Sequence menu and search placeholder, competitive and market overview | no stored text | chrome |
 
 Decision: there is no favourable stance. The only stances are threat and watch (uiText.STANCES). A row stored with any other stance has no stance: no pill, no colour, not counted, not on the competitive overview (the Cummins rule that dropped its third stance from that feed, stated without the word). The geo client marker is class `client`; the green accent token is `--ok`.
