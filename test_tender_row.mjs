@@ -202,6 +202,7 @@ await build({
   stdin: { contents: entry, resolveDir: here, loader: "jsx" },
   bundle: true, platform: "node", format: "esm", jsx: "automatic", outfile: out,
   logLevel: "silent", loader: { ".css": "empty" },
+  define: { "import.meta.env.VITE_REVIEW": "undefined" }, // Review.jsx reads it; the live build has none
   banner: { js: 'import { createRequire as __cr } from "node:module"; const require = __cr(import.meta.url);' },
   plugins: [{
     name: "stub-state",

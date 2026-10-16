@@ -72,6 +72,27 @@ test.describe("review build", () => {
     });
   }
 
+  /* Market Intelligence: the outlook's segment rows (one assessment card each; its winners, buyers and
+     drivers tables are counts over cards reviewed elsewhere), then the tender and award tables */
+  for (const [tab, rowSel] of [
+    [/Market outlook/i, ".ov-report .ovt-demand tbody tr"],
+    [/Awarded/i, ".ov-report .ovt tbody tr"],
+    [/active tenders/i, ".ov-report .ovt tbody tr"],
+    [/Closed/i, ".ov-report .ovt tbody tr"],
+  ]) {
+    test(`m-report ${tab}: every table row carries a review bar`, async ({ page }) => {
+      await open(page, REVIEW_URL, "market", "m-report");
+      await page.locator(".ovtab", { hasText: tab }).first().click();
+      // a segment row is a card only when a stored recommendation (the assessment row) stands in it
+      const all = page.locator(rowSel);
+      const rows = rowSel.includes("ovt-demand") ? all.filter({ has: page.locator("td:nth-child(5) .od-main") }) : all;
+      await expect(rows.first()).toBeVisible({ timeout: 15000 });
+      const n = await rows.count();
+      const withBar = await rows.filter({ has: page.locator(".rv-bar") }).count();
+      expect(withBar, `${withBar} of ${n} rows carry a .rv-bar`).toBe(n);
+    });
+  }
+
   /* Approve one card: the POST answers 200 and its status turns "live". The company card on the
      Competitor Profile has no parent card to approve first (a signal needs its competitor live). */
   test("approve returns 200 and the card turns live", async ({ page }) => {
