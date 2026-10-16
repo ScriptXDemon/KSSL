@@ -15,7 +15,8 @@ import { esc, escAll, escAttr, escRich, joinParts, srcChips } from "./html.js";
 import { canonicalizeLabels } from "./orgident.js";
 import { countryFlagDisc } from "./countryFlags.js";
 import { categoryDisc } from "./categorySymbols.js";
-import { buildCategories, verdictOf, meanText } from "./partnerCategories.js";
+import { buildCategories, verdictOf, impactText } from "./partnerCategories.js";
+import { stanceWords } from "./uiText.js";
 
 /* THE CLIENT ROSTER AND A RIVAL'S PARTNER ROWS DO NOT SHARE A KEY SPACE.
    KSSL_PARTNERS is reference data and carries `plp_01`..`plp_03` with cid null; the rows
@@ -1772,12 +1773,13 @@ const PG_IMG_ONERROR =
       const t = typeof v === "string" ? v.trim() : v;
       return t && t !== "n/d" && t !== "null" ? t : null;
     };
-    const RANK = { Threat: 3, Watch: 2, Opportunity: 1 };
+    /* a verdict is a stance: threat or watch, nothing else (a stored third value draws no verdict at all) */
+    const RANK = { threat: 2, watch: 1 };
     const VERDICT_STYLE = {
-      Threat: ["#fdecea", "#b5341f", "#f3b8ae"],
-      Watch: ["#fdf4dc", "#8a6212", "#ecd28a"],
-      Opportunity: ["#e6f5ec", "#1f7a46", "#a9d9bc"],
+      threat: ["#fdecea", "#b5341f", "#f3b8ae"],
+      watch: ["#fdf4dc", "#8a6212", "#ecd28a"],
     };
+    const WORDS = stanceWords(d);   // the stored stance words (ui.filter_option, group stance)
     const pill = (text, [bg, fg, br]) =>
       `<span style="font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: ${bg}; color: ${fg}; border: 1px solid ${br}; padding: 3px 8px; border-radius: 4px; white-space: nowrap;">${esc(text)}</span>`;
     const chip = (text) =>
@@ -1786,7 +1788,7 @@ const PG_IMG_ONERROR =
       `<div style="font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6b6a63; margin-bottom: 3px;">${t}</div>`;
     const NO = String(clientName);
 
-    const verdicts = rows.map((r) => verdictOf(r.mean)).filter(Boolean);
+    const verdicts = rows.map((r) => verdictOf(r)).filter(Boolean);
     const net = verdicts.sort((x, y) => RANK[y] - RANK[x])[0] || null;
     const types = [...new Set(rows.map((r) => real(r.ptype) || categoryOf(r.rel).label))];
     const where = partnerCountries.length ? partnerCountries : [real(p.country)].filter(Boolean);
@@ -1799,14 +1801,14 @@ const PG_IMG_ONERROR =
       `<div class="th-meta" style="flex-wrap: wrap; gap: 6px;">${types.map(chip).join("")}${statusTag(p)}${confTag(p)}${where.length ? `<span>${esc(where.join(", "))}</span>` : ""}</div>` +
       `<div style="font-size: 12.5px; color: #3d3d39; line-height: 1.5; margin-top: 8px;">` +
       `${esc(partnerName)} has ${rows.length} ${rows.length === 1 ? "tie" : "ties"} with ${esc(c.name)}: ${esc(types.join("; "))}.` +
-      (net ? ` Read for ${esc(NO)}: ${pill(net, VERDICT_STYLE[net])}` : "") +
+      (net && WORDS[net] ? ` Read for ${esc(NO)}: ${pill(WORDS[net], VERDICT_STYLE[net])}` : "") +
       `</div></div>`;
 
     rows.forEach((r, i) => {
       const cat = categoryOf(r.rel);
       const typeLabel = real(r.ptype) || cat.label;
-      const verdict = verdictOf(r.mean);
-      const impact = meanText(r.mean);
+      const verdict = verdictOf(r);
+      const impact = impactText(r);
       const note = real(r.note) || pgThinNote(r, c.name);
       const srcs = (r.srcs || []).filter((x) => x && x.url);
       const facts = [
@@ -1819,7 +1821,7 @@ const PG_IMG_ONERROR =
       h += `<div style="background: #ffffff; color: #161614; border: 1px solid #e2e0d8; border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">`;
       h += `<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">` +
         `<span style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700;"><span class="rmark rel-${escAll(r.rel || "other")}" style="width: 10px; height: 10px; border-radius: 50%; background: ${cat.color};"></span>${rows.length > 1 ? `${i + 1}. ` : ""}${esc(typeLabel)}${real(r.country) ? ` · ${esc(r.country)}` : ""}</span>` +
-        (verdict ? pill(verdict, VERDICT_STYLE[verdict]) : "") + `</div>`;
+        (verdict && WORDS[verdict] ? pill(WORDS[verdict], VERDICT_STYLE[verdict]) : "") + `</div>`;
 
       // what this kind of tie IS, in plain words
       h += `<div>${label("What this kind of tie means")}<div style="font-size: 12.5px; color: #3d3d39; line-height: 1.55;"><b>${esc(typeLabel)}</b>: ${esc(categoryDef(r.rel, c.name))}</div></div>`;

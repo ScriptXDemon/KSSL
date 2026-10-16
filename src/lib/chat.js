@@ -111,9 +111,9 @@ export function scopedAnswer(d, ctx, question) {
           `<b>${p.label}</b> (${p.country || "—"}) - ${p.ptype || ""}. ${p.note}` +
           `${p.deal && p.deal !== "n/d" ? `<br>Deal/scale: ${p.deal}` : ""}<br>Timeline: ${p.date}`
         );
-      if (has("mean", "matter", "impact", "kssl", "kssl", "so what", "why")) return clean(p.mean);
-      if (has("happening", "insight", "now", "update")) return clean(p.insight || p.mean);
-      return `<b>${c.name} ↔ ${p.label}</b> (${p.country || "—"}). ${p.note}. ${clean(p.mean)}`;
+      if (has("mean", "matter", "impact", "kssl", "kssl", "so what", "why")) return clean(p.impact || p.mean);
+      if (has("happening", "insight", "now", "update")) return clean(p.insight || p.impact || p.mean);
+      return `<b>${c.name} ↔ ${p.label}</b> (${p.country || "—"}). ${p.note}. ${clean(p.impact || p.mean)}`;
     }
     if (has("partner", "alliance", "ally", "who", "relationship", "tie"))
       return (

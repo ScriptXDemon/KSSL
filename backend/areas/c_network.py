@@ -42,16 +42,6 @@ def _with_unit(value, unit):
     return f"{value} {unit}" if unit not in (None, "") else value
 
 
-def _mean(row):
-    """'Threat: text' (verdict word + impact), the string partnerCategories.verdictOf / meanText parse."""
-    verdict = row.get("client_verdict")
-    if verdict in (None, ""):
-        return None
-    word = str(verdict).strip()
-    word = word[:1].upper() + word[1:].lower()
-    return f"{word}: {row.get('client_impact') or ''}".rstrip()
-
-
 # --------------------------------------------------------------------------- Partnerships
 
 def build_partners(database, competitors):
@@ -76,7 +66,8 @@ def build_partners(database, competitors):
             "country": row.get("region"),
             "confidence": row.get("relationship_confidence"),
             "srcnote": row.get("source_note"),
-            "mean": _mean(row),
+            "verdict": row.get("client_verdict"),      # as stored (threat / watch / ...): the UI shows only threat and watch
+            "impact": row.get("client_impact"),        # the stored read of the tie for the client
             "src": first_url,
             "_src": src("competitive_partnership", "relationship_id", row),
         })

@@ -3,7 +3,7 @@ import test from "node:test";
 import fs from "node:fs";
 import { createPartners, overlapDefs } from "./partners.js";
 import { setClient, clientShort } from "./client.js";
-import { buildCategories, verdictOf, meanText } from "./partnerCategories.js";
+import { buildCategories, verdictOf, impactText } from "./partnerCategories.js";
 import * as pc from "./partnerCategories.js";
 
 const d = JSON.parse(fs.readFileSync(new URL("../../fixtures/kssl_dataset.json", import.meta.url), "utf8"));
@@ -61,8 +61,8 @@ test("one company is one node and the type groups follow the legend", () => {
 test("the relationship brief names both parties and the client read; no raw tags", () => {
   setClient(d.client);
   const P = createPartners(d);
-  const [cid, c] = rivals.find(([, x]) => (x.partners || []).some((p) => p.mean));
-  const p = c.partners.find((x) => x.mean);
+  const [cid, c] = rivals.find(([, x]) => (x.partners || []).some((p) => p.impact));
+  const p = c.partners.find((x) => x.impact);
   const html = P.tieHtml({ ...c, id: cid }, cid, p.id);
   assert.ok(html.includes(p.label.split(" ")[0]));
   assert.ok(html.includes(`What it means for ${clientShort()}`));
@@ -70,6 +70,38 @@ test("the relationship brief names both parties and the client read; no raw tags
 });
 
 test("verdict and read parsing", () => {
-  assert.equal(verdictOf("<b>Watch:</b> x"), "Watch");
-  assert.equal(meanText("<b>Threat:</b> a b <span style='o'>· <a href='u'>s</a></span>"), "a b");
+  assert.equal(verdictOf({ verdict: "watch" }), "watch");
+  assert.equal(verdictOf({ verdict: "Threat" }), "threat");
+  assert.equal(impactText({ impact: "a  b <span style='o'>· <a href='u'>s</a></span>" }), "a b");
+});
+
+test("only threat and watch verdicts render: an 'opportunity' (or unset) verdict is no stance, no pill, no green", () => {
+  setClient(d.client);
+  const P = createPartners(d);
+  const words = Object.fromEntries(d.database.ui.filter_option.filter((o) => o.filter_group === "stance").map((o) => [o.option_code, o.badge_label || o.option_label]));
+  const all = rivals.flatMap(([cid, c]) => (c.partners || []).map((p) => ({ cid, c, p })));
+  const by = (v) => all.filter(({ p }) => p.verdict === v);
+  assert.ok(by("opportunity").length > 0 && by("threat").length > 0 && by("watch").length > 0, "the fixture holds all three stored verdicts");
+  // a tie is opened by its partner's whole company key, so check the tie that carries only the verdict under test
+  const html = ({ cid, c, p }) => P.tieHtml({ ...c, id: cid }, cid, p.id);
+  for (const t of by("opportunity")) {
+    const h = html(t);
+    assert.ok(!/#e6f5ec|#1f7a46|#a9d9bc/.test(h), "no green verdict colour");
+    const tied = (t.c.partners || []).filter((x) => x.label === t.p.label);
+    if (tied.every((x) => x.verdict === "opportunity" || !x.verdict)) assert.ok(!/Read for/.test(h), "an opportunity-only tie has no 'Read for' verdict");
+  }
+  for (const t of by("threat")) {
+    const h = html(t);
+    assert.ok(h.includes(words.threat) && h.includes("#b5341f"), "a threat verdict draws the stored threat word in the threat colour");
+  }
+  for (const t of all.filter(({ p }) => !p.verdict)) {
+    const tied = (t.c.partners || []).filter((x) => x.label === t.p.label);
+    if (tied.every((x) => !x.verdict)) assert.ok(!/Read for/.test(html(t)), "no stored verdict, no verdict");
+  }
+  assert.equal(verdictOf({ verdict: "opportunity" }), null);
+  assert.equal(verdictOf({ verdict: "fav" }), null);
+  assert.equal(verdictOf({}), null);
+  const src = ["partners.js", "partnerCategories.js"].map((f) => fs.readFileSync(new URL(`./${f}`, import.meta.url), "utf8")).join("\n");
+  assert.ok(!/opportunity/i.test(src), "no 'opportunity' stance path in the partnership code");
+  assert.ok(!/#1f7a46|#e6f5ec/.test(src), "no green verdict style in the partnership code");
 });

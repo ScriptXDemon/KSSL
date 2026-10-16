@@ -5,6 +5,8 @@
    A definition may contain {rival} and {client}: joins of dataset values, filled in here. Only the colours
    are code: a neutral palette indexed by display order, so a colour means the same thing in the legend,
    the graph and the cards. No category, label or definition is written in this file. */
+import { stanceOf } from "./uiText.js";
+
 
 /* line colour and fill, by position in the legend */
 const PALETTE = [
@@ -50,18 +52,17 @@ export function buildCategories(d) {
   return { list, groups, categoryOf, categoryDef, categoryCounts, fill };
 }
 
-/* The analyst's verdict on a tie for the client, read off the start of `mean`
-   ("<b>Threat:</b> ...", "<b>Watch:</b> ...", "<b>Opportunity:</b> ..."). null when unstated. */
-export function verdictOf(mean) {
-  const m = /^\s*(?:<b>)?\s*(Threat|Watch|Opportunity)\s*:/i.exec(String(mean || ""));
-  return m ? m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() : null;
+/* The analyst's verdict on a tie for the client: the stored `verdict` of the row, and only when it is a stance
+   (threat or watch). Any other stored verdict is not a stance and draws nothing. Returns the
+   stance code, or null. */
+export function verdictOf(row) {
+  return stanceOf(String((row && row.verdict) || "").trim().toLowerCase()) || null;
 }
 
-/* `mean` without its leading label and trailing source link, as plain text */
-export function meanText(mean) {
-  return String(mean || "")
+/* the stored `impact` of the row as plain text (no markup, no trailing source link) */
+export function impactText(row) {
+  return String((row && row.impact) || "")
     .replace(/<span[^>]*>[\s\S]*?<\/span>/gi, "")
-    .replace(/^\s*(?:<b>)?\s*(Threat|Watch|Opportunity)\s*:\s*(?:<\/b>)?\s*/i, "")
     .replace(/<[^>]+>/g, "")
     .replace(/\s+/g, " ")
     .trim();

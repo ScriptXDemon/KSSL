@@ -244,7 +244,7 @@ export function buildGapModel(d) {
     const contest = {};
     Object.values(competitors).forEach((c) => {
       (c.partners || []).forEach((pt) => {
-        const m = (pt.mean || "") + (pt.insight || "");
+        const m = (pt.impact || "") + (pt.insight || "");
         const mm = m.match(/CORE OVERLAP \(([^)]+)\)/i);
         if (mm) {
           mm[1].split(",").forEach((raw) => {

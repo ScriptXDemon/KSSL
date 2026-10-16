@@ -143,7 +143,7 @@ const KEYS = {
     "url", "srcs", "desc", "req", "matches", "rank", "fit", "clientFit", "revenueEstimate", "expectedRevenue", "revenueMid",
     "lean", "leanTxt", "competitorFit", "actions"],
   product: ["id", "name", "category", "country", "specs", "source", "source_url", "sources", "tier", "programs", "news", "matchupId"],
-  partner: ["id", "cid", "label", "ptype", "rel", "note", "date", "as_of", "country", "confidence", "srcnote", "mean", "src"],
+  partner: ["id", "cid", "label", "ptype", "rel", "note", "date", "as_of", "country", "confidence", "srcnote", "verdict", "impact", "src"],
   clientPartner: ["id", "label", "cid", "ptype", "rel", "country", "note", "role", "status", "date", "as_of", "mean", "insight"],
   award: ["segment", "winner", "brand", "buyer", "site", "title", "title_ar", "programme", "tender_no", "date", "year",
     "value", "currency", "bids", "country", "url", "source"],
