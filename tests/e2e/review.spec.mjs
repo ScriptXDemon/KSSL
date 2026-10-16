@@ -113,14 +113,11 @@ test.describe("review build", () => {
     });
   }
 
-  /* Approve one card: the POST answers 200 and its status turns "live". The company card on the
-     Competitor Profile has no parent card to approve first (a signal needs its competitor live). */
-  test("approve returns 200 and the card turns live", async ({ page }) => {
-    await open(page, REVIEW_URL, "competitive", "profile");
-    const bar = page.locator(".cp-head .rv-bar").first();
+  /* Approve end to end: the POST answers 200 and the card's status turns "live". If a previous run (or
+     make_test_pair --approve-all) left it live, it is taken off first so the Approve is a real transition. */
+  const approveEndToEnd = async (page, bar) => {
     await expect(bar).toBeVisible({ timeout: 15000 });
     const post = () => page.waitForResponse((r) => r.url().includes("/api/review") && r.request().method() === "POST");
-    // a previous run left it live: take it off first so the Approve below is a real transition
     if (await bar.locator(".rv-status.rv-live").count()) {
       const [off] = await Promise.all([post(), bar.getByRole("button", { name: "Unpublish", exact: true }).click()]);
       expect(off.status()).toBe(200);
@@ -130,5 +127,49 @@ test.describe("review build", () => {
     expect(resp.status()).toBe(200);
     await expect(bar.locator(".rv-status.rv-live")).toBeVisible();
     await expect(bar.locator(".rv-status")).toHaveText("live");
+  };
+  /* The company card on the Competitor Profile has no parent card to approve first (a signal needs its competitor live). */
+  test("approve returns 200 and the card turns live", async ({ page }) => {
+    await open(page, REVIEW_URL, "competitive", "profile");
+    await approveEndToEnd(page, page.locator(".cp-head .rv-bar").first());
+  });
+
+  /* market_segment_assessment: a segment row of the Market outlook (stands alone, no parent) */
+  test("approve a market segment assessment: 200 and live", async ({ page }) => {
+    await open(page, REVIEW_URL, "market", "m-report");
+    await page.locator(".ovtab", { hasText: /Market outlook/i }).first().click();
+    const row = page.locator(".ov-report .ovt-demand tbody tr").filter({ has: page.locator("td:nth-child(5) .od-main") }).first();
+    await approveEndToEnd(page, row.locator(".rv-bar").first());
+  });
+
+  /* competitive_field_synthesis: a pattern of the field-level read (stands alone); the Partnership page lists
+     it under the competitor list in the review copy */
+  test("approve a field-level synthesis row: 200 and live", async ({ page }) => {
+    await open(page, REVIEW_URL, "competitive", "partnerships");
+    const list = page.locator(".rv-list", { hasText: "Field-level patterns" });
+    await expect(list).toBeVisible({ timeout: 15000 });
+    await approveEndToEnd(page, list.locator(".rv-li .rv-bar").first());
+    // and the live dataset now carries the row
+    const live = await (await page.request.get(`${LIVE_URL}/api/dataset`)).json();
+    expect(((live.FIELDSYN && live.FIELDSYN.patterns) || []).length).toBeGreaterThan(0);
+  });
+
+  /* competitive_synthesis (+ its vulnerabilities and traces) is not a card of its own: GRAPH makes it part of the
+     competitor card, and the API refuses to approve it alone ("not a reviewed table"). The intelligence list on
+     Partnership therefore carries the competitor's bar. Approving it makes the competitor AND its synthesis live. */
+  test("approve a competitor synthesis: 200, live, and the synthesis is served live", async ({ page }) => {
+    await open(page, REVIEW_URL, "competitive", "partnerships");
+    const list = page.locator(".rv-list", { hasText: /intelligence/ });
+    await expect(list).toBeVisible({ timeout: 15000 });
+    const name = (await page.locator(".pat-li.active .pli-n").first().innerText()).trim();
+    const rv = await (await page.request.get(`${REVIEW_URL}/api/dataset`)).json();
+    const cid = Object.keys(rv.competitors).find((k) => rv.competitors[k].name === name);
+    expect(cid, `the open competitor ${name} is in the dataset`).toBeTruthy();
+    expect(rv.COMPSYN[cid], "the seed carries a synthesis for it").toBeTruthy();
+    await approveEndToEnd(page, list.locator(".rv-li .rv-bar").first());
+    const live = await (await page.request.get(`${LIVE_URL}/api/dataset`)).json();
+    expect(live.competitors[cid], "the competitor is live").toBeTruthy();
+    expect(live.COMPSYN[cid], "its synthesis is live with it").toBeTruthy();
+    expect((live.COMPSYN[cid].vulns || []).length).toBeGreaterThan(0);
   });
 });

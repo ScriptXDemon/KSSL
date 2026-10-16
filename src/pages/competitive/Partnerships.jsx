@@ -552,6 +552,15 @@ export default function Partnerships() {
             title="Client partners"
             items={(data.KSSL_PARTNERS || []).map((x) => ({ src: x._src, label: [x.label, x.ptype].filter(Boolean).join(" · ") }))}
           />
+          {/* review copy only: the field-level read (patterns across all competitors) is not drawn on this page,
+              so its records are reviewed here, whichever competitor is open */}
+          <ReviewList
+            title="Field-level patterns"
+            items={[
+              ...((data.FIELDSYN && data.FIELDSYN.patterns) || []).map((x) => ({ src: x._src, label: x.field || x.pattern })),
+              ...(data.FIELDSYN && data.FIELDSYN.bottomSrc ? [{ src: data.FIELDSYN.bottomSrc, label: data.FIELDSYN.bottom }] : []),
+            ]}
+          />
         </div>
       </div>
 
@@ -772,15 +781,6 @@ export default function Partnerships() {
             </div>
             <div className="pg-drawer-head" style={{ paddingRight: "110px", paddingBottom: "16px" }} dangerouslySetInnerHTML={{ __html: drawerHeadText() }} />
             {/* review copy only: the drawer draws its records as HTML, so the same records are listed here */}
-            {gc && mode === "field" ? (
-              <ReviewList
-                title="Field-level patterns"
-                items={[
-                  ...((data.FIELDSYN && data.FIELDSYN.patterns) || []).map((x) => ({ src: x._src, label: x.field || x.pattern })),
-                  ...(data.FIELDSYN && data.FIELDSYN.bottomSrc ? [{ src: data.FIELDSYN.bottomSrc, label: data.FIELDSYN.bottom }] : []),
-                ]}
-              />
-            ) : null}
             {gc && mode !== "field" ? (
               <>
                 <ReviewList
@@ -790,12 +790,11 @@ export default function Partnerships() {
                     .map((x) => ({ src: x._src, label: [x.label, x.ptype].filter(Boolean).join(" · ") }))}
                 />
                 {!tie && data.COMPSYN && data.COMPSYN[gcid] ? (
+                  /* the intelligence read (thesis, vulnerabilities, traces) is part of the competitor's own card:
+                     the review API approves it only through that card, so the one bar here is the competitor's */
                   <ReviewList
-                    title={`${gc.name} intelligence`}
-                    items={[
-                      { src: data.COMPSYN[gcid]._src, label: (data.COMPSYN[gcid].strat && data.COMPSYN[gcid].strat.thesis) || gc.name },
-                      ...(data.COMPSYN[gcid].vulns || []).map((v) => ({ src: v._src, label: v.title })),
-                    ]}
+                    title={`${gc.name} intelligence (approved with the competitor card)`}
+                    items={[{ src: gc._src, label: (data.COMPSYN[gcid].strat && data.COMPSYN[gcid].strat.thesis) || gc.name }]}
                   />
                 ) : null}
               </>
