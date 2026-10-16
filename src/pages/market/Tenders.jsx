@@ -2,6 +2,7 @@ import { clientShort } from "../../lib/client.js";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
 import ScopeChat from "../../components/scopeChat/ScopeChat";
+import { isVisible } from "../../lib/visibility";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { gapCorrelateStrip } from "../../lib/gapModel";
@@ -648,7 +649,7 @@ export default function Tenders({ mode = "tender" }) {
               </div>
             </div>
 
-            <ScopeChat placeholder="Ask about this tender…" scopeKey="tender" />
+            {isVisible("chat") ? <ScopeChat placeholder="Ask about this tender…" scopeKey="tender" /> : null}
           </div>
         ) : null}
       </div>

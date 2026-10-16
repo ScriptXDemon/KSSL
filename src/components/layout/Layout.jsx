@@ -26,6 +26,7 @@ import { useData } from "../../state/DataProvider";
 import { projectMetrics } from "../../lib/projects";
 import { metricsFor, tilePredicate, filterMatch, readFeedSeq, writeFeedSeq, TILE_LABELS, bucketTenders } from "../../lib/overview";
 import { marketMetrics } from "../../lib/marketOverview";
+import { isVisible, viewVisible } from "../../lib/visibility";
 
 const PILLAR_OF_VIEW = {
   overview: "competitive",
@@ -161,6 +162,9 @@ export default function Layout() {
   })();
 
   const body = () => {
+    /* a section the database has switched off renders nothing, even if a jump or a
+       stale state reaches its view id */
+    if (!viewVisible(view)) return null;
     switch (view) {
       case "m-report":
         return <MarketOverview />;
@@ -195,13 +199,13 @@ export default function Layout() {
          but never the view, so a saved route or a pasted link pointing here would
          otherwise fall through to `default: null` and render a blank pane forever. */
       case "gap-competitive":
-        return <GapAnalysis />;
+        return isVisible("gap-analysis") ? <GapAnalysis /> : null;
       case "partnerships":
         return <Partnerships />;
       case "projects":
         return <Projects onSelectionChange={setHasSelection} />;
       case "finances":
-        return <Finances />;
+        return isVisible("finances") ? <Finances /> : null;
       case "geo":
         return <Geo />;
       case "patents-comp":
@@ -313,7 +317,7 @@ export default function Layout() {
           {body()}
         </ErrorBoundary>
       </div>
-      <MalloryChat />
+      {isVisible("chat") ? <MalloryChat /> : null}
     </>
   );
 }

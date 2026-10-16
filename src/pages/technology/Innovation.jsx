@@ -2,6 +2,7 @@ import { clientShort } from "../../lib/client.js";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
 import ScopeChat from "../../components/scopeChat/ScopeChat";
+import { isVisible } from "../../lib/visibility";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { techReportHtml } from "../../lib/reports";
@@ -217,7 +218,7 @@ export default function Innovation() {
       (srcChips(iv.srcs && iv.srcs.length ? iv.srcs : iv.url ? [{ label: iv.sources || "Source", url: iv.url }] : null) ||
         attr(iv.sources || "—")) +
       "</span></div></div>" +
-      gapCorrelateStrip(gapModel, "technology", iv.t)
+      (isVisible("gap-analysis") ? gapCorrelateStrip(gapModel, "technology", iv.t) : "")
     );
   };
 
@@ -389,7 +390,7 @@ export default function Innovation() {
                 ) : null}
               </div>
             </div>
-            <ScopeChat placeholder="Ask about this technology…" scopeKey="tech" />
+            {isVisible("chat") ? <ScopeChat placeholder="Ask about this technology…" scopeKey="tech" /> : null}
           </div>
         </div>
       </div>

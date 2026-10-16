@@ -2,6 +2,7 @@ import { clientShort } from "../../lib/client.js";
 import { useEffect, useRef, useState } from "react";
 import HtmlBlock from "../htmlBlock/HtmlBlock";
 import { specPanelHtml, matchupGapHtml, advantageText } from "../../lib/specs";
+import { isVisible } from "../../lib/visibility";
 
 const TABS = [
   ["adv", "Analytics"],
@@ -89,13 +90,15 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
         </div>
 
         {/* gap block — this matchup's gap in cross-pillar context */}
-        <HtmlBlock
-          className="mu-sec"
-          handlers={{
-            "[data-tender]": (el) => onJumpToTender(el.getAttribute("data-tender")),
-          }}
-          html={matchupGapHtml(m, gapModel)}
-        />
+        {isVisible("gap-analysis") ? (
+          <HtmlBlock
+            className="mu-sec"
+            handlers={{
+              "[data-tender]": (el) => onJumpToTender(el.getAttribute("data-tender")),
+            }}
+            html={matchupGapHtml(m, gapModel)}
+          />
+        ) : null}
 
         {/* product profile: name + thin accent line + sourced descriptor */}
         <div className="mu-sec pp2-sec">

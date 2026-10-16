@@ -1,4 +1,5 @@
-import { useAppState, RAIL } from "../../state/AppState";
+import { useAppState } from "../../state/AppState";
+import { railFor } from "../../lib/route";
 import { useData } from "../../state/DataProvider";
 
 /* The left rail. One section per pillar in the original markup, shown and hidden;
@@ -7,7 +8,7 @@ import { useData } from "../../state/DataProvider";
 export default function Sidebar() {
   const { pillar, view, setView } = useAppState();
   const { counts } = useData();
-  const items = RAIL[pillar];
+  const items = railFor(pillar);
 
   const row = (item) => (
     <div

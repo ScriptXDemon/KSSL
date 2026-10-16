@@ -1,6 +1,7 @@
 import { clientShort } from "../../lib/client.js";
 import { useEffect, useRef } from "react";
 import AskBox from "../askBox/AskBox";
+import { isVisible } from "../../lib/visibility";
 import { articleBullets } from "../../lib/detail";
 import { tenderFactRows, NOT_ON_RECORD } from "../../lib/tenderRow";
 import { srcChips, attr } from "../../lib/html";
@@ -314,7 +315,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
         ) : null}
       </div>
 
-      <AskBox suggest={detail.suggest} />
+      {isVisible("chat") ? <AskBox suggest={detail.suggest} /> : null}
     </div>
   );
 }

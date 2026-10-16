@@ -4,6 +4,7 @@ import { globalRequirements } from "./globalRequirements.js";
    strip. Pure — it returns data, and the React components render it. */
 import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
 import { cockpit } from "./tenderIntel.js";
+import { isVisible, viewVisible } from "./visibility.js";
 
 export const SEQ_LABEL = {
   recency: "Most Recent First",
@@ -707,7 +708,7 @@ export function navCounts(d, gapModel) {
     ).length;
     counts["threat-analysis"] = Object.entries(d.competitorNews || {}).filter(([k]) => k !== ((d.client && d.client.id))).reduce((n, [, v]) => n + (v ? v.length : 0), 0);  // competitor moves on record (competitorNews)
     counts.projects = (d.projects || []).length;
-    counts.finances = 0;
+    if (isVisible("finances")) counts.finances = 0;
 
     /* Products explorer lists COMPETITOR products (Products.jsx builds them from the
        comp side of matchups + each competitor's own products), so the badge counts
@@ -765,10 +766,11 @@ export function navCounts(d, gapModel) {
       ((d.overviewConfig && d.overviewConfig.technology && d.overviewConfig.technology.cards) ||
         d.techCards || []).length;
     counts.innovation = innovTotal;
-    // gap badge: how many 'behind' gaps this pillar carries
-    counts["gap-competitive"] = (gapModel || []).filter(
-      (g) => g.direction === "behind" && g.pillar === "competitive",
-    ).length;
+    // gap badge: how many 'behind' gaps this pillar carries -- only while the section is on
+    if (isVisible("gap-analysis"))
+      counts["gap-competitive"] = (gapModel || []).filter(
+        (g) => g.direction === "behind" && g.pillar === "competitive",
+      ).length;
   } catch (e) {
     /* counts are cosmetic; never break the app over one */
   }
@@ -803,7 +805,7 @@ export function viewMetaFor(d) {
   const momentCount = Object.entries(d.competitorNews || {})
     .filter(([k]) => k !== ((d.client && d.client.id)))
     .reduce((n, [, v]) => n + (v ? v.length : 0), 0);
-  return {
+  const meta = {
     overview: {
       title: "Competitive Intelligence",
       cnt: `${alertCount} active signals · sorted by relevance`,
@@ -895,6 +897,11 @@ export function viewMetaFor(d) {
       filters: false,
     },
   };
+  /* a section the database has switched off has no header entry either */
+  Object.keys(meta).forEach((v) => {
+    if (!viewVisible(v)) delete meta[v];
+  });
+  return meta;
 }
 
 /* What an empty feed says. It named only the tile and the direction pill, so a

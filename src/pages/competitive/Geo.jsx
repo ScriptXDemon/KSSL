@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { marketNews } from "../../lib/news";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
 import ScopeChat from "../../components/scopeChat/ScopeChat";
+import { isVisible } from "../../lib/visibility";
 import GeoMap, { servedGeoCountries } from "../../components/geoMap/GeoMap";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { geoLookupCompetitors } from "../../lib/geo";
@@ -930,10 +931,12 @@ export default function Geo() {
                         publisher's own link. */}
                     <HtmlBlock html={detailBody()} id="geo-d-body" />
                   </div>
-                  <ScopeChat
-                    placeholder="Ask about this market or product…"
-                    scopeKey="geo"
-                  />
+                  {isVisible("chat") ? (
+                    <ScopeChat
+                      placeholder="Ask about this market or product…"
+                      scopeKey="geo"
+                    />
+                  ) : null}
                 </div>
               )}
             </div>

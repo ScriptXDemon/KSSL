@@ -10,6 +10,8 @@
  * nothing; and #v=does-not-exist rendered the rail beside an empty pane -- then saved
  * that route to localStorage, so it came back on every reload. */
 
+import { viewVisible, firstVisibleView } from "./visibility.js";
+
 export const PILLARS = ["competitive", "market", "technology"];
 export const PILLAR_LABEL = {
   competitive: "Competitive",
@@ -73,6 +75,11 @@ PILLARS.forEach((p) => {
   VIEWS_OF[p] = new Set(RAIL[p].map((r) => r.view).concat(ARCHIVED_VIEWS[p] || []));
 });
 
+/* the rail a reader sees: items whose section the database has switched off are left out */
+export function railFor(pillar) {
+  return (RAIL[pillar] || []).filter((r) => viewVisible(r.view));
+}
+
 export function isKnownView(view, pillar) {
   if (pillar) return !!(VIEWS_OF[pillar] && VIEWS_OF[pillar].has(view));
   return PILLARS.some((p) => VIEWS_OF[p].has(view));
@@ -85,8 +92,8 @@ export function routeHash(pillar, view) {
 /* A hash -> { pillar, view, repaired } or null.
 
    null means the hash carries no route (empty, foreign, or an unknown pillar): the
-   caller falls back to its saved route or the default. An unknown VIEW on a known
-   pillar is repaired to that pillar's overview and flagged, so the shell never boots
+   caller falls back to its saved route or the default. An unknown or HIDDEN view on a
+   known pillar is repaired to that pillar's first visible view and flagged, so the shell never boots
    into a pane its switch cannot render. */
 export function parseRoute(hash) {
   const raw = String(hash == null ? "" : hash).replace(/^#/, "");
@@ -100,6 +107,6 @@ export function parseRoute(hash) {
   const p = params.get("p");
   const v = params.get("v");
   if (!p || !v || !PILLARS.includes(p)) return null;
-  if (isKnownView(v, p)) return { pillar: p, view: v, repaired: false };
-  return { pillar: p, view: OVERVIEW_VIEW[p], repaired: true };
+  if (isKnownView(v, p) && viewVisible(v)) return { pillar: p, view: v, repaired: false };
+  return { pillar: p, view: firstVisibleView(p), repaired: true };
 }
