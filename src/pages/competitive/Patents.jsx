@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import HtmlBlock from "../../components/htmlBlock/HtmlBlock";
+import { ReviewList } from "../../components/review/Review";
 import { useData } from "../../state/DataProvider";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { patCompBody, patTechBody, patentAreas, inCategory } from "../../lib/patents";
@@ -185,6 +186,11 @@ export default function Patents() {
             ) : null}
           </div>
           <HtmlBlock html={patCompBody(data, cid, catFilter)} id="patc-body" />
+          {/* review copy only: the filings above are drawn as HTML, so the same records are listed here */}
+          <ReviewList
+            title="Patent filings"
+            items={(portfolio ? portfolio.records : []).filter((r) => inCategory(r, catFilter)).map((r) => ({ src: r._src, label: r.title || r.id }))}
+          />
         </div>
       </div>
 
@@ -235,6 +241,10 @@ export default function Patents() {
             <span className="eyebrow">{area ? `${area} · field analysis` : "Field analysis"}</span>
           </div>
           {area ? <HtmlBlock html={patTechBody(data, area)} id="patt-body" /> : null}
+          <ReviewList
+            title="Patent filings"
+            items={((byTechnology[area] || {}).records || []).map((r) => ({ src: r._src, label: r.title || r.id }))}
+          />
         </div>
       </div>
     </div>

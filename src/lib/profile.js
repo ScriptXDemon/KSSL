@@ -299,6 +299,7 @@ export function buildProfile(d, cid) {
   const c = (d.competitors || {})[cid] || {};
   return {
     cid,
+    _src: c._src,
     name: txt(c.name) || cid,
     short: txt(c.short),
     legal: txt(c.legal),

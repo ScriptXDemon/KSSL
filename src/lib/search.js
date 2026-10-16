@@ -12,7 +12,7 @@
  *
  * No backend, no index: the corpus is a few thousand rows and a substring scan of it
  * is well under a frame. */
-import { bucketTenders } from "./overview.js";
+import { bucketTenders } from "./tenderCalc.js";
 
 export const SEARCH_MIN_CHARS = 2;
 

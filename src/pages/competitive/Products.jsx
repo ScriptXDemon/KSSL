@@ -3,6 +3,7 @@ import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { specValueWithUnit } from "../../lib/specs";
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
+import { Review } from "../../components/review/Review.jsx";
 import * as viewState from "../../lib/viewState";
 
 /* PRODUCTS. Every value comes from the product tables as served (backend/areas/b_products.py):
@@ -517,6 +518,7 @@ export default function Products() {
                     {selectedProduct.country}
                   </div>
                 ) : null}
+                <Review src={selectedProduct._src} />
               </div>
               <button
                 type="button"
@@ -721,8 +723,8 @@ export default function Products() {
                 {filteredProdArticles.length ? (
                   <div className="ln-grid">
                     {filteredProdArticles.map((item) => (
+                      <div key={item.id}>
                       <ArticleLink
-                        key={item.id}
                         article={item}
                         className="ln-card"
                         style={{
@@ -751,6 +753,8 @@ export default function Products() {
                           ) : null}
                         </div>
                       </ArticleLink>
+                      <Review src={item._src} />
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -816,6 +820,7 @@ export default function Products() {
                 <h2 style={{ fontSize: "16px", fontWeight: "700", color: "var(--d-txt)", margin: 0 }}>
                   {selectedCompany.name} Product Portfolio
                 </h2>
+                {selectedCompany.isClient ? <Review src={data.client && data.client._src} /> : null}
               </div>
 
               <div style={{ display: "flex", gap: "10px", alignItems: "center", marginLeft: "auto", flexWrap: "wrap" }}>
@@ -948,13 +953,14 @@ export default function Products() {
                                 style={{
                                   padding: "14px 18px",
                                   display: "flex",
-                                  justifyContent: "flex-end",
+                                  justifyContent: "space-between",
                                   alignItems: "center",
                                   background: "var(--d-bg-1)",
                                   borderTop: "1px solid var(--d-line)",
                                   marginTop: "auto",
                                 }}
                               >
+                                <Review src={p._src} />
                                 <span
                                   className="product-card-view-specs"
                                   style={{

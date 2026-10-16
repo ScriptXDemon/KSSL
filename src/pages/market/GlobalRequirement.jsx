@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { smartTitleCase } from "../../lib/profile";
+import { Review } from "../../components/review/Review";
 
 const has = (v) => v != null && String(v).trim() !== "";
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
@@ -252,6 +253,7 @@ export default function GlobalRequirement() {
                       <span className={`fitpct grade ${fitClass(fit)}`}>{cap(fit)}</span>
                     </div>
                   ) : null}
+                  <Review src={row._src} />
                 </div>
               );
             })
@@ -282,6 +284,7 @@ export default function GlobalRequirement() {
                 </div>
                 <span className="eyebrow">Requirement Intelligence</span>
                 <div className="ct">{smartTitleCase(selectedReq.title)}</div>
+                <Review src={selectedReq._src} />
                 <div className="sub" style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
                   <div>{[selectedReq.buyer, selectedReq.country, selectedReq.value].filter(Boolean).join(" · ")}</div>
                   <div>{[selectedReq.region, selectedReq.cat, selectedReq.deadline, selectedReq.status].filter(Boolean).join(" · ")}</div>

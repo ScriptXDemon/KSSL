@@ -22,8 +22,9 @@ import Projects from "../../pages/competitive/Projects";
 import Finances from "../../pages/competitive/Finances";
 import { useAppState, isOverview } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
-import { metricsFor, tilePredicate, filterMatch, readFeedSeq, writeFeedSeq, TILE_LABELS, bucketTenders } from "../../lib/overview";
-import { marketMetrics } from "../../lib/marketOverview";
+import { metricsFor, tilePredicate, filterMatch, readFeedSeq, writeFeedSeq, TILE_LABELS } from "../../lib/overview";
+import { bucketTenders } from "../../lib/tenderCalc";
+import { marketMetrics, topOpportunityMetrics } from "../../lib/marketOverview";
 
 const PILLAR_OF_VIEW = {
   overview: "competitive",
@@ -93,10 +94,12 @@ export default function Layout() {
 
   const metrics = useMemo(
     () =>
-      onMarketReport
-        ? marketMetrics(data.tenders)
-        : metricsFor(cfg, overviewPillar, data),
-    [cfg, overviewPillar, data, onMarketReport],
+      view === "m-overview"
+        ? topOpportunityMetrics(data)
+        : onMarketReport
+          ? marketMetrics(data.tenders)
+          : metricsFor(cfg, overviewPillar, data),
+    [cfg, overviewPillar, data, onMarketReport, view],
   );
 
   const meta = viewMeta[isOverview(view) ? "overview" : view] || viewMeta.overview;
@@ -129,7 +132,7 @@ export default function Layout() {
       const topOpp = data.topOpportunities || {};
       const tLen = (topOpp.topTenders || []).length;
       const pLen = (topOpp.projectsBeforeTender || []).length;
-      return `${tLen} top tenders · ${pLen} pre-tender targets · revenue & strategic fit ranked`;
+      return `${tLen} top tenders · ${pLen} pre-tender targets`;
     }
     if (view === "global-requirement") {
       const reqs = data.globalRequirements || [];

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import HtmlBlock from "../htmlBlock/HtmlBlock";
+import { Review } from "../review/Review";
 import { specPanelHtml, matchupGapHtml, SHOW_POSITIONING_SOURCES } from "../../lib/specs";
 
 const TABS = [
@@ -42,6 +43,7 @@ export default function MatchupDossier({ m, data, onClose }) {
               <div className="pn">{m.bf}</div>
             </div>
           </div>
+          <Review src={m._src} />
         </div>
 
         {/* verdict: the stored headline as the label, the stored verdict as the body */}

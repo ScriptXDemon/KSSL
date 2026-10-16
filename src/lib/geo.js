@@ -27,7 +27,5 @@ export function createGeo(d) {
     compsInCountry,
     productsFor,
     presencesFor,
-    // DataProvider still calls this; the engine it checked no longer exists
-    selfCheck: () => [],
   };
 }

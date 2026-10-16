@@ -3,6 +3,7 @@ import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { bucketTenders } from "../../lib/tenderCalc";
 import { formatDate } from "../../utils/formatDate";
+import { Review } from "../../components/review/Review";
 import {
   CATEGORY_COLOR,
   catOf,
@@ -317,6 +318,7 @@ export default function MarketOverview() {
         <span title={t.title}>{t.title}</span>
       )}
       <span className="ovt-buyer">{[t.issuer, t.country].filter(Boolean).join(" · ")}</span>
+      <Review src={t._src} />
     </td>
   );
 

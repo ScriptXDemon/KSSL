@@ -7,6 +7,7 @@ import { formatLabel, smartTitleCase } from "../../lib/profile";
 import { facetOptions } from "../../lib/countryFacet";
 import { NOT_ON_RECORD, resolveTenderRow, tenderFactRows } from "../../lib/tenderRow";
 import { formatDate } from "../../utils/formatDate";
+import { Review } from "../../components/review/Review";
 
 const has = (v) => v != null && String(v).trim() !== "";
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
@@ -392,6 +393,7 @@ export default function Tenders({ mode = "tender" }) {
                       <span className={`fitpct grade ${fitClass(word)}`}>{fitLabel}</span>
                     </div>
                   ) : null}
+                  <Review src={row._src} />
                 </div>
               );
             })
@@ -423,6 +425,7 @@ export default function Tenders({ mode = "tender" }) {
                 </div>
                 <span className="eyebrow">Tender Assessment</span>
                 <div className="ct">{smartTitleCase(t.title)}</div>
+                <Review src={t._src} />
                 <div className="sub" style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
                   <div>{metaLine([t.issuer, t.country, t.value])}</div>
                   <div>{metaLine([t.deadline || (t.closingDate ? `Closes ${formatDate(t.closingDate)}` : ""), t.milestone])}</div>

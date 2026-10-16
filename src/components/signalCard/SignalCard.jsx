@@ -1,6 +1,7 @@
 import { useData } from "../../state/DataProvider";
 import { NO_DATE_LABEL } from "../../lib/overview.js";
 import { escRich } from "../../lib/html.js";
+import { Review } from "../review/Review";
 
 /* One row in the overview feed: stored title and summary only (escRich: markup other than
    b/i/em/strong/br is shown as text). `card.meta` (category) is deliberately NOT rendered.
@@ -35,6 +36,7 @@ export default function SignalCard({ card, dirWord, badgeClass, selected, fresh,
             <span className="kph-val">{card.match[0].n}</span>
           </div>
         )}
+        <Review src={card._src} />
       </div>
       <div className="aside">
         {/* a Technology card also carries its kind, so ADOPTABLE can read green (k-adopt) */}

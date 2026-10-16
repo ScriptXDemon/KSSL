@@ -22,18 +22,7 @@ Enumerations the UI expects (stored values, compared case-insensitively; anythin
 from collections import defaultdict
 from typing import Any
 
-from backend.common import first_nonempty, slug, table, text
-
-
-def num(value: Any):
-    """Numbers as numbers: json_value turned Decimal into a string."""
-    if value is None or value == "":
-        return None
-    try:
-        f = float(value)
-    except (TypeError, ValueError):
-        return None
-    return int(f) if f == int(f) else f
+from backend.common import first_nonempty, table, text
 
 
 def src(table_name: str, key: str, value: Any) -> dict:
@@ -123,7 +112,7 @@ def build_competitors(database):
                 for l in locations.get(cid, [])
             ],
             "company_size": row.get("employee_count"),
-            "revenue": num(row.get("annual_revenue")),
+            "revenue": row.get("annual_revenue"),
             "revenue_currency": text(row.get("revenue_currency")),
             "revenue_tier": text(row.get("revenue_tier")),
             "leaders": leaders.get(cid, []),
@@ -214,7 +203,7 @@ def build_signals(database, competitors, details):
             "facts": facts,
             "points": points,
             "srcs": [s for s in srcs if s["url"]],
-            "_src": src("competitive_signal_detail", "signal_id", sid),
+            "_src": src("competitive_signal", "signal_id", sid),
         }
     return cards
 
@@ -248,7 +237,7 @@ def build_tech_articles(database, details):
             "ago": date,
             "sowhat": text(row.get("card_summary")),
             "sec": [],
-            "_src": src("technology_overview_article", "article_id", aid),
+            "_src": src("technology_overview_article", "overview_article_id", row.get("overview_article_id")),
         })
         co_rows = ordered(comps_by.get(aid, []), "display_order")
         companies_list = []
@@ -283,7 +272,7 @@ def build_tech_articles(database, details):
                        if text(p.get("point_text"))],
             "companies": companies_list,
             "srcs": srcs,
-            "_src": src("technology_overview_article", "article_id", aid),
+            "_src": src("technology_overview_article", "overview_article_id", row.get("overview_article_id")),
         }
     return cards
 
@@ -344,7 +333,8 @@ def build(database, d):
     client_name = text(first_nonempty(account, "client_name", "legal_name", "brand_name"))
     client_short = text(first_nonempty(account, "brand_name", "client_name"))
     competitors, comp_order = build_competitors(database)
-    client = {"id": client_id, "name": client_name, "short": client_short}
+    client = {"id": client_id, "name": client_name, "short": client_short,
+              "_src": src("client_account", "client_id", client_id) if account else None}
     if client_id and client_id not in competitors:
         competitors[client_id] = {"id": client_id, "cid": client_id, "name": client_name, "short": client_short,
                                   "dir": "client", "partners": [], "products": [], "leaders": [], "locations": []}

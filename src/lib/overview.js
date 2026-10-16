@@ -1,6 +1,6 @@
 /* Overview feed: the sequence logic, the group split, and the per-pillar metric
    strip. Pure — it returns data, and the React components render it. */
-import { parseCr } from "./gapModel.js";
+import { bucketTenders } from "./tenderCalc.js";
 import { formatDate } from "../utils/formatDate.js";
 
 export const SEQ_LABEL = {
@@ -312,54 +312,6 @@ export function paginateFeed(groups, keep, page, size = FEED_PAGE_SIZE) {
   };
 }
 
-/* The open / awarded / closed split, defined once so the nav badges, the tender
-   tabs and the market metric tiles can never disagree on what "open" means. */
-export function bucketTenders(tenders) {
-  const list = tenders || [];
-  const isAwarded = (t) => (t.status || "").toLowerCase() === "awarded" || t.urlKind === "award";
-  const isClosed = (t) =>
-    !isAwarded(t) && (t.isLive === false || t.dl <= 0 || (t.deadline || "").includes("Closed"));
-  return {
-    awarded: list.filter(isAwarded),
-    closed: list.filter(isClosed),
-    open: list.filter((t) => !isAwarded(t) && !isClosed(t)),
-  };
-}
-
-/* The Market OVERVIEW "Latest Tenders" section is a shortlist, not the pipeline. The
-   report and the Tender Pipeline list every tender; the overview lists the ATTENTION_HEAD
-   that best fit KSSL right now, scored on the four things the brief names -- a strong KSSL
-   fit, a market KSSL is present in, a sizeable published value, and recency (latest
-   published / soonest closing). Everything else is one tab over.
-
-   SCORED, THEN TOP-N. The count is deterministic -- min(head, open) -- and independent of
-   the optional geo ctx, so marketSelfCheck (which recomputes this without a ctx) always
-   agrees with the promoter (dataset.js) on HOW MANY tenders were shown, even if the geo
-   boost reorders them. Pure: the promoter and the metric strip (metricsFor) both read
-   this, so the visible list and the "Latest tenders" tile count can never drift. */
-export const ATTENTION_DAYS = 14;
-export const ATTENTION_HEAD = 20;
-export function marketAttention(openTenders, ctx = {}) {
-  const open = openTenders || [];
-  const geo = ctx && ctx.geo instanceof Set ? ctx.geo : null;
-  const rec = (t) => dateVal(t.posted || t.closingDate || t.ago);
-  const score = (t) => {
-    let s = 0;
-    if (t.lean === "go") s += 100;            // strong KSSL fit
-    else if (t.lean === "maybe") s += 40;     // worth qualifying
-    if (geo && t.country && geo.has(t.country)) s += 25;   // geo presence
-    const cr = parseCr(t.value);
-    if (cr > 0) s += Math.min(30, cr / 200);  // high price/value (crore)
-    if (t.dl >= 1 && t.dl <= ATTENTION_DAYS) s += 20;      // closing soon
-    return s;
-  };
-  return open
-    .map((t) => [t, score(t)])
-    .sort((a, b) => b[1] - a[1] || rec(b[0]) - rec(a[0]) || (a[0].dl || 9999) - (b[0].dl || 9999))
-    .slice(0, ATTENTION_HEAD)
-    .map((x) => x[0]);
-}
-
 /* TECHNOLOGY STREAMS. A Technology card's stream comes from its stored classification
    (technology_overview_article.classification): "competitor_advance" -> kind "rival"
    (tile "Competitor advances", no badge on the row), "adoptable" -> kind "adopt" (tile
@@ -391,10 +343,6 @@ export function metricsFor(cfg, pillar, d) {
     /* A tile is a count of the stored rows it names (0 is a real count). */
     const dirCount = (dir) => cards.filter((c) => c.dir === dir).length;
     let byLabel = { "All signals": cards.length };
-    const subByLabel = {};
-    /* The sublines above that report a MISSING measurement rather than describing a
-       present one. See the note where m.warn is set. */
-    const WARN_SUBS = new Set();
     let actByLabel = {};
     if (pillar === "competitive") {
       byLabel = {
@@ -405,61 +353,6 @@ export function metricsFor(cfg, pillar, d) {
         "Companies tracked": Object.keys((d && d.competitors) || {}).filter(
           (k) => k !== (d && d.client && d.client.id),
         ).length,
-      };
-    } else if (pillar === "market") {
-      const tenders = (d && d.tenders) || [];
-      const { open } = bucketTenders(tenders);
-      /* THE TILES DESCRIBE THE SHOWN SHORTLIST, so the visible list count and the tiles
-         cannot disagree the way "958 rows above a tile reading 119 open" did. `shown` is
-         exactly what dataset.js promotes into the feed (same function, same open set), so
-         the "Live bids" tile equals the header count and the pager total. "Already
-         concluded" and "Markets tracked" moved to the Market Report -- they are not
-         actionable on an overview and were never in this feed. */
-      const shown = marketAttention(open);
-      const go = shown.filter((x) => x.lean === "go");
-      // A tender whose source never published a value contributes nothing; if NO shown
-      // tender carries one, the total is unknown, not zero -- "not measured" and "zero"
-      // must not look the same.
-      const priced = shown.filter((x) => parseCr(x.value) > 0);
-      const liveCr = priced.reduce((t, x) => t + parseCr(x.value), 0);
-      /* Stating a value and being SIZEABLE are two different things. TED publishes
-         defence values in zloty, krone and koruna as well as euro, and parseCr
-         converts only the currencies whose rate this build documents; those rows
-         print their amount and stay out of the sum, so the subtitle names them
-         rather than promising a total that quietly omits them. */
-      const unconverted = shown.filter((x) => x.value && parseCr(x.value) <= 0).length;
-      // Fit is a graded field the corpus may not carry at all. If NO open tender was
-      // graded, "Strong fits" is not zero-fits -- it is not-assessed, and says so.
-      const anyFit = open.some((x) => x.lean);
-      // The Perceived Opportunities stream on the same feed: watch cards (geopolitical /
-      // demand moves), which need no tender. Counted from the served set the feed shows.
-      const opps = (cards || []).filter((c) => c.dir === "watch").length;
-      byLabel = {
-        ...byLabel,
-        "Latest tenders": shown.length,
-        "Strong fits": anyFit ? go.length : "—",
-        "Tender value": priced.length ? Math.round(liveCr).toLocaleString("en-IN") : "—",
-        "Perceived opportunities": opps,
-      };
-      const goSub = anyFit ? null : "no KSSL fit assessment was served for these tenders";
-      if (goSub) { subByLabel["Strong fits"] = goSub; WARN_SUBS.add(goSub); }
-      const valSub = priced.length
-        ? `${priced.length} of ${shown.length} publish a value` +
-          (unconverted ? ` · ${unconverted} more in a currency not converted here` : "")
-        : "no tender on this shortlist publishes a value";
-      subByLabel["Tender value"] = valSub;
-      if (!priced.length) WARN_SUBS.add(valSub);
-      /* no line under this tile (owner request): the count alone, so it sits at the same
-         height as its neighbours */
-      /* The doors: each tile filters the feed to the rows it counts. "Latest tenders"
-         opens the promoted open tenders (fav+threat); "Strong fits" and "Live bid value"
-         narrow that by the tag/price the promoter stamps; "Perceived opportunities" opens
-         the watch stream. tilePredicate reads those. */
-      actByLabel = {
-        "Latest tenders": "open",
-        "Strong fits": "fit",
-        "Tender value": "valued",
-        "Perceived opportunities": "opps",
       };
     } else if (pillar === "technology") {
       // The two streams, counted from each card's kind (techKindOf over its stored
@@ -486,15 +379,6 @@ export function metricsFor(cfg, pillar, d) {
         return;
       }
       m.v = String(byLabel[m.l]);
-      if (subByLabel[m.l] != null) {
-        m.sub = subByLabel[m.l];
-        /* AN ABSENCE OF MEASUREMENT STILL HAS TO SPEAK. The tile sublines are hidden on
-           screen now (MetricsStrip renders them only when `warn` is set) -- but the ones
-           produced by dirSub()/dirIsAll() are not decoration, they are the sentence that
-           stops a "—" or a coincidental count being read as a finding. Those keep
-           showing; the descriptive ones do not. */
-        if (WARN_SUBS.has(subByLabel[m.l])) m.warn = true;
-      }
       if (actByLabel[m.l] != null) m.act = actByLabel[m.l];
     });
   } catch (e) {
@@ -515,11 +399,6 @@ export const TILE_LABELS = {
      " · " -- "13 of 26 signals ·" */
   watch: "watch signals",
   deadline: "by submission deadline",
-  open: "latest tenders",
-  fit: "strong KSSL fit",
-  closing: "closing within 14 days",
-  valued: "published a value",
-  opps: "perceived opportunities",
   rival: "competitor advancements",
   adopt: "advances KSSL can adopt",
   geo: "markets in play",
@@ -537,19 +416,9 @@ export function tilePredicate(act) {
   if (act === "threat") return (c) => c.dir === "threat" || has(c, "threat");
   if (act === "watch") return (c) => c.dir === "watch";
   if (act === "fav") return (c) => c.dir === "fav" || has(c, "opening") || has(c, "fav");
-  /* The promoted open tenders: unpriced ones are `fav`, priced ones `threat`; the
-     opportunity cards on the same feed are all `watch` and are not open tenders. */
-  if (act === "open") return (c) => c.dir === "fav" || c.dir === "threat";
-  /* Perceived opportunities: the demand/geopolitical watch stream, no tender required. */
-  if (act === "opps") return (c) => c.dir === "watch";
   /* Technology streams, selected by each card's kind (techKindOf). */
   if (act === "rival") return (c) => cardHasTag(c, "rival");
   if (act === "adopt") return (c) => cardHasTag(c, "adopt");
-  /* Market shortlist tiles narrow the promoted set by the tag the promoter stamps
-     (see dataset.js): a strong fit, a tender closing within 14 days, or a priced one. */
-  if (act === "fit") return (c) => has(c, "fit");
-  if (act === "closing") return (c) => has(c, "closing");
-  if (act === "valued") return (c) => has(c, "valued");
   if (act === "deadline") return () => true;
   if (act === "gap") return (c) => c.dir === "threat" || has(c, "gap");
   if (act === "patents") return () => true;
@@ -557,7 +426,7 @@ export function tilePredicate(act) {
 }
 
 /* ===== Dynamic nav counts (computed from live data, never hardcoded) ===== */
-export function navCounts(d, gapModel) {
+export function navCounts(d) {
   const counts = {};
   try {
     // Positioning: distinct competitor companies across matchups
@@ -568,7 +437,7 @@ export function navCounts(d, gapModel) {
     });
     counts.positioning = posCompanies.size;
     // Partnerships: competitor profiles (exclude the client's own reference network)
-    counts.partnerships = Object.keys(d.competitors).filter((k) => k !== ((d.client && d.client.id) || "KSSL")).length;
+    counts.partnerships = Object.keys(d.competitors).filter((k) => k !== (d.client && d.client.id)).length;
     // Geo: distinct countries across all companies' footprints
     const geoCountries = new Set();
     Object.values(d.geoData).forEach((byCountry) =>
@@ -586,15 +455,15 @@ export function navCounts(d, gapModel) {
     counts.profile = Object.keys(d.competitors).filter(
       (k) => k !== (d.client && d.client.id),
     ).length;
-    counts["threat-analysis"] = ((d.competitorMoment && d.competitorMoment.items) || []).length;
-    counts.projects = Array.isArray(d.projects) ? d.projects.length : 0;
-    counts.finances = 0;
+    const served = (rows) => (Array.isArray(rows) ? rows.length : undefined);
+    counts["threat-analysis"] = served(d.competitorMoment && d.competitorMoment.items);
+    counts.projects = served(d.projects);
 
     /* Products explorer lists COMPETITOR products (Products.jsx builds them from the
        comp side of matchups + each competitor's own products), so the badge counts
        those — not KSSL's own SKUs, which is what it used to show (a "1" over a catalog
        of dozens). Same two sources the page reads, deduped by name. */
-    const clientId = (d.client && d.client.id) || "KSSL";
+    const clientId = d.client && d.client.id;
     const compProds = new Set();
     Object.values(d.matchups || {}).forEach((m) => {
       const nm = (m.comp || "").replace(/.*·\s*/, "").trim();
@@ -610,25 +479,17 @@ export function navCounts(d, gapModel) {
     counts.products = compProds.size;
 
     const { open, awarded, closed } = bucketTenders(d.tenders);
-    /* The Market overview badge counts the TENDERS it opens — all of them, since the
-       page carries open, awarded, closed and the portals as tabs. It used to count
-       `marketCards` — three signal cards — and sat as a "3" above a page listing
-       eighty-nine tenders. Tender Pipeline below it is the open subset, so the two
-       rows now say different things. */
-    /* The overview badge counts the CARDS the feed actually opens. That is the curated
-       tender shortlist served on overviewConfig.market.cards -- NOT d.marketCards, which
-       still carries the demand-news lane for search and the top bar. Counting the raw
-       lane here put a 141 on a feed that shows the shortlist. */
-    counts["m-overview"] =
-      ((d.overviewConfig && d.overviewConfig.market && d.overviewConfig.market.cards) ||
-        d.marketCards || []).length;
+    /* The Market overview badge counts the rows its page lists: top tenders and the projects
+       before tender. */
+    const topOpp = d.topOpportunities || {};
+    counts["m-overview"] = (topOpp.topTenders || []).length + (topOpp.projectsBeforeTender || []).length;
     counts["m-report"] = (d.tenders || []).length;
     counts.tender = open.length;
     counts["awarded-tenders"] = awarded.length;
     counts["global-requirement"] = (d.globalRequirements || []).length;
 
     // patents badge: indexed filings, not a hardcoded 1
-    counts["patents-comp"] = (d.PATENTS && d.PATENTS._meta && d.PATENTS._meta.total) || 0;
+    counts["patents-comp"] = d.PATENTS && d.PATENTS._meta && d.PATENTS._meta.total;
     const innovTotal = Object.keys(d.innovations).reduce(
       (n, k) => n + (d.innovations[k] || []).length,
       0,
@@ -641,10 +502,6 @@ export function navCounts(d, gapModel) {
       ((d.overviewConfig && d.overviewConfig.technology && d.overviewConfig.technology.cards) ||
         d.techCards || []).length;
     counts.innovation = innovTotal;
-    // gap badge: how many 'behind' gaps this pillar carries
-    counts["gap-competitive"] = (gapModel || []).filter(
-      (g) => g.direction === "behind" && g.pillar === "competitive",
-    ).length;
   } catch (e) {
     /* counts are cosmetic; never break the app over one */
   }
@@ -665,7 +522,7 @@ export function viewMetaFor(d) {
   let geoCountries = new Set();
   try {
     Object.entries(competitors).forEach(([k, c]) => {
-      if (k !== ((d.client && d.client.id) || "KSSL") && c.partners) allianceCount += c.partners.length;
+      if (k !== (d.client && d.client.id) && c.partners) allianceCount += c.partners.length;
     });
     Object.values(geoData).forEach((byCountry) =>
       Object.keys(byCountry || {}).forEach((c) => geoCountries.add(c)),
@@ -673,8 +530,8 @@ export function viewMetaFor(d) {
   } catch (e) {
     /* fall through to the static copy below */
   }
-  const partnerCount = Object.keys(competitors).filter((k) => k !== ((d.client && d.client.id) || "KSSL")).length;
-  const geoCompCount = Object.keys(geoData).filter((k) => k !== ((d.client && d.client.short) || "KSSL")).length;
+  const partnerCount = Object.keys(competitors).filter((k) => k !== (d.client && d.client.id)).length;
+  const geoCompCount = Object.keys(geoData).filter((k) => k !== (d.client && d.client.id)).length;
   const alertCount = (d.competitiveCards || []).length;
   return {
     overview: {
@@ -710,12 +567,12 @@ export function viewMetaFor(d) {
     },
     projects: {
       title: "Projects",
-      cnt: "0 projects on record",
+      cnt: `${(d.projects || []).length} projects on record`,
       filters: false,
     },
     finances: {
       title: "Finances",
-      cnt: "0 financial records on record",
+      cnt: "No financial records on record",
       filters: false,
     },
     geo: {
@@ -759,12 +616,7 @@ export function viewMetaFor(d) {
     },
     "patents-comp": {
       title: "Patent",
-      cnt: "Filings by rival and by technology field · sourced from patent records",
-      filters: false,
-    },
-    "gap-competitive": {
-      title: "Gap Analysis",
-      cnt: "Where KSSL trails rivals, from the Positioning spec comparisons",
+      cnt: "Filings by rival and by technology field",
       filters: false,
     },
   };

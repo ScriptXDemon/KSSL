@@ -4,6 +4,7 @@ import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { srcChips } from "../../lib/html";
 import { cls, has, filterInnovations } from "../../lib/innovation";
+import { Review } from "../../components/review/Review";
 
 /* Every value on this page is a stored column: maturity_label, position_label,
    assessment_badge, horizon, the companies and sources behind the record. A column the
@@ -234,6 +235,7 @@ export default function Innovation() {
                     </Fragment>
                   ))}
               </div>
+              <Review src={item._src} />
             </div>
           ))}
         </div>
@@ -260,6 +262,7 @@ export default function Innovation() {
                     </div>
                     <span className="eyebrow">Innovation Detail</span>
                     <div className="ct">{iv.t}</div>
+                    <Review src={iv._src} />
                     <div className="sub">
                       {[iv.matLabel, iv.horizon, iv.gapLabel]
                         .filter(has)

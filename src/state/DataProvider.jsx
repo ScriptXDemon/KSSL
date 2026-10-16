@@ -1,10 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { datasetService } from "../api/datasetService";
 import { wireDataset } from "../lib/dataset";
-import { edgeSelfCheck } from "../lib/edge";
 import { createGeo } from "../lib/geo";
 import { createPartners } from "../lib/partners";
-import { buildGapModel } from "../lib/gapModel";
 import { navCounts, viewMetaFor } from "../lib/overview";
 import { profileSelfCheck } from "../lib/profile";
 import { logger } from "../utils/logger";
@@ -45,36 +43,22 @@ export function DataProvider({ children }) {
   const value = useMemo(() => {
     if (!raw) return null;
     const data = wireDataset(raw);
-    const gapModel = buildGapModel(data);
     const geo = createGeo(data);
     const partners = createPartners(data);
     return {
       data,
-      gapModel,
       geo,
       partners,
-      counts: navCounts(data, gapModel),
+      counts: navCounts(data),
       viewMeta: viewMetaFor(data),
     };
   }, [raw]);
 
-  /* The three self-checks the standalone file ran on load. They assert the derived
-     logic against the corpus and log only on failure — a silent console is the pass. */
+  /* Every roster row must build a named profile; logs only on failure. */
   useEffect(() => {
     if (!value) return;
     try {
-      const hasCompetitors = Object.keys(value.data.competitors || {}).length > 0;
-      const hasGeo = Object.keys(value.data.geoData || {}).length > 0;
-      edgeSelfCheck();
-      value.partners.selfCheck();
-      value.partners.geomCheck();
-      if (hasGeo) value.geo.selfCheck();
-      if (hasCompetitors) profileSelfCheck(value.data);
-      logger.info("self-checks complete", {
-        globals: Object.keys(value.data).length,
-        matchups: Object.keys(value.data.matchups).length,
-        gaps: value.gapModel.length,
-      });
+      if (Object.keys(value.data.competitors || {}).length > 0) profileSelfCheck(value.data);
     } catch (err) {
       logger.error("a self-check threw", err);
     }

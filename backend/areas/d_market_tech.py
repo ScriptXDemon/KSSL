@@ -20,17 +20,6 @@ from collections import defaultdict
 from backend.common import first_nonempty, table, text
 
 
-def num(value):
-    """Decimal columns arrive as strings (common.json_value); the UI wants numbers."""
-    if value in (None, ""):
-        return None
-    try:
-        f = float(value)
-    except (TypeError, ValueError):
-        return None
-    return int(f) if f == int(f) else f
-
-
 def group(rows, key):
     out = defaultdict(list)
     for row in rows:
@@ -44,7 +33,7 @@ def ordered(rows, *keys):
     """Stable sort on the first key present on each row; rows with no value go last."""
     def k(row):
         for name in keys:
-            v = num(row.get(name))
+            v = row.get(name)
             if v is not None:
                 return (0, v)
         return (1, 0)
@@ -84,7 +73,7 @@ def build_tenders(database):
 
         requirements = []
         for r in ordered(reqs.get(tid, []), "display_order"):
-            quantity = num(r.get("quantity"))
+            quantity = r.get("quantity")
             rows = clean([
                 ("Description", text(r.get("description"))),
                 ("Scope", text(r.get("scope_text"))),
@@ -108,7 +97,7 @@ def build_tenders(database):
             product_matches.append({
                 "n": text(m.get("match_label")),
                 "fit": text(m.get("fit_grade")),
-                "percent": num(m.get("fit_percent")),
+                "percent": m.get("fit_percent"),
                 "lines": [
                     {"label": text(l.get("line_label")), "value": text(l.get("line_value"))}
                     for l in ordered(lines.get(text(m.get("tender_match_id")), []), "display_order")
@@ -122,7 +111,7 @@ def build_tenders(database):
                 "fit": text(c.get("fit_label")),
                 "products": text(first_nonempty(c, "competitor_product_display", "competitor_products_text")),
                 "rationale": text(c.get("fit_rationale")),
-                "rank": num(c.get("rank_position")),
+                "rank": c.get("rank_position"),
                 "_src": src("market_tender_competitor_fit", "competitor_fit_id", c.get("competitor_fit_id")),
             }
             for c in ordered(comps.get(tid, []), "rank_position")
@@ -146,7 +135,7 @@ def build_tenders(database):
                 "_src": src("market_tender_source", "source_id", sr.get("source_id")),
             })
 
-        quantity = num(row.get("quantity"))
+        quantity = row.get("quantity")
         tenders.append({
             "id": tid,
             "_src": src("market_tender", "tender_id", tid),
@@ -159,14 +148,14 @@ def build_tenders(database):
             "deadline": text(row.get("deadline_text")),
             "isLive": row.get("is_live"),
             "value": text(row.get("value_text")),
-            "valueAmount": num(row.get("value_amount")),
+            "valueAmount": row.get("value_amount"),
             "valueCurrency": text(row.get("value_currency")).strip(),
             "expectedRevenue": text(first_nonempty(row, "expected_revenue_text") or fit.get("revenue_estimate_text")),
             "lean": text(row.get("lean_code")),
             "leanTxt": text(row.get("lean_text")),
             "ksslFit": text(first_nonempty(row, "kssl_fit") or fit.get("kssl_fit")),
             "ksslModel": text(first_nonempty(row, "kssl_model") or fit.get("kssl_model")),
-            "rank": num(row.get("rank_position")),
+            "rank": row.get("rank_position"),
             "url": text(row.get("source_url")),
             "urlKind": text(row.get("url_kind")),
             "status": text(row.get("status")),
@@ -180,8 +169,8 @@ def build_tenders(database):
             "localPresence": text(row.get("local_presence_requirement")),
             "frequency": text(row.get("frequency")),
             "fitGrade": text(fit.get("fit_grade")),
-            "fitScore": num(fit.get("fit_score")),
-            "fitRank": num(first_nonempty(fit, "kssl_fit_rank", "fit_rank")),
+            "fitScore": fit.get("fit_score"),
+            "fitRank": first_nonempty(fit, "kssl_fit_rank", "fit_rank"),
             "fitNote": text(first_nonempty(fit, "kssl_fit_rationale", "assessment_rationale", "match_summary")),
             "revenueTier": text(fit.get("revenue_tier")),
             "requirements": requirements,
@@ -211,7 +200,7 @@ def build_requirements(database):
             "region": text(row.get("region")),
             "cat": text(row.get("category")),
             "value": text(row.get("value_text")),
-            "dl": num(row.get("days_remaining")),
+            "dl": row.get("days_remaining"),
             "deadline": text(row.get("deadline")),
             "status": text(row.get("status")),
             "desc": text(row.get("description")),
@@ -244,7 +233,7 @@ def build_top_opportunities(database, tenders):
             "id": text(row.get("top_opportunity_tender_id")),
             "_src": src("market_top_opportunity_tender", "top_opportunity_tender_id", row.get("top_opportunity_tender_id")),
             "tenderId": text(row.get("tender_id")),
-            "rank": num(row.get("rank_position")),
+            "rank": row.get("rank_position"),
             "title": tender.get("title", ""),
             "issuer": tender.get("issuer", ""),
             "country": tender.get("country", ""),
@@ -265,7 +254,7 @@ def build_top_opportunities(database, tenders):
             "id": text(row.get("top_opportunity_project_id")),
             "_src": src("market_top_opportunity_project", "top_opportunity_project_id", row.get("top_opportunity_project_id")),
             "opportunityId": oid,
-            "rank": num(row.get("rank_position")),
+            "rank": row.get("rank_position"),
             "title": text(opp.get("title")),
             "issuer": text(first_nonempty(row, "buyer_name") or opp.get("buyer_name")),
             "country": text(row.get("country_name")),
@@ -323,7 +312,7 @@ def build_top_opportunities(database, tenders):
             "_src": src("market_top_opportunity_metric", "metric_id", m.get("metric_id")),
             "label": text(m.get("metric_label")),
             "value": text(m.get("formatted_value")),
-            "amount": num(first_nonempty(m, "amount_value", "numeric_value")),
+            "amount": first_nonempty(m, "amount_value", "numeric_value"),
             "currency": text(m.get("currency_code")).strip(),
             "note": text(m.get("note")),
         }
@@ -371,7 +360,7 @@ def build_innovations(database):
                     "publisher": text(source.get("publisher")),
                     "kind": text(first_nonempty(source, "source_type", "source_kind")),
                 })
-        horizon_year = num(row.get("horizon_year"))
+        horizon_year = row.get("horizon_year")
         item = {
             "id": iid,
             "_src": src("technology_innovation", "innovation_id", iid),
@@ -414,7 +403,7 @@ def build_technology_categories(database):
         if not category_id:
             continue
         name = text(first_nonempty(labels.get(category_id, {}), "ui_name", "label_text") or first_nonempty(row, "category_name", "canonical_name"))
-        cats.append({"id": category_id, "name": name, "num": num(row.get("tab_number"))})
+        cats.append({"id": category_id, "name": name, "num": row.get("tab_number")})
         meta[category_id] = {"area": name, "description": text(row.get("category_description"))}
     return cats, meta
 

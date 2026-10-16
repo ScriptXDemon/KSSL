@@ -10,7 +10,9 @@ from uuid import UUID
 def json_value(value: Any) -> Any:
     if isinstance(value, (datetime, date)):
         return value.isoformat()
-    if isinstance(value, (Decimal, UUID)):
+    if isinstance(value, Decimal):
+        return int(value) if value == value.to_integral_value() else float(value)
+    if isinstance(value, UUID):
         return str(value)
     if isinstance(value, dict):
         return {str(k): json_value(v) for k, v in value.items()}

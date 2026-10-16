@@ -31,91 +31,12 @@ function hasDay(s) {
   return /^\d{1,2}\s+[A-Za-z]/.test(String(s || "")) || /^\d{4}-\d{2}-\d{2}/.test(String(s || ""));
 }
 
-/* THE PIPELINE ESCAPES, AND SO DOES THE RENDERER, SO EVERY AMPERSAND IS ESCAPED TWICE.
-
-   extraction/signals/serving_fill.py stores `esc(card["title"])` and `esc(card["sowhat"])`
-   -- html.escape at WRITE time, from a period when the UI injected raw strings. The
-   React app escapes again at render (and the string builders call escAll), so the
-   reader is shown the entity itself: "Protected &amp; Armoured Vehicles",
-   "UAVs &amp; Drones", "Larsen &amp; Toubro".
-
-   Measured on production: 132 of the 133 sowhat values containing an ampersand hold the
-   five-character entity, and 11 of 12 titles. The `tags` column, written without esc(),
-   holds a real "&" -- which is how it is known to be the writer and not the corpus (the
-   corpus itself is clean: 0 of 5,000 document texts carry it).
-
-   ONLY `&amp;` is decoded here, deliberately. A blanket unescape would be unsafe: chat.js
-   interpolates tender and signal titles straight into markup without escaping, so
-   turning a stored `&lt;` back into `<` would hand it an injection point. A bare `&`
-   cannot open a tag, so this decode cannot make anything renderable that was not
-   already. Fixing the writer is the real repair and is a separate change -- it moves a
-   security boundary and needs chat.js hardened first.
-
-   URLs benefit too: a query string carrying `&amp;` is a broken link, not a styling
-   nit. */
-function decodeAmp(v) {
-  if (typeof v === "string") return v.indexOf("&amp;") < 0 ? v : v.split("&amp;").join("&");
-  if (Array.isArray(v)) return v.map(decodeAmp);
-  if (v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype) {
-    const out = {};
-    for (const k of Object.keys(v)) out[k] = decodeAmp(v[k]);
-    return out;
-  }
-  return v;
-}
-
-/* THE EM DASH IS OFF, AND THE "NOT MEASURED" MARK IS NOT.
- *
- * Requested as "remove M dashes from everywhere". They are not written here -- the
- * served store carries 13,937 strings containing one, all of them from the pipeline's
- * own prose (COMPSYN reads, signal summaries, gap notes, innovation bodies). Editing the
- * writers would fix new rows and leave every stored row as it is, so the rule is applied
- * on the way in, once, to whatever the backend sends.
- *
- * TWO THINGS THE DASH IS USED FOR, AND ONLY ONE OF THEM GOES.
- *
- *   punctuation  "...not just product — its Hazira record is the real threat". Becomes a
- *                spaced hyphen. The pause the sentence was built around is kept and the
- *                glyph is gone; deleting it outright would run two clauses together.
- *
- *   a value that does not exist  a bare "—" in a cell, which is this dashboard's mark
- *                for NOT MEASURED as opposed to zero. That mark stays. It is compared by
- *                string equality in four places (specs.has, gapAnalysis, matchupDossier,
- *                Positioning) to decide whether a field was published at all, so
- *                rewriting one side of that comparison and not the other would make
- *                unmeasured fields read as measured -- the exact failure this dashboard
- *                is held to. Measured on the live store: 0 served strings are a bare
- *                dash, so this branch protects a shape the data does not currently have,
- *                which is when it is cheapest to protect.
- *
- * The en dash goes the same way, except between digits (a range: "200–250 km"), where a
- * hyphen is what the range was always meant to be.
- */
-export function plainDashes(v) {
-  if (typeof v === "string") {
-    if (v.indexOf("—") < 0 && v.indexOf("–") < 0) return v;
-    if (v.trim() === "—" || v.trim() === "–") return v;
-    return v
-      .replace(/\s*—\s*/g, " - ")
-      .replace(/(\d)\s*–\s*(\d)/g, "$1-$2")
-      .replace(/\s*–\s*/g, " - ");
-  }
-  if (Array.isArray(v)) return v.map(plainDashes);
-  if (v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype) {
-    const out = {};
-    for (const k of Object.keys(v)) out[k] = plainDashes(v[k]);
-    return out;
-  }
-  return v;
-}
-
 export function wireDataset(raw) {
-  // shallow clone the containers we mutate; the leaf objects are ours after a fetch
-  // decodeAmp first: every later rule (casing, promotion, grouping) should see the text
-  // the reader will see, not a text with entities standing in for characters.
+  // shallow clone the containers we mutate; the leaf objects are ours after a fetch.
   /* One row per company is served (competitive_competitor); nothing is merged here.
-     sortCompaniesByName puts every company list in alphabetical order. */
-  const d = markOverlaps(sortCompaniesByName(plainDashes(decodeAmp({ ...raw }))));
+     sortCompaniesByName puts every company list in alphabetical order.
+     Stored text is left exactly as stored. */
+  const d = markOverlaps(sortCompaniesByName({ ...raw }));
 
   /* Market-lane headline casing (competitive and technology text is shown as stored). */
   try {

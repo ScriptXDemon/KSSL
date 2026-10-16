@@ -3,6 +3,7 @@ import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { formatDate as fmtDate } from "../../utils/formatDate.js";
 import Thumb from "../../components/thumb/Thumb.jsx";
+import { Review } from "../../components/review/Review.jsx";
 
 // the house date format; "Undated" (chrome) when the move carries no date
 const formatDate = (v) => (v ? fmtDate(String(v)) : "Undated");
@@ -338,6 +339,7 @@ export default function ThreatAnalysis() {
 
                     <div className="cm-title">{m.title}</div>
                     {m.summary ? <div className="cm-desc">{m.summary}</div> : null}
+                    <Review src={m._src} />
                   </div>
                 </div>
               );
@@ -393,6 +395,7 @@ export default function ThreatAnalysis() {
               <div className="sub" style={{ marginTop: "8px" }}>
                 {[selectedMove.company, selectedMove.date ? formatDate(selectedMove.date) : ""].filter(Boolean).join(" · ")}
               </div>
+              <Review src={selectedMove._src} />
             </div>
 
             {/* At a glance: only the columns the move carries */}

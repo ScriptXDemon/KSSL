@@ -4,6 +4,7 @@ import ScopeChat from "../../components/scopeChat/ScopeChat";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { formatSectorName, formatCompanyName } from "../../lib/profile";
+import { ReviewList } from "../../components/review/Review";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
    persisted to localStorage, which survives the tab, the browser and the machine's
    next reboot -- so a company opened once was still the landing selection weeks
@@ -519,6 +520,11 @@ export default function Partnerships() {
               {activeQ ? <>no competitor matches “{activeQ}”</> : "no competitor matches this filter"}
             </div>
           ) : null}
+          {/* review copy only: the client's own partners (they mark the overlapping partners) */}
+          <ReviewList
+            title="KSSL partners"
+            items={(data.KSSL_PARTNERS || []).map((x) => ({ src: x._src, label: [x.label, x.ptype].filter(Boolean).join(" · ") }))}
+          />
         </div>
       </div>
 
@@ -738,6 +744,15 @@ export default function Partnerships() {
               </button>
             </div>
             <div className="pg-drawer-head" style={{ paddingRight: "110px", paddingBottom: "16px" }} dangerouslySetInnerHTML={{ __html: drawerHeadText() }} />
+            {/* review copy only: the drawer draws its partners as HTML, so the same records are listed here */}
+            {gc ? (
+              <ReviewList
+                title={`${gc.name} partners`}
+                items={(gc.partners || [])
+                  .filter((x) => !tie || x.id === tie)
+                  .map((x) => ({ src: x._src, label: [x.label, x.ptype].filter(Boolean).join(" · ") }))}
+              />
+            ) : null}
             <HtmlBlock
               className="pg-drawer-body"
               handlers={{

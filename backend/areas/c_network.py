@@ -5,20 +5,8 @@ Every key below is a column of the table named in its `_src`; nothing is default
 """
 
 from collections import defaultdict
-from typing import Any
 
-from backend.common import first_nonempty, rows_by_id, table, text
-
-
-def num(value: Any):
-    """Numeric columns arrive as strings (Decimal): hand the UI a number, or null."""
-    if value is None or value == "":
-        return None
-    try:
-        f = float(value)
-    except (TypeError, ValueError):
-        return None
-    return int(f) if f.is_integer() else f
+from backend.common import first_nonempty, table, text
 
 
 def src(tbl: str, key: str, row: dict) -> dict:
@@ -182,7 +170,7 @@ def build_projects(database, competitors):
             "stage": text(row.get("stage")),
             "stageNote": text(row.get("stage_note")),
             "summary": text(row.get("card_summary")),
-            "value": num(row.get("estimated_value")),
+            "value": row.get("estimated_value"),
             "grade": text(row.get("grade")),
             "latest": {"date": text(row.get("latest_milestone_date")), "note": text(row.get("latest_milestone"))},
             "assessment": {
@@ -259,8 +247,8 @@ def build_geo(database, competitors):
             "name": name,
             "label": text(row.get("map_label")),
             "region": text(row.get("region_name")),
-            "lat": num(row.get("latitude")),
-            "lng": num(row.get("longitude")),
+            "lat": row.get("latitude"),
+            "lng": row.get("longitude"),
             "presenceTypes": text(row.get("presence_types")),
             "summary": text(row.get("kssl_presence_summary")),
             "srcs": [_source_row(s) for s in src_by_loc.get(lid, [])],
@@ -276,9 +264,9 @@ def build_geo(database, competitors):
             "kssl": text(m.get("kssl_counter_label")),
             "label": text(m.get("evaluation_label")),
             "level": m.get("decision_level"),
-            "kssl_score": num(m.get("kssl_score")),
-            "rival_score": num(m.get("competitor_score")),
-            "delta": num(m.get("rating_delta")),
+            "kssl_score": m.get("kssl_score"),
+            "rival_score": m.get("competitor_score"),
+            "delta": m.get("rating_delta"),
             "basis": text(m.get("match_basis")),
             "summary": text(m.get("qualitative_summary")),
             "status": text(m.get("match_status")),
@@ -325,10 +313,10 @@ def build_geo(database, competitors):
                 "value": text(p.get("reported_value")),
                 "qty": text(p.get("quantity")),
                 "range": text(p.get("product_range")),
-                "ratedPower": num(p.get("rated_power_value")),
+                "ratedPower": p.get("rated_power_value"),
                 "ratedUnit": text(p.get("rated_power_unit")),
                 "fuel": text(p.get("fuel_type")),
-                "hz": num(p.get("frequency_hz")),
+                "hz": p.get("frequency_hz"),
                 "matches": [match_out(m) for m in ordered(matches.get(gid, []), "match_id")],
                 "news": [{"title": text(n.get("headline")), "publisher": text(n.get("publisher")), "date": text(n.get("published_date")),
                           "url": text(n.get("article_url"))} for n in ordered(news.get(gid, []), "display_order", "news_id")],
@@ -367,7 +355,8 @@ def build_patents(database, competitors):
             "codeText": text(f.get("classification_text")),
             "url": text(f.get("patent_url")),
             "cid": cid,
-            "_src": src("competitive_patent_filing", "filing_id", f),
+            # keyed like the review graph: publication_number, else filing_id
+            "_src": src("competitive_patent_filing", "publication_number" if f.get("publication_number") is not None else "filing_id", f),
         } for f in ordered(filings.get(pid, []), "filed_date", "filing_id")]
         total += len(records)
         cats = {}

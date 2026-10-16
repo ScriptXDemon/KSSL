@@ -4,6 +4,7 @@ import { srcChips, attr, escRich } from "../../lib/html";
 import { DIR_WORD } from "../../lib/overview";
 import { useData } from "../../state/DataProvider";
 import Thumb from "../thumb/Thumb.jsx";
+import { Review } from "../review/Review";
 
 /* `badge` (optional): the ROW's own label for this signal, { word, cls }. A pillar that
    labels its rows by kind rather than by stance (Technology: ADOPTABLE, or nothing for a
@@ -75,6 +76,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
           <div className="ct">
             <span dangerouslySetInnerHTML={{ __html: escRich(detail.title) }} />
           </div>
+          <Review src={detail._src} />
         </div>
 
         {/* The article's own lead image (stored image_url / thumbnail_url); nothing when absent. */}

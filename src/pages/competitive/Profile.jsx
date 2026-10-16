@@ -7,6 +7,7 @@ import { companyNews, NEWS_MAX, NEWS_WINDOWS, NEWS_WINDOW_DEFAULT, windowDays, w
 import { facetOptionsByName } from "../../lib/countryFacet";
 import { formatDate } from "../../utils/formatDate.js";
 import Thumb from "../../components/thumb/Thumb.jsx";
+import { Review } from "../../components/review/Review.jsx";
 /* The article card is the link: a news item goes to the news source (see ArticleLink). */
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. See lib/viewState. */
@@ -74,6 +75,7 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
         <PersonAvatar name={leader.name} initials={leader.initials} className="cp-person-avatar" />
         <div>
           <h1 className="cp-person-name">{leader.name}</h1>
+          <Review src={leader._src} />
           <div className="cp-person-now">
             {leader.role}
             {nowOrg ? <span className="cp-person-at"> · {nowOrg}</span> : null}
@@ -516,6 +518,7 @@ export default function Profile() {
             {/* 1. COMPANY NAME HEADER */}
             <div className="cp-head">
               <div className="cp-name">{displayName}</div>
+              <Review src={p._src} />
             </div>
 
             {/* 2. COMPANY DETAILS: every value is a stored competitive_competitor column */}
@@ -592,6 +595,7 @@ export default function Profile() {
                       <div className="cp-lead-info">
                         <span className="cp-lead-name">{leader.name}</span>
                         <span className="cp-lead-role">{leader.role}</span>
+                        <Review src={leader._src} />
                       </div>
                     </div>
                   ))}
@@ -673,6 +677,7 @@ export default function Profile() {
                               {item.source ? <span className="ln-feed-src">{item.source}</span> : null}
                             </div>
                           </ArticleLink>
+                          <Review src={item._src} />
                         </div>
                       ))}
                     </div>
@@ -757,10 +762,10 @@ export default function Profile() {
                     </div>
                   ) : null}
                   {(showAllNews ? listRows : listRows.slice(0, 20)).map((item, idx) => (
+                    <div key={item.id || `all-${idx}`}>
                     <ArticleLink
                       article={item}
                       className="ln-all-row"
-                      key={item.id || `all-${idx}`}
                       style={{
                         display: "grid",
                         gridTemplateColumns: "110px 1fr 140px 220px",
@@ -803,6 +808,8 @@ export default function Profile() {
                         {item.source}
                       </span>
                     </ArticleLink>
+                    <Review src={item._src} style={{ margin: "0 14px 6px" }} />
+                    </div>
                   ))}
                 </div>
                 {!showAllNews && listRows.length > 20 ? (

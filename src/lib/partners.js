@@ -826,8 +826,5 @@ export function createPartners(d) {
     pgTypeFor,
     allPartnersRosterHtml,
     tieHtml,
-    // DataProvider still calls these two; the engine and geometry they checked no longer exist
-    selfCheck: () => [],
-    geomCheck: () => ({}),
   };
 }

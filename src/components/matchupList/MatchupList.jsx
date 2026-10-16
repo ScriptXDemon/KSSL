@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAppState } from "../../state/AppState";
+import { Review } from "../review/Review";
 
 /* The category label is the stored category_code, shown as stored. */
 const formatCategoryLabel = (str) => (str ? String(str).trim() : "Uncategorised");
@@ -277,6 +278,7 @@ export default function MatchupList({ data, selected, onSelect, products = [], c
                       >
                         <div className="comp-prod">{product}</div>
                         {company ? <div className="cp-co">{company}</div> : null}
+                        <Review src={m._src} />
                       </div>
                     );
                   })}

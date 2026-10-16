@@ -58,18 +58,6 @@ export function storedDims(m) {
   return dims;
 }
 
-/* Kept for the pages that still import it (gapModel): the STORED edge plus the stored dims.
-   Despite the name it computes nothing. */
-export function computeSpecEdge(m) {
-  const dims = storedDims(m);
-  return {
-    edge: m && typeof m.edge === "number" ? m.edge : null,
-    n: m && m.comparable != null ? Number(m.comparable) : dims.length,
-    decided: dims.filter((d) => d.a !== 0).length,
-    dims,
-  };
-}
-
 /* The chips under the gauge: the specs the loader judged, widest stored gap first. */
 export function edgeBasis(m) {
   const esc = (s) =>
@@ -79,21 +67,4 @@ export function edgeBasis(m) {
   return `<div class="eg-dims">${dec
     .map((d) => `<span class="eg-dim ${d.a > 0 ? "up" : "down"}">${d.a > 0 ? "▲" : "▼"} ${esc(d.l)} <i>${+d.gap.toFixed(1)}%</i></span>`)
     .join("")}</div>`;
-}
-
-/* @deprecated -- thresholds on the edge number are not stored anywhere. Only chat.js and
-   geo.js still call this with an edge number; they should switch to decisionVerdict(m.decision)
-   and this should then be deleted. */
-export function edgeVerdict(e, clientName = "KSSL") {
-  const short = (clientName || "KSSL").toUpperCase();
-  const name = clientName || "KSSL";
-  if (e == null) return { cls: "parity", word: "INSUFFICIENT MEASURED DATA", phrase: "no measured basis" };
-  if (e >= 58) return { cls: "ahead", word: `${short} AHEAD`, phrase: `${name} holds the edge` };
-  if (e >= 42) return { cls: "parity", word: "NEAR PARITY", phrase: "near parity" };
-  return { cls: "behind", word: `${short} BEHIND`, phrase: "competitor holds the edge" };
-}
-
-/* DataProvider still calls this on load; there is no logic left to check. */
-export function edgeSelfCheck() {
-  return [];
 }

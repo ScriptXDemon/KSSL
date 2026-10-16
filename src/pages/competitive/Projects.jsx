@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { formatDate } from "../../utils/formatDate";
+import { Review } from "../../components/review/Review";
 
 /* Enumerations (documented for the prompts): assessment_stance threat | watch | fav;
    threat_level (competitor dot) threat | watch | fav. Compared case-insensitively; a value
@@ -369,6 +370,7 @@ export default function Projects() {
                             .join(" · ")}
                         </span>
                       </div>
+                      <Review src={p._src} />
                     </div>
 
                     <div className="aside">
@@ -422,6 +424,7 @@ export default function Projects() {
                     ) : null}
                   </div>
                   <div className="ct">{selectedProject.name}</div>
+                  <Review src={selectedProject._src} />
                 </div>
 
                 {/* At a glance facts */}

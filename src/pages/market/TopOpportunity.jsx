@@ -3,6 +3,7 @@ import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { daysLeft } from "../../lib/tenderCalc";
 import { formatDate } from "../../utils/formatDate";
+import { Review } from "../../components/review/Review";
 
 const has = (v) => v != null && String(v).trim() !== "";
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
@@ -138,6 +139,7 @@ export default function TopOpportunity() {
                       <span className="ovt-buyer" title={t.issuer}>
                         {[t.country, t.issuer].filter(Boolean).join(" · ")}
                       </span>
+                      <Review src={t._src} />
                     </td>
                     <td className="num">{t.decides || "—"}</td>
                     <td>{fitCell(t.ksslFit)}</td>
@@ -194,6 +196,7 @@ export default function TopOpportunity() {
                           <span className="ovt-buyer" title={p.issuer}>
                             {[p.country, p.issuer].filter(Boolean).join(" · ")}
                           </span>
+                          <Review src={p._src} />
                         </td>
                         <td className="ovt-t ti-stage">
                           <span className="ti-title" title={p.stage}>
@@ -210,6 +213,7 @@ export default function TopOpportunity() {
                           <td colSpan={7} style={{ padding: "12px 16px", background: "var(--d-bg-2)", whiteSpace: "normal" }}>
                             {o ? (
                               <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", lineHeight: 1.5 }}>
+                                <Review src={o._src} />
                                 {[
                                   ["Kind", o.kind],
                                   ["Description", o.description],
@@ -277,7 +281,10 @@ export default function TopOpportunity() {
                       onKeyDown={go ? rowKeys(go) : undefined}
                     >
                       <td className="num">{dueText(m) || "—"}</td>
-                      <td>{m.action}</td>
+                      <td>
+                        {m.action}
+                        <Review src={m._src} />
+                      </td>
                       <td className="ovt-t">
                         <span className="ti-title" title={m.tenderTitle}>
                           {m.tenderTitle}

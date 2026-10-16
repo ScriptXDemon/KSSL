@@ -23,7 +23,7 @@
 .rv-link{display:block;background:none;border:0;color:#6fb3ff;font:12px var(--mono);cursor:pointer;padding:2px 0;text-align:left}
 .rv-dim{color:var(--d-txt-3)}
 .rv-err{color:#ff8080}
-.rv-list{margin:10px 0;padding:8px 12px;border:1px dashed #b7791f;border-radius:6px;font:12px var(--sans)}
+.rv-list{margin:10px 0;padding:8px 12px;border:1px dashed #b7791f;border-radius:6px;font:12px var(--sans);background:#fff8e8;color:#222}
 .rv-list summary{cursor:pointer;font-weight:700;color:#b7791f}
 .rv-li{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid var(--l-line);padding:4px 0}
 .rv-tbl caption{text-align:left;font:600 11px var(--mono);color:var(--d-txt-3);padding:2px 0 4px}

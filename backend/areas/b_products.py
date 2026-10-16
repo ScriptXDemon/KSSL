@@ -23,19 +23,8 @@ from typing import Any
 from backend.common import first_nonempty, slug, table, text
 
 
-def _num(value: Any) -> float | None:
-    """Numeric columns reach us as strings (common.json_value); the UI wants numbers."""
-    if value in (None, ""):
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _shown(numeric: Any) -> str | None:
+def _shown(n: Any) -> str | None:
     """A stored numeric printed without a trailing .0 (a display format, not a value change)."""
-    n = _num(numeric)
     if n is None:
         return None
     return str(int(n)) if n == int(n) else str(round(n, 6))
@@ -66,7 +55,7 @@ def build_matchups(database):
     advantages: dict[str, dict[str, list[str]]] = defaultdict(lambda: {"client": [], "competitor": []})
     adv_rows = sorted(
         table(database, "serving", "competitive_matchup_advantage"),
-        key=lambda r: (_num(r.get("display_order")) or 0),
+        key=lambda r: (r.get("display_order") or 0),
     )
     for row in adv_rows:
         mid = text(row.get("matchup_id"))
@@ -77,7 +66,7 @@ def build_matchups(database):
     specs: dict[str, list[dict[str, Any]]] = defaultdict(list)
     spec_rows = sorted(
         table(database, "serving", "competitive_matchup_specification"),
-        key=lambda r: (_num(r.get("display_order")) or 0),
+        key=lambda r: (r.get("display_order") or 0),
     )
     for row in spec_rows:
         mid = text(row.get("matchup_id"))
@@ -89,10 +78,10 @@ def build_matchups(database):
             "group": text(row.get("spec_group")),
             "cv": _val(row, "competitor_value_text", "competitor_value_numeric"),
             "kv": _val(row, "client_value_text", "client_value_numeric"),
-            "cn": _num(row.get("competitor_value_numeric")),
-            "kn": _num(row.get("client_value_numeric")),
+            "cn": row.get("competitor_value_numeric"),
+            "kn": row.get("client_value_numeric"),
             "win": text(row.get("better_side")),
-            "gap": _num(row.get("gap_value")),
+            "gap": row.get("gap_value"),
             "state": text(row.get("comparability_state")),
             "_src": _src("competitive_matchup_specification", "comparison_specification_id", row),
         })
@@ -142,7 +131,7 @@ def build_matchups(database):
             "sources": sources.get(mid, []),
             "verdictH": text(row.get("verdict_headline")),
             "verdict": text(row.get("verdict")),
-            "edge": _num(row.get("edge_score")),
+            "edge": row.get("edge_score"),
             "decision": None if decision in (None, "") else int(float(decision)),
             "comparable": row.get("comparable_spec_count"),
             "sourced": row.get("sourced_spec_count"),
@@ -263,7 +252,7 @@ def build_client_products(database, matchups):
         pid = text(row.get("client_product_id"))
         if not pid:
             continue
-        spec_rows = sorted(specs.get(pid, []), key=lambda r: (_num(r.get("display_order")) or 0))
+        spec_rows = sorted(specs.get(pid, []), key=lambda r: (r.get("display_order") or 0))
         details = []
         for col, label in CLIENT_DETAIL_COLUMNS:
             if row.get(col) not in (None, ""):
