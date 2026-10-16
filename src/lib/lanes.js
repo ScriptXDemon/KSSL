@@ -86,15 +86,16 @@ export function marketLane(d) {
   const opps = opts.find((o) => o.code === "opportunities");
   const filters = [];
   if (tenders) filters.push({ f: "tenders", l: tenders.label, kinds: ["tender"], c: "var(--threat)" });
-  if (opps) filters.push({ f: "opps", l: opps.label, dirs: ["watch"], c: "var(--watch)" });
+  if (opps) filters.push({ f: "opps", l: opps.label, kinds: ["opportunity"], c: "var(--watch)" });
   const tagWord = {};
   if (tenders) tagWord.tender = tenders.badge;
+  if (opps) tagWord.opportunity = opps.badge;
   return {
     title: String(view.page_heading || "").trim(),
     metrics: withBlanks(tiles),
     filters: filters.length ? [{ f: "all", l: ALL_PILL }, ...filters] : [],
-    groups: [tenders && { h: tenders.label, kinds: ["tender"] }, opps && { h: opps.label, dirs: ["watch"] }].filter(Boolean),
+    groups: [tenders && { h: tenders.label, kinds: ["tender"] }, opps && { h: opps.label, kinds: ["opportunity"] }].filter(Boolean),
     tagWord,
-    dirWord: opps && opps.badge ? { watch: opps.badge } : {},
+    dirWord: {},
   };
 }

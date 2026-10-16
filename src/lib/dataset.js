@@ -488,7 +488,7 @@ export function wireDataset(raw) {
       const kslCats = new Set((d.KSSL_CATS || []).map((s) => String(s).toLowerCase()));
       const OPP_HEAD = 24;
       const opportunities = (d.marketCards || [])
-        .filter((c) => c && c.dir === "watch")
+        .filter((c) => c && c.kind === "opportunity")
         .filter((c) => {
           if (!kslCats.size) return true;   // no taxonomy served -> keep the lane
           const tags = String(c.tags || "").toLowerCase();

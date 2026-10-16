@@ -49,8 +49,8 @@ const raw = {
   techCats: [], innovations: {}, matchups: {}, details: {}, competitorNews: {},
   patents: {}, competitors: {},
   marketCards: [
-    { id: "d1", dir: "watch", title: "Kyiv faces sustained attacks", lens: "Market" },
-    { id: "d2", dir: "watch", title: "Japan MoD allocates funds", lens: "Market" },
+    { id: "d1", kind: "opportunity", title: "Kyiv faces sustained attacks", lens: "Market" },
+    { id: "d2", kind: "opportunity", title: "Japan MoD allocates funds", lens: "Market" },
   ],
   tenders: [
     tender("t-open-noval"),
@@ -98,7 +98,7 @@ for (const c of cards.filter((x) => x.id.startsWith("tender-"))) {
 
 // 5. the demand cards survive in d.marketCards -- search, news and the top-bar count
 //    still read them; only the OVERVIEW FEED is curated to tenders.
-if (by("watch").length !== 2) fail(`the 2 demand cards should be intact, got ${by("watch").length}`);
+if (d.marketCards.filter((c) => c.kind === "opportunity").length !== 2) fail("the 2 demand cards should be intact");
 
 // the OVERVIEW FEED serves TWO streams: the Latest Tenders shortlist (promoted tenders)
 // and the curated Perceived Opportunities (the demand/geopolitical watch lane, no tender
@@ -112,9 +112,9 @@ if (!(mk.filters || []).some((f) => f.kinds && f.kinds.includes("tender"))) fail
 const tenderServed = served.filter((c) => c.id.startsWith("tender-"));
 if (tenderServed.length !== promotedCards.length)
   fail(`the Latest Tenders stream has ${tenderServed.length}, expected the ${promotedCards.length} promoted tenders`);
-const oppServed = served.filter((c) => c.dir === "watch");
+const oppServed = served.filter((c) => c.kind === "opportunity");
 if (oppServed.length === 0)
-  fail("the overview feed must carry the Perceived Opportunities stream (watch cards)");
+  fail("the overview feed must carry the Perceived Opportunities stream (opportunity cards)");
 if (served.length !== tenderServed.length + oppServed.length)
   fail("the feed is the two streams and nothing else -- tenders + opportunities");
 if (/\bfit|act on|defence-tech|can adopt/.test(((d.overviewConfig || {}).market || {}).cnt || ""))

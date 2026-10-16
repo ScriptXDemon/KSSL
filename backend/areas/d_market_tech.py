@@ -252,6 +252,10 @@ def build_market_cards(database, requirements, details):
         cards.append({
             "id": uid,
             "dir": None,
+            # what the card IS (it comes from the opportunity pipeline), not a stance; the Perceived
+            # Opportunities tile and lane select on it. tags: the stored category label.
+            "kind": "opportunity",
+            "tags": categories.get(text(opp.get("category_id"))),
             "title": u.get("headline"),
             "meta": _join([u.get("update_type"), opp.get("location_text"), categories.get(text(opp.get("category_id"))),
                            u.get("update_date")]),

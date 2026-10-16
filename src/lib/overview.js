@@ -549,7 +549,7 @@ export function metricsFor(cfg, pillar, d) {
       const anyFit = open.some((x) => x.lean);
       // The Perceived Opportunities stream on the same feed: watch cards (geopolitical /
       // demand moves), which need no tender. Counted from the served set the feed shows.
-      const opps = (cards || []).filter((c) => c.dir === "watch").length;
+      const opps = (cards || []).filter((c) => c.kind === "opportunity").length;
       byKey = {
         latest_tenders: shown.length,
         strong_fits: anyFit ? go.length : "—",
@@ -648,7 +648,7 @@ export function tilePredicate(act) {
      the same feed are `watch` and are not open tenders. */
   if (act === "open") return (c) => c.kind === "tender";
   /* Perceived opportunities: the demand/geopolitical watch stream, no tender required. */
-  if (act === "opps") return (c) => c.dir === "watch";
+  if (act === "opps") return (c) => c.kind === "opportunity";
   /* Technology streams, selected by the tag technologyAttention stamps. */
   if (act === "rival") return (c) => has(c, "rival");
   if (act === "adopt") return (c) => has(c, "adopt");

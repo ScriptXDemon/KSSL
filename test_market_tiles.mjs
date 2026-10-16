@@ -70,8 +70,8 @@ const raw = {
   techCats: [], innovations: {}, matchups: {}, details: {}, competitorNews: {},
   patents: {}, competitors: {},
   marketCards: [
-    { id: "d1", dir: "watch", title: "Kyiv faces sustained attacks", lens: "Market", sec: [{ lens: "Market" }] },
-    { id: "d2", dir: "watch", title: "Japan MoD allocates funds", lens: "Market", sec: [] },
+    { id: "d1", kind: "opportunity", title: "Kyiv faces sustained attacks", lens: "Market", sec: [{ lens: "Market" }] },
+    { id: "d2", kind: "opportunity", title: "Japan MoD allocates funds", lens: "Market", sec: [] },
   ],
   tenders: [
     tender("t-open-1"),
@@ -123,7 +123,7 @@ if (v("Tender value") !== "USD 145 m") fail(`Tender value reads ${v("Tender valu
 if (v("Perceived opportunities") !== "2") fail(`Perceived opportunities reads ${v("Perceived opportunities")}, expected the 2 watch cards`);
 
 // 3. a hostile shape on one card degrades that card, not the strip
-const hostile = { ...cfg, cards: cfg.cards.concat([{ id: "x", dir: "watch", sec: "Artillery" }]) };
+const hostile = { ...cfg, cards: cfg.cards.concat([{ id: "x", kind: "opportunity", sec: "Artillery" }]) };
 const m2 = metricsFor(hostile, "market", d);
 if ((m2.find((x) => x.key === "latest_tenders") || {}).v !== "3")
   fail("a string `sec` on one card still takes the whole strip back to the baked values");

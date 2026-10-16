@@ -118,8 +118,8 @@ ok("uiText returns the stored cell, or an empty string: never a literal");
   assert.deepEqual(metricsFor(mk, "market", d).filter((x) => !x.blank).map((x) => x.l), ["Latest tenders", "Strong fits", "Tender value", "Perceived opportunities"]);
   assert.equal(mk.title, "Top opportunity");
   assert.deepEqual(mk.filters.map((f) => f.l), ["All", "Latest Tenders", "Perceived Opportunities"]);
-  assert.deepEqual(mk.tagWord, { tender: "TENDER" });
-  assert.equal(mk.dirWord.watch, "OPPORTUNITY");
+  assert.deepEqual(mk.tagWord, { tender: "TENDER", opportunity: "OPPORTUNITY" });
+  assert.deepEqual(mk.dirWord, {}, "no stance word on the market lane: the badge follows the card kind");
   ok("technology and market lanes: tiles, pills, groups and badge words are the stored rows");
 
   const names = marketMetrics(d.tenders, d).map((x) => x.l);
@@ -198,3 +198,20 @@ ok("uiText returns the stored cell, or an empty string: never a literal");
 }
 
 console.log("\nok - labels, pills and tiles come from the database rows");
+
+/* ---- I1: the Perceived opportunities tile counts the opportunity cards (kind), never a stance ------------ */
+{
+  const d = wireDataset(clone());
+  const mk = d.overviewConfig.market;
+  const opps = d.marketCards.filter((c) => c.kind === "opportunity");
+  assert.ok(opps.length > 0, "the fixture carries pipeline opportunity cards");
+  assert.ok(opps.every((c) => !c.dir), "market cards carry no stance, so the tile cannot depend on one");
+  const tile = metricsFor(mk, "market", d).find((x) => x.key === "perceived_opportunities");
+  assert.ok(tile, "the stored tile is drawn");
+  const served = mk.cards.filter((c) => c.kind === "opportunity");
+  assert.ok(served.length > 0, "the opportunity lane is not empty on the fixture");
+  assert.equal(tile.v, String(served.length), "the tile counts the opportunity cards it names");
+  assert.equal(mk.cards.filter(tilePredicate("opps")).length, served.length, "its door opens exactly those cards");
+  assert.equal(mk.cards.filter((c) => filterMatch(c, "opps", mk.filters)).length, served.length, "and so does the pill");
+  ok("Perceived opportunities tile counts the opportunity cards (" + served.length + " > 0 on the fixture)");
+}
