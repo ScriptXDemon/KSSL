@@ -1,42 +1,54 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs";
-import { PROJECTS_DATA, PROJECT_STAGES } from "./competitorProjects.js";
 import { projectFeed, projectMetrics, day } from "./projects.js";
 
-const file = new URL("../../../datapack/dataset.html.json", import.meta.url);
-const d = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
+const d = JSON.parse(fs.readFileSync(new URL("../../fixtures/kssl_dataset.json", import.meta.url), "utf8"));
+const P = d.projects;
+const cfg = d.projectsConfig;
 
-test("every project belongs to a tracked competitor and says what it is, where it stands and what it means", () => {
+test("the project constants are gone from the code", () => {
+  assert.ok(!fs.existsSync(new URL("./competitorProjects.js", import.meta.url)), "competitorProjects.js is deleted");
+  const src = fs.readFileSync(new URL("./projects.js", import.meta.url), "utf8");
+  assert.ok(!/export const PROJECTS_DATA|PROJECT_STAGES|PROJECT_FILTERS|PROJECT_SEQ|"Gulf"|Worldwide/.test(src));
+});
+
+test("every fixture project belongs to a tracked competitor and stands on a configured stage and filter", () => {
+  assert.ok(P.length > 0);
   const ids = new Set();
-  PROJECTS_DATA.forEach((p) => {
+  P.forEach((p) => {
     assert.ok(!ids.has(p.id), `duplicate ${p.id}`);
     ids.add(p.id);
-    if (d) assert.ok(d.competitors[p.cid], `${p.id}: unknown competitor ${p.cid}`);
-    assert.ok(p.overview.length && p.stageNote && p.timeline.length && p.specs.length, `${p.id} is missing a section`);
-    assert.ok(PROJECT_STAGES.includes(p.stage) && PROJECT_STAGES.indexOf(p.stage) + 1 === p.stageRank, `${p.id} stage`);
-    assert.ok(["Gulf", "Worldwide"].includes(p.region), `${p.id} region`);
-    assert.ok(p.assessment.read.length && p.assessment.stance, `${p.id} has no assessment`);
-    assert.ok(p.sources.length, `${p.id} has no source`);
-    const dated = p.timeline.map((e) => day(e.date)).filter(Boolean);
-    assert.deepEqual(dated, [...dated].sort(), `${p.id} timeline out of order`);
-    [p.name, p.stageNote, ...p.overview, ...p.assessment.read].forEach((t) => assert.ok(!/<[a-z]|&amp;|&lt;/i.test(t), `${p.id}: markup in "${t}"`));
-    assert.ok(!("image" in p), `${p.id} carries an image`);
+    assert.ok(d.competitors[p.cid], `${p.id}: unknown competitor`);
+    assert.ok(cfg.stageSteps.includes(p.stage) && cfg.stageSteps.indexOf(p.stage) + 1 === p.stageRank, `${p.id} stage`);
+    assert.ok(cfg.filters.some((f) => f.f === p.region), `${p.id} region ${p.region}`);
   });
 });
 
-test("every tracked competitor with projects on record is covered, in the Gulf and worldwide", () => {
-  const by = (cid) => PROJECTS_DATA.filter((p) => p.cid === cid);
-  ["CATERPIL", "ROLLSROY", "REHLKO", "MITSUBIS", "WEICHAIB", "PERKINSF", "GENERAC", "VOLVOPEN"].forEach((cid) => assert.ok(by(cid).length, `${cid} has no project`));
-  assert.ok(PROJECTS_DATA.some((p) => p.region === "Gulf") && PROJECTS_DATA.some((p) => p.region === "Worldwide"));
+test("the feed filters by competitor and configured region, counts agree", () => {
+  const all = projectFeed({ projects: P, filters: cfg.filters });
+  assert.equal(all.rows.length, P.length);
+  const cid = P[0].cid;
+  const mine = projectFeed({ projects: P, filters: cfg.filters, cid });
+  assert.ok(mine.rows.every((p) => p.cid === cid) && mine.counts.all === mine.rows.length);
+  assert.equal(cfg.filters.reduce((n, f) => n + mine.counts[f.f], 0), mine.counts.all);
+  assert.equal(Object.values(all.perCompetitor).reduce((a, b) => a + b, 0), P.length);
+  const region = cfg.filters[0].f;
+  assert.ok(projectFeed({ projects: P, filters: cfg.filters, filter: region }).rows.every((p) => p.region === region));
 });
 
-test("the feed filters by competitor and region, counts agree, and metrics are counted", () => {
-  const all = projectFeed({});
-  assert.equal(all.rows.length, PROJECTS_DATA.length);
-  const cat = projectFeed({ cid: "CATERPIL" });
-  assert.ok(cat.rows.every((p) => p.cid === "CATERPIL") && cat.counts.all === cat.rows.length);
-  assert.equal(cat.counts.Gulf + cat.counts.Worldwide, cat.counts.all);
-  assert.equal(Object.values(all.perCompetitor).reduce((a, b) => a + b, 0), PROJECTS_DATA.length);
-  assert.equal(projectMetrics()[0].v, String(PROJECTS_DATA.length));
+test("sorting by stage puts the furthest stage first; no sort is offered that has no data behind it", () => {
+  const rows = projectFeed({ projects: P, filters: cfg.filters, seq: "stage" }).rows;
+  assert.ok(rows.every((p, i) => !i || rows[i - 1].stageRank >= p.stageRank));
+  const dated = projectFeed({ projects: P, filters: cfg.filters, seq: "recent" }).rows.map((p) => day(p.latest && p.latest.date));
+  assert.deepEqual(dated, [...dated].sort().reverse());
+});
+
+test("metrics are counted from the rows, with no region tile", () => {
+  const m = projectMetrics(P);
+  assert.equal(m[0].v, String(P.length));
+  assert.equal(m[1].v, String(new Set(P.map((p) => p.cid)).size));
+  assert.equal(m.length, 3);
+  assert.ok(!m.some((t) => /gulf/i.test(t.act + t.l)));
+  assert.equal(projectMetrics([])[0].v, "0");
 });

@@ -98,7 +98,7 @@ export default function Layout() {
   const metrics = useMemo(
     () =>
       onProjects
-        ? projectMetrics()
+        ? projectMetrics(data.projects)
         : onMarketReport
           ? marketMetrics(data.tenders)
           : metricsFor(cfg, overviewPillar, data),

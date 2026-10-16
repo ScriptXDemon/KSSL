@@ -5,15 +5,14 @@ import { useData } from "../../state/DataProvider";
 import { rosterOf } from "../../lib/profile";
 import { competitorFullName } from "../../lib/companyNames";
 import FeedFilters from "../../components/subHead/FeedFilters.jsx";
-import { PROJECTS_DATA, PROJECT_STAGES, AS_OF } from "../../lib/competitorProjects";
-import { PROJECT_FILTERS, PROJECT_SEQ, STANCE_CLASS, STANCE_WORD, projectFeed, latestWhen, day } from "../../lib/projects";
+import { STANCE_CLASS, STANCE_WORD, projectFeed, sortableSeq, latestWhen, day } from "../../lib/projects";
 import { srcChips } from "../../lib/html";
 import { formatDate } from "../../utils/formatDate";
 
-/* Projects: what each competitor is working on or pursuing, in the Gulf and worldwide. The competitors are
+/* Projects: what each competitor is working on or pursuing. The competitors are
    listed down the left; each project is a row in the Overview's layout, and its panel says what it is, where
    it stands, its specs, its dated timeline and what it means for the client. Everything is read from the
-   dataset's own records (lib/competitorProjects, built by db/competitor_projects.py); a fact a record does
+   dataset's own records (data.projects); a fact a record does
    not carry is left out, not filled in. */
 
 const ALL = "__all";
@@ -35,7 +34,7 @@ const Facts = ({ rows }) => (
   </div>
 );
 
-function ProjectPanel({ p, onClose }) {
+function ProjectPanel({ p, steps, regionLabel, onClose }) {
   const stance = p.assessment.stance;
   const cls = STANCE_CLASS[stance] || "watch";
   return (
@@ -52,8 +51,8 @@ function ProjectPanel({ p, onClose }) {
         <Sec title="At a glance">
           <Facts rows={[
             ["Competitor", p.company], ["Kind", p.kind], ["Customer", p.customer], ["Location", p.location],
-            ["Region", p.region === "Gulf" ? "Gulf region" : "Worldwide"], ["Stage", p.stage],
-            ["Latest milestone", p.latest ? `${formatDate(p.latest.date)}: ${p.latest.label}` : "Undated in the record"],
+            ["Region", regionLabel], ["Stage", p.stage],
+            ["Latest milestone", p.latest && (p.latest.date || p.latest.label) ? [p.latest.date ? formatDate(p.latest.date) : "", p.latest.label].filter(Boolean).join(": ") : ""],
           ]} />
         </Sec>
 
@@ -63,7 +62,7 @@ function ProjectPanel({ p, onClose }) {
 
         <Sec title="Current stage">
           <ol className="pj-steps">
-            {PROJECT_STAGES.map((s, i) => (
+            {steps.map((s, i) => (
               <li className={i + 1 < p.stageRank ? "done" : i + 1 === p.stageRank ? "now" : ""} key={s}><span>{s}</span></li>
             ))}
           </ol>
@@ -83,14 +82,14 @@ function ProjectPanel({ p, onClose }) {
               </li>
             ))}
           </ol>
-          <div className="pj-note">Researched to {formatDate(AS_OF)}.</div>
+          {p.researchedAsOf ? <div className="pj-note">Researched to {formatDate(p.researchedAsOf)}.</div> : null}
         </Sec>
 
         <Sec title="Strategic assessment">
           {p.assessment.read.length ? p.assessment.read.map((t, i) => (
             <div className="cd-prose" key={i} style={i ? { marginTop: "8px" } : undefined}>{t}</div>
           )) : <div className="cd-prose">No assessment on record.</div>}
-          <div className="pj-note">The analyst`s read for ${clientShort()}, from the dataset`s record of this item.</div>
+          {clientShort() ? <div className="pj-note">The analyst's read for {clientShort()}, from the dataset's record of this item.</div> : null}
         </Sec>
 
         {p.sources.length ? (
@@ -107,25 +106,29 @@ export default function Projects({ onSelectionChange }) {
   const { data } = useData();
   const { setScope } = useAppState();
   const [cid, setCid] = useState(ALL);
-  const [filter, setFilter] = useState("all");
+  const cfg = (data && data.projectsConfig) || {};
+  const projects = (data && data.projects) || [];
+  const cfgFilters = cfg.filters || [];
+  const seqOptions = useMemo(() => sortableSeq(cfg.seqOptions), [cfg.seqOptions]);
+  const [filter, setFilter] = useState(cfg.defaultFilter || "all");
   const [query, setQuery] = useState("");
-  const [seq, setSeq] = useState("recent");
+  const [seq, setSeq] = useState(seqOptions.some((o) => o[0] === cfg.defaultSeq) ? cfg.defaultSeq : "recent");
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
 
   const roster = useMemo(() => (data && data.competitors ? rosterOf(data) : [])
-    .filter((r) => PROJECTS_DATA.some((p) => p.cid === r.cid))
-    .map((r) => ({ cid: r.cid, name: competitorFullName(r.cid, r.name, data.competitors) || r.name || r.cid, threat: r.threat })), [data]);
+    .filter((r) => projects.some((p) => p.cid === r.cid))
+    .map((r) => ({ cid: r.cid, name: competitorFullName(r.cid, r.name, data.competitors) || r.name || r.cid, threat: r.threat })), [data, projects]);
 
   const { rows, counts, perCompetitor } = useMemo(
-    () => projectFeed({ cid: cid === ALL ? null : cid, filter, query, seq }), [cid, filter, query, seq]);
+    () => projectFeed({ projects, filters: cfgFilters, cid: cid === ALL ? null : cid, filter, query, seq }), [projects, cfgFilters, cid, filter, query, seq]);
   const shown = useMemo(() => {
     const q = search.toLowerCase().trim();
     return roster.filter((r) => !q || r.name.toLowerCase().includes(q)).sort((a, b) => (perCompetitor[b.cid] || 0) - (perCompetitor[a.cid] || 0));
   }, [roster, search, perCompetitor]);
   const total = Object.values(perCompetitor).reduce((n, v) => n + v, 0);
   const co = roster.find((r) => r.cid === cid) || null;
-  const sel = selected ? PROJECTS_DATA.find((p) => p.id === selected) || null : null;
+  const sel = selected ? projects.find((p) => p.id === selected) || null : null;
 
   useEffect(() => { onSelectionChange?.(!!sel); }, [sel, onSelectionChange]);
   useEffect(() => () => onSelectionChange?.(false), [onSelectionChange]);
@@ -184,13 +187,13 @@ export default function Projects({ onSelectionChange }) {
           <FeedFilters
             active={filter}
             counts={counts}
-            filters={PROJECT_FILTERS}
+            filters={[{ f: "all", l: "All" }, ...cfgFilters]}
             onFilter={setFilter}
             onSearch={setQuery}
             onSeq={setSeq}
             searchQuery={query}
             seqMode={seq}
-            seqOptions={PROJECT_SEQ}
+            seqOptions={seqOptions}
           />
         </div>
         <div className={`ov-body${sel ? " has-sel" : ""}`}>
@@ -219,17 +222,17 @@ export default function Projects({ onSelectionChange }) {
                     </div>
                     <div className="aside">
                       {cls && STANCE_WORD[p.assessment.stance] ? <span className={`dirtag ${cls}`}>{STANCE_WORD[p.assessment.stance]}</span> : null}
-                      <span className="ago">{latestWhen(p) || "Undated"}</span>
+                      <span className="ago">{latestWhen(p) || "—"}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
             {rows.length === 0 ? <div className="empty-note">No project matches {query ? `“${query}”` : "this filter"}{co ? ` for ${co.name}` : ""}.</div> : (
-              <div className="pager"><div className="pager-range">showing 1–{rows.length} of {rows.length}{rows.length !== PROJECTS_DATA.length ? ` filtered · ${PROJECTS_DATA.length} total` : " projects"}</div></div>
+              <div className="pager"><div className="pager-range">showing 1–{rows.length} of {rows.length}{rows.length !== projects.length ? ` filtered · ${projects.length} total` : " projects"}</div></div>
             )}
           </div>
-          {sel ? <ProjectPanel onClose={() => setSelected(null)} p={sel} /> : null}
+          {sel ? <ProjectPanel onClose={() => setSelected(null)} p={sel} regionLabel={((cfgFilters.find((f) => f.f === sel.region) || {}).l) || sel.region || ""} steps={cfg.stageSteps || []} /> : null}
         </div>
       </div>
     </div>

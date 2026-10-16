@@ -3,7 +3,6 @@ import { globalRequirements } from "./globalRequirements.js";
 /* Overview feed: the sequence logic, the group split, and the per-pillar metric
    strip. Pure — it returns data, and the React components render it. */
 import { parseCr, CR_PER_MILLION } from "./gapModel.js";
-import { PROJECTS_DATA } from "./competitorProjects.js";
 import { isTender, isProject } from "./tenderIntel.js";
 
 export const SEQ_LABEL = {
@@ -749,7 +748,7 @@ export function navCounts(d, gapModel) {
       (k) => k !== ((d.client && d.client.id)),
     ).length;
     counts["threat-analysis"] = Object.entries(d.competitorNews || {}).filter(([k]) => k !== ((d.client && d.client.id))).reduce((n, [, v]) => n + (v ? v.length : 0), 0);  // competitor moves on record (competitorNews)
-    counts.projects = PROJECTS_DATA.length;
+    counts.projects = (d.projects || []).length;
     counts.finances = 0;
 
     /* Products explorer lists COMPETITOR products (Products.jsx builds them from the
@@ -881,7 +880,7 @@ export function viewMetaFor(d) {
     },
     projects: {
       title: "Projects",
-      cnt: `${PROJECTS_DATA.length} competitor projects on record · Gulf and worldwide`,
+      cnt: `${(d.projects || []).length} competitor projects on record`,
       filters: false,
     },
     finances: {
