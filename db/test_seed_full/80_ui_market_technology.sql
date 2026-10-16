@@ -61,10 +61,10 @@ INSERT INTO staging_ui.market_ui_navigation
 INSERT INTO staging_ui.market_view
   (view_id, view_title, rail_label, rail_order, rail_count, is_selected, empty_state_text) VALUES
   ('top-opportunity',     'Top opportunity',     'Top opportunity',     1, 9,  true,  'No top opportunities or tender pipelines are on record.'),
-  ('market-intelligence', 'Market Intelligence', 'Market Intelligence', 2, 7,  false, 'Nothing on record matches the filters.'),
-  ('tenders',             'Tenders',             'Tenders',             3, 11, false, 'No tenders match the filters.'),
-  ('tender-assessment',   'Tender assessment',   'Tender assessment',   4, 6,  false, 'No tender has been assessed yet.'),
-  ('global-requirement',  'Global requirements', 'Global requirements', 5, 6,  false, 'No requirements on record');
+  ('tenders',             'Tenders',             'Tenders',             2, 11, false, 'No tenders match the filters.'),
+  ('global-requirement',  'Global requirements', 'Global requirements', 3, 6,  false, 'No requirements on record'),
+  ('market-intelligence', 'Market Intelligence', 'Market Intelligence', 4, 7,  false, 'Nothing on record matches the filters.'),
+  ('tender-assessment',   'Tender assessment',   'Tender assessment',   5, 6,  false, 'No tender has been assessed yet.');
 
 -- market_intelligence_tab: the five tabs of Market Intelligence with record counts. 5 rows.
 INSERT INTO staging_ui.market_intelligence_tab

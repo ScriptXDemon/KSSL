@@ -148,10 +148,13 @@ test.describe("review build", () => {
     await open(page, REVIEW_URL, "competitive", "partnerships");
     const list = page.locator(".rv-list", { hasText: "Field-level patterns" });
     await expect(list).toBeVisible({ timeout: 15000 });
+    const label = (await list.locator(".rv-li > span").first().innerText()).trim();
     await approveEndToEnd(page, list.locator(".rv-li .rv-bar").first());
-    // and the live dataset now carries the row
+    // and the live dataset carries THAT row (it was taken off before the approve, so this is the approve's doing)
     const live = await (await page.request.get(`${LIVE_URL}/api/dataset`)).json();
-    expect(((live.FIELDSYN && live.FIELDSYN.patterns) || []).length).toBeGreaterThan(0);
+    const F = live.FIELDSYN || {};
+    const liveLabels = [...(F.patterns || []).map((p) => (p.field || p.pattern || "").trim()), (F.bottom || "").trim()];
+    expect(liveLabels, `the approved row "${label}" is live`).toContain(label);
   });
 
   /* competitive_synthesis (+ its vulnerabilities and traces) is not a card of its own: GRAPH makes it part of the

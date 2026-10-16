@@ -55,12 +55,19 @@ ck("every chip on a line is removed, not just the first", !/adv-src/.test(advant
 const dossier = readFileSync(new URL("./src/components/matchupDossier/MatchupDossier.jsx", import.meta.url), "utf8");
 ck("Advantages renders through advantageText, not raw html",
    !/__html:\s*a\s*\}/.test(dossier) && /__html:\s*advantageText\(a\)/.test(dossier));
-// The imported dossier no longer builds a Competitor Detail "Sources" row at all (srcKvRow is not
-// used anywhere in the dossier), so the panel is source-free by construction. Pin that: a
-// future change that re-adds the row must put it behind SHOW_POSITIONING_SOURCES.
-ck("Competitor Detail has no ungated Sources row",
-   !/srcKvRow\s*\(/.test(dossier.replace(/SHOW_POSITIONING_SOURCES\s*\?\s*srcKvRow\([^)]*\)/g, "")) &&
-   !/\bm\.srcs\b/.test(dossier.replace(/SHOW_POSITIONING_SOURCES\s*\?\s*srcKvRow\(m\.srcs\)/g, "")));
+// The imported dossier has no Competitor Detail "Sources" row, and the served matchups carry no `srcs` (ruling R8: the
+// matchup sources panel is not ported). Hold both facts, and hold the rendered panels to them on every fixture matchup.
+import { specPanelHtml } from "./src/lib/specs.js";
+const fxm = JSON.parse(readFileSync("fixtures/kssl_dataset.json", "utf8")).matchups;
+const rows = Object.values(fxm);
+ck("the served matchups carry no sources list", rows.length > 0 && rows.every((m) => !("srcs" in m)));
+ck("Spec Comparison renders no source anchor or source line for any matchup",
+   rows.every((m) => { const h = specPanelHtml(m); return !/<a\s|srcline|srcchip|adv-src/i.test(h); }));
+ck("Advantages of every matchup render with no source anchor",
+   rows.every((m) => !/<a\s[^>]*adv-src/i.test([m.advBf, m.advComp].flat().filter(Boolean).map((x) => advantageText(x)).join(" "))));
+ck("no component reads a matchup's .srcs or builds a Sources row (srcKvRow is imported nowhere)",
+   !/m\.srcs|srcKvRow/.test(dossier) &&
+   !readFileSync(new URL("./src/components/matchupList/MatchupList.jsx", import.meta.url), "utf8").match(/\.srcs|srcKvRow/));
 
 // --- the control-byte guard that would have caught the silent regex ---------------
 const specs = readFileSync(new URL("./src/lib/specs.js", import.meta.url), "utf8");

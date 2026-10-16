@@ -248,12 +248,11 @@ export function patApiNote(d) {
   const meta = (d.PATENTS && d.PATENTS._meta) || {};
   /* the providers are the stored source notes of the filings (backend c_network.py); none stored means none named */
   const pv = Array.isArray(meta.providers) ? meta.providers : [];
-  const tot = meta.total || 0;
+  /* the count is the stored total; none stored, none printed (the empty state above already says there are no filings) */
+  const tot = Number(meta.total) > 0 ? Number(meta.total) : 0;
   return (
-    `<div class="pat-api-note"><b>Data source:</b> patent records are loaded from the platform dataset${pv.length ? `, sourced from ${pv.join(", ")}` : ""}. ` +
-    (tot
-      ? `${tot} filings currently indexed.`
-      : "No filings indexed yet - the patent research pass has not landed for this client.") +
+    `<div class="pat-api-note"><b>Data source:</b> patent records are loaded from the platform dataset${pv.length ? `, sourced from ${pv.join(", ")}` : ""}.` +
+    (tot ? ` ${tot} filings currently indexed.` : "") +
     "</div>"
   );
 }

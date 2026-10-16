@@ -87,14 +87,19 @@ test("FE-005 no view renders an unhandled crash", async ({ page }) => {
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
-test("FE-006 assistant and metric strip render in their Layout regions", async ({ page }) => {
-  await boot(page);
-  // AskBox (assistant) and MetricsStrip are layout regions; assert both mount
-  const ask = page.locator(".askbox, [class*='ask'], [class*='assistant']");
-  const strip = page.locator(".metrics-strip, [class*='metric']");
-  test.skip((await ask.count()) === 0 && (await strip.count()) === 0,
-    "neither assistant nor metric strip is exposed in this build");
-  expect((await ask.count()) + (await strip.count())).toBeGreaterThan(0);
+test("FE-006 the competitive metric strip shows the stored tile labels", async ({ page }) => {
+  await boot(page, "#p=competitive&v=overview");
+  const j = await (await page.request.get("/api/dataset")).json();
+  const want = j.database.ui.competitive_metric
+    .filter((r) => ["threats", "watch", "companies_tracked"].includes(r.metric_key))
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((r) => r.metric_label.toLowerCase());
+  expect(want.length, "the seed stores the three competitive tiles").toBe(3);
+  const shown = (await page.locator(".metrics .metric:not(.metric-blank) .ml").allInnerTexts()).map((t) => t.trim().toLowerCase());
+  expect(shown, "the strip is exactly the stored tiles, in stored order").toEqual(want);
+  // each tile carries a count, not a dash
+  const values = await page.locator(".metrics .metric:not(.metric-blank) .mv").allInnerTexts();
+  for (const v of values) expect(v.trim()).toMatch(/^\d+/);
 });
 
 // -------------------------------------------------- routing
@@ -162,15 +167,27 @@ test("FE-021 the feed count line agrees with the cards shown", async ({ page }) 
   expect(Math.max(...nums)).toBeGreaterThanOrEqual(shown); // count line agrees with cards shown
 });
 
-test("FE-022 a direction filter narrows the feed", async ({ page }) => {
+test("FE-022 the direction pills are the stored stance labels and narrow the feed", async ({ page }) => {
   await boot(page, "#p=competitive&v=overview");
-  const before = await page.locator(".alert").count();
-  const filter = page.locator("[class*='facet'] [role='button'], .facet button, [class*='filter'] button").first();
-  test.skip((await filter.count()) === 0, "no exposed direction filter control in this build");
-  await filter.click();
+  const j = await (await page.request.get("/api/dataset")).json();
+  const stance = j.database.ui.filter_option.filter((o) => o.filter_group === "stance").sort((a, b) => a.display_order - b.display_order);
+  expect(stance.map((o) => o.option_code), "the only stances are threat and watch").toEqual(["threat", "watch"]);
+  const pills = page.locator(".dir-filters .fbtn");
+  await expect(pills).toHaveCount(1 + stance.length); // the reset pill and one per stored stance
+  const texts = (await pills.allInnerTexts()).map((t) => t.replace(/\s*\d+\s*$/, "").trim().toLowerCase());
+  expect(texts).toEqual(["all", ...stance.map((o) => o.option_label.toLowerCase())]);
+  const total = await page.locator(".alert").count();
+  expect(total).toBeGreaterThan(0);
+  await pills.nth(1).click(); // Threat
   await page.waitForTimeout(400);
-  const after = await page.locator(".alert").count();
-  expect(after).toBeLessThanOrEqual(before);
+  const rows = page.locator(".alert");
+  const n = await rows.count();
+  expect(n).toBeGreaterThan(0);
+  expect(n).toBeLessThan(total);
+  for (const d of await rows.evaluateAll((els) => els.map((e) => e.getAttribute("data-dir")))) expect(d).toBe("threat");
+  // a card badge uses the stored badge word
+  const badge = (await page.locator(".alert .dirtag").first().innerText()).trim().toLowerCase();
+  expect(badge).toBe(stance[0].badge_label.toLowerCase());
 });
 
 test("FE-023 an empty filter is explicitly marked empty", async ({ page }) => {
