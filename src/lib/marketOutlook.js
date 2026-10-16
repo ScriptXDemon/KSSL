@@ -2,10 +2,12 @@
 
    Every figure is counted from records the dataset serves and each section says which records it used:
      tenders      data.tenders (Published or Closes date from the row's req list, category `cat`)
-     awards       data.awards (winner, value_usd, buyer, segment, date or year)
+     awards       data.awards (winner, value + currency, buyer, segment, date or year)
      signals      data.marketCards that are not tenders (meta "Kind · Country · Segment · date")
    Nothing is invented. A date a record does not carry is not guessed: a year-only award counts as an award, not as
    activity in a quarter. "Revenue" is the pack's own estimate (tender.revenueMid, USD), labelled as an estimate. */
+
+import { AWARD_FIELDS, hasAmount, valueTotals } from "./tenderValue.js";
 
 const DAY = 86400000;
 export const WINDOW_DAYS = 183;      // "last 6 months" is this many days back from today, and the same again before it
@@ -87,15 +89,16 @@ export function segments(d, openTenders, today = new Date(), closedTenders = [])
   return [...by.values()].map((r) => {
     const mine = fit.filter((t) => segmentOf(t.cat) === r.segment);
     const aw = won.filter((a) => segmentOf(a.segment) === r.segment);
-    const usd = new Map();
+    /* the segment's leading winner is the one with the most awards; award values are in their own
+       currencies and are never added across currencies, so no share of value is computed */
+    const wins = new Map();
     aw.forEach((a) => {
       const k = winnerKey(a.winner);
-      const cur = usd.get(k) || { name: a.winner, usd: 0 };
-      cur.usd += a.value_usd || 0;
-      usd.set(k, cur);
+      const cur = wins.get(k) || { name: a.winner, n: 0 };
+      cur.n += 1;
+      wins.set(k, cur);
     });
-    const total = [...usd.values()].reduce((n, x) => n + x.usd, 0);
-    const top = [...usd.values()].sort((a, b) => b.usd - a.usd)[0];
+    const top = [...wins.values()].sort((a, b) => b.n - a.n || String(a.name).localeCompare(String(b.name)))[0];
     const called = r.before >= MIN_BEFORE;
     const trend = !called ? "not enough history" : r.recent > r.before * 1.25 ? "rising" : r.recent < r.before * 0.75 ? "falling" : "steady";
     const open = mine.length;
@@ -113,8 +116,8 @@ export function segments(d, openTenders, today = new Date(), closedTenders = [])
       change: called ? Math.round(((r.recent - r.before) / r.before) * 100) : null,
       records: { tenders: r.tenders, signals: r.signals, awards: r.awards },
       open, value: mine.reduce((n, t) => n + revenueOf(t), 0),
-      winner: top && top.usd ? top.name : null, winnerShare: top && total ? top.usd / total : null,
-      winnerWins: top ? aw.filter((a) => winnerKey(a.winner) === winnerKey(top.name)).length : 0, named: aw.length, act,
+      winner: top ? top.name : null,
+      winnerWins: top ? top.n : 0, named: aw.length, act,
       pending, latest: latestSignal.get(r.segment) || null,
     };
   }).filter((r) => r.recent || r.before || r.open).sort((a, b) => b.value - a.value || b.recent - a.recent);
@@ -124,24 +127,23 @@ export function segments(d, openTenders, today = new Date(), closedTenders = [])
 export function winners(d) {
   const all = d.awards || [];
   const won = all.filter((a) => a.winner);
-  const priced = won.filter((a) => a.value_usd);
-  const total = priced.reduce((n, a) => n + a.value_usd, 0);
+  const priced = won.filter((a) => hasAmount(a, AWARD_FIELDS));
   const by = new Map();
   won.forEach((a) => {
     const k = winnerKey(a.winner);
-    const r = by.get(k) || { winner: a.winner, wins: 0, usd: 0, brand: null, buyers: new Set() };
+    const r = by.get(k) || { winner: a.winner, wins: 0, awards: [], brand: null, buyers: new Set() };
     r.wins += 1;
-    r.usd += a.value_usd || 0;
+    r.awards.push(a);
     r.buyers.add(a.buyer);
     if (!r.brand && a.brand) r.brand = a.brand;
     by.set(k, r);
   });
-  const rows = [...by.values()].map((r) => ({ ...r, buyers: [...r.buyers], share: total ? r.usd / total : 0 }))
-    .sort((a, b) => b.usd - a.usd || b.wins - a.wins);
+  /* one total per stored currency for each winner and overall; no conversion, so no share of value either */
+  const rows = [...by.values()].map(({ awards, ...r }) => ({ ...r, buyers: [...r.buyers], totals: valueTotals(awards, AWARD_FIELDS) }))
+    .sort((a, b) => b.wins - a.wins || String(a.winner).localeCompare(String(b.winner)));
   // awards for running or servicing equipment rather than supplying it, so a reader can discount them
-  const svc = priced.filter((a) => /\b(maintenance|operation|operat|repair|rehabilit|cleaning)\b/i.test(`${a.programme || ""} ${a.title || ""}`));
-  const svcUsd = svc.reduce((n, a) => n + a.value_usd, 0);
-  return { records: all.length, named: won.length, priced: priced.length, totalUsd: total, rows, serviceAwards: svc.length, serviceShare: total ? svcUsd / total : 0 };
+  const svc = priced.filter((a) => /(maintenance|operation|operat|repair|rehabilit|cleaning)/i.test(`${a.programme || ""} ${a.title || ""}`));
+  return { records: all.length, named: won.length, priced: priced.length, totals: valueTotals(priced, AWARD_FIELDS), rows, serviceAwards: svc.length };
 }
 
 /* ---- 3. sizes buyers need, against the client's catalogue ---- */
@@ -255,9 +257,9 @@ if (typeof process !== "undefined" && process.argv[1] && process.argv[1].endsWit
       { cat: "Healthcare", req: [["Closes", "2026-03-01"]], issuer: "MoH" },
     ],
     awards: [
-      { segment: "Service", winner: "A Trading Co.", value_usd: 100, buyer: "KNPC", date: "2026-09-01" },
-      { segment: "Service", winner: "A Trading", value_usd: 50, buyer: "KNPC", date: null, year: 2025 },
-      { segment: "Other", winner: "B", value_usd: null, buyer: "MoH", date: "2026-02-01" },
+      { segment: "Service", winner: "A Trading Co.", value: 100, currency: "USD", buyer: "KNPC", date: "2026-09-01" },
+      { segment: "Service", winner: "A Trading", value: 50, currency: "USD", buyer: "KNPC", date: null, year: 2025 },
+      { segment: "Other", winner: "B", value: null, currency: null, buyer: "MoH", date: "2026-02-01" },
     ],
     marketCards: [{ meta: "Pipeline · Saudi Arabia · Service · 02 Oct 2026", title: "S" }, { meta: "Demand shift · Global · Service · 02 Oct 2026", title: "G" }, { meta: "Tender · X · closes 08 Oct 2026", title: "T" }],
     competitors: { C: { products: [{ name: "C1", hz: 50, specs: { "Standby rating": "1,100 kVA" } }] }, R: { products: [{ name: "R1", hz: 50, specs: { "Standby rating": "1,200 kVA" } }] } },

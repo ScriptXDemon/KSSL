@@ -3,15 +3,19 @@
    a total is a sum per currency, and a mixed set is shown as one total for each. No exchange
    rate exists anywhere in code or in the loader (ruling R9). */
 
-export const hasAmount = (t) => !!t && Number(t.valueAmount) > 0 && !!String(t.valueCurrency || "").trim();
+/* the field names a record keeps its amount and currency under: tenders use the default, awards use AWARD_FIELDS */
+export const TENDER_FIELDS = { amount: "valueAmount", currency: "valueCurrency" };
+export const AWARD_FIELDS = { amount: "value", currency: "currency" };
+
+export const hasAmount = (t, f = TENDER_FIELDS) => !!t && Number(t[f.amount]) > 0 && !!String(t[f.currency] || "").trim();
 
 /* [{ currency, amount, n }], one per stored currency, in currency-code order */
-export function valueTotals(list) {
+export function valueTotals(list, f = TENDER_FIELDS) {
   const by = {};
-  (list || []).filter(hasAmount).forEach((t) => {
-    const c = String(t.valueCurrency).trim();
+  (list || []).filter((t) => hasAmount(t, f)).forEach((t) => {
+    const c = String(t[f.currency]).trim();
     const e = by[c] || (by[c] = { currency: c, amount: 0, n: 0 });
-    e.amount += Number(t.valueAmount);
+    e.amount += Number(t[f.amount]);
     e.n += 1;
   });
   return Object.values(by).sort((a, b) => a.currency.localeCompare(b.currency));

@@ -1,5 +1,6 @@
 import { clientShort } from "../../lib/client.js";
 import { usd, segmentLabel, WINDOW_DAYS } from "../../lib/marketOutlook";
+import { formatTotals } from "../../lib/tenderValue";
 import { formatDate } from "../../utils/formatDate";
 import "../../styles/market-overview.css";
 import "../../styles/tender-intel.css";
@@ -90,7 +91,7 @@ export default function MarketOutlook({ data, o }) {
                 {r.winner ? (
                   <>
                     <span className="od-main">{r.winner}</span>
-                    <span className="od-sub">{Math.round(r.winnerShare * 100)}% of value · {r.winnerWins} of {r.named} award{r.named === 1 ? "" : "s"}</span>
+                    <span className="od-sub">{r.winnerWins} of {r.named} award{r.named === 1 ? "" : "s"}</span>
                   </>
                 ) : (
                   <span className="od-none">{r.named ? `${r.named} named award${r.named === 1 ? "" : "s"}, no value published` : "No past award on record"}</span>
@@ -117,10 +118,10 @@ export default function MarketOutlook({ data, o }) {
 
       <Block
         empty="no past award with a named winner"
-        head={[["Winner"], ["Brand"], ["Wins", true], ["Value", true], ["Share", true], ["Buyers", true]]}
-        note={`who wins the contracts · ${win.named} awards with a named winner, ${usd(win.totalUsd)} in USD`}
+        head={[["Winner"], ["Brand"], ["Wins", true], ["Value", true], ["Buyers", true]]}
+        note={`who wins the contracts · ${win.named} awards with a named winner, valued ${formatTotals(win.totals)}`}
         rows={win.rows}
-        source={`${win.records} award records, ${win.named} name a winner, ${win.priced} carry a value. ${win.serviceAwards} of the priced awards are operation or maintenance contracts and make up ${Math.round(win.serviceShare * 100)}% of the value, so a winner's share can reflect servicing as well as supply. Top 10 of ${win.rows.length} winners shown.`}
+        source={`${win.records} award records, ${win.named} name a winner, ${win.priced} carry a value. ${win.serviceAwards} of the priced awards are operation or maintenance contracts, so a winner's value can reflect servicing as well as supply. Values are in each award's own currency, not converted. Top 10 of ${win.rows.length} winners shown.`}
         title="Who wins"
       >
         {win.rows.slice(0, 10).map((r) => (
@@ -128,8 +129,7 @@ export default function MarketOutlook({ data, o }) {
             <td className="ovt-t">{r.winner}</td>
             <td>{r.brand || "—"}</td>
             <td className="num">{r.wins}</td>
-            <td className="num">{usd(r.usd)}</td>
-            <td className="num">{Math.round(r.share * 100)}%</td>
+            <td className="num">{formatTotals(r.totals)}</td>
             <td className="num">{r.buyers.length}</td>
           </tr>
         ))}

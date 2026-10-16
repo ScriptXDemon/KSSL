@@ -5,6 +5,7 @@ import { bucketTenders } from "../../lib/overview";
 import { formatDate } from "../../utils/formatDate";
 import MarketOutlook from "../../components/marketOutlook/MarketOutlook";
 import { outlook } from "../../lib/marketOutlook";
+import { formatTotals } from "../../lib/tenderValue";
 import {
   CATEGORY_COLOR,
   catOf,
@@ -270,7 +271,7 @@ export default function MarketOverview() {
         subtitle: `${ol.segments.length} segments · ${ol.winners.named} named award winners`,
         sections: [
           { h: "Where demand is heading", rows: ol.segments.map((r) => [r.segment, `${r.recent} in the last 6 months, ${r.before} before · ${r.open} open tenders fit · ${r.act}`]) },
-          { h: "Who wins", rows: ol.winners.rows.slice(0, 10).map((r) => [r.winner, `${r.wins} wins · ${Math.round(r.share * 100)}% of award value`]) },
+          { h: "Who wins", rows: ol.winners.rows.slice(0, 10).map((r) => [r.winner, `${r.wins} wins · ${formatTotals(r.totals)}`]) },
         ],
         payload: { section, outlook: ol },
       };
@@ -674,7 +675,7 @@ export default function MarketOverview() {
                                 {a.winner}
                                 {a.brand ? <span className="ovt-buyer">{a.brand}</span> : null}
                               </td>
-                              <td className="num">{a.value_usd ? `USD ${a.value_usd >= 1e6 ? (a.value_usd / 1e6).toFixed(1) + "M" : Math.round(a.value_usd / 1e3) + "k"}` : "—"}</td>
+                              <td className="num">{a.value_text || (a.value && a.currency ? `${a.currency} ${a.value.toLocaleString("en-US")}` : "—")}</td>
                               <td className="num">{a.bids || "—"}</td>
                               <td>
                                 {a.url ? (
