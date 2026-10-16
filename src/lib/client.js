@@ -14,3 +14,13 @@ export function clientName() {
 export function clientShort() {
   return (current && (current.short || current.name)) || "";
 }
+
+/* "<client> · Product" -> "Product". The prefix is the client's own name or short name from the
+   data; with no client record nothing is stripped. */
+export function stripClientPrefix(label) {
+  const s = String(label == null ? "" : label);
+  const own = [clientShort(), clientName()].filter(Boolean).find(
+    (n) => s.toLowerCase().startsWith(n.toLowerCase()) && /^\s*·/.test(s.slice(n.length)),
+  );
+  return own ? s.slice(own.length).replace(/^\s*·\s*/, "") : s;
+}

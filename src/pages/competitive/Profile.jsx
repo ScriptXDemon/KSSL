@@ -16,7 +16,7 @@ import Thumb from "../../components/thumb/Thumb.jsx";
    rest of the card. Both are still exported and still used by the pages that have no
    whole-row link. */
 import { ArticleLink } from "../../components/sourceLink/SourceLink.jsx";
-import { tickerFor, notListedNote } from "../../lib/tickers";
+import { tickerFor } from "../../lib/tickers";
 import { competitorFullName } from "../../lib/companyNames";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
    persisted to localStorage, which survives the tab, the browser and the machine's
@@ -42,31 +42,22 @@ const getInitials = (name) => {
   return parts[0].slice(0, 2).toUpperCase();
 };
 
-const DUMMY_NEWS_DATES = [
-  "27 Sep 2026", "15 Sep 2026", "15 Aug 2026", "07 Aug 2026",
-  "04 Jul 2026", "19 Jun 2026", "07 Jun 2026", "22 May 2026",
-  "14 May 2026", "29 Apr 2026", "18 Apr 2026", "02 Apr 2026",
-  "19 Mar 2026", "08 Mar 2026", "21 Feb 2026", "10 Feb 2026",
-  "24 Jan 2026", "12 Jan 2026", "28 Dec 2025", "15 Dec 2025"
-];
-
-const fmtNewsDate = (item, idx = 0) => {
+const fmtNewsDate = (item) => {
   if (item && item.date) {
     try {
       const d = new Date(item.date);
       if (!isNaN(d.getTime())) {
         const day = String(d.getDate()).padStart(2, "0");
         const month = d.toLocaleString("en-US", { month: "short" });
-        const year = d.getFullYear() || 2026;
-        return `${day} ${month} ${year}`;
+        return `${day} ${month} ${d.getFullYear()}`;
       }
     } catch (e) {}
   }
-  return DUMMY_NEWS_DATES[idx % DUMMY_NEWS_DATES.length];
+  return "—";
 };
 
 const formatNewsSource = (item) => {
-  if (item && item.source && item.source !== "Unattributed") {
+  if (item && item.source && item.source) {
     return item.source;
   }
   if (item && item.url) {
@@ -75,16 +66,7 @@ const formatNewsSource = (item) => {
       return u.hostname.replace(/^www\./, "");
     } catch (e) {}
   }
-  return "demo · policy-watch.example";
-};
-
-const cleanNewsCategory = (cat) => {
-  const c = String(cat || "").toLowerCase();
-  if (c.includes("finan") || c.includes("revenue") || c.includes("order")) return "Financial";
-  if (c.includes("gov") || c.includes("mod") || c.includes("ministry") || c.includes("indigenis")) return "Government";
-  if (c.includes("work") || c.includes("skill") || c.includes("employ") || c.includes("talent")) return "Workforce";
-  if (c.includes("market") || c.includes("stock") || c.includes("share") || c.includes("analyst")) return "Markets";
-  return "Defence";
+  return "—";
 };
 
 /* A NEWS ROW'S PRODUCT CATEGORY, from the dataset's own keyword map (CAT_ALIASES:
@@ -124,50 +106,10 @@ export function tenureText(from, to, now = new Date().getFullYear()) {
   return `${span} · ${n < 1 ? "under 1 yr" : `${n} yr${n === 1 ? "" : "s"}`}`;
 }
 
-const FALLBACK_NEWS_IMAGES = [
-  "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80"
-];
-
-function getLeaderPsychology(leader, companyName) {
-  const name = (leader.name || "").toLowerCase();
-  const cName = (companyName || "").toLowerCase();
-  if (name.includes("rajvanshi") || cName.includes("adani")) {
-    return {
-      doctrine: "Champion of end-to-end sovereign ecosystems; prioritises speed of technology absorption from tier-1 global aerospace and defence innovators into domestic manufacturing clusters.",
-      execution: "Favours high-throughput mega-complexes (e.g., South Asia's largest ammunition and missile facilities in Kanpur) over fragmented workshops to achieve sovereign economies of scale.",
-      risk: "Calculated aggressive early-mover capital allocation: commits capital to build advanced manufacturing infrastructure ahead of formal procurement cycles, positioning the group as a prime bidder for major MoD tenders.",
-      outlook: "Aligns tightly with MoD indigenisation positive lists (DAP 2020) and targets export corridors across the Middle East, Southeast Asia, and Central Asia."
-    };
-  }
-  if (name.includes("subrahmanyan") || cName.includes("larsen") || cName.includes("l&t")) {
-    return {
-      doctrine: "Engineering-first sovereign capability builder with zero tolerance for execution slippage; positions L&T as India's premier private defence contractor across naval platforms, artillery, and strategic missile launchers.",
-      execution: "Integrates precision heavy engineering with proprietary digital design systems; leverages massive internal EPC capacity to deliver complex multi-year defence programs ahead of contractual schedules.",
-      risk: "Disciplined, long-term balance sheet stewardship: balances long-gestation strategic defence capital expenditure with consistent cash generation from diversified commercial divisions.",
-      outlook: "Core advocate of strategic autonomy; champions indigenous design IP in partnership with DRDO and the Indian Navy while remaining selective about high-technology JVs with Western primes."
-    };
-  }
-  return {
-    doctrine: `Focuses on developing core sovereign engineering IP and rapid vertical integration to support indigenous modernization mandates at ${companyName}.`,
-    execution: "Emphasizes modular platform architecture, stringent quality assurance, and digitalized manufacturing workflows to compress delivery lead times.",
-    risk: "Prudent risk appetite balanced by strategic capital reinvestment into specialized test facilities, precision tooling, and domestic supply-chain resilience.",
-    outlook: "Actively aligns organizational capabilities with tri-services long-term acquisition plans and export opportunities in friendly foreign countries."
-  };
-}
-
 function LeaderPage({ leader, companyName, companyArticles, onBack }) {
   const exp = leader.experience || [];
   const edu = leader.education || [];
   const current = exp.find((e) => isPresent(e.to)) || null;
-  const psych = useMemo(() => getLeaderPsychology(leader, companyName), [leader, companyName]);
 
   return (
     <div className="cp-person">
@@ -527,7 +469,7 @@ export default function Profile() {
     return p.leadership.map((r) => ({
       name: r.value,
       fullName: r.full_name || r.value,
-      role: r.detail || "Key Executive / Officer",
+      role: r.detail || "—",
       source: r.url,
       photo: r.photo || null,
       photoSource: r.photo_source || null,
@@ -820,7 +762,7 @@ export default function Profile() {
         {!p ? (
           <div className="cp-empty">select a competitor</div>
         ) : stockOpen ? (
-          <StockPage cid={p.cid} companyName={displayName} onBack={() => setStockOpen(false)} />
+          <StockPage cid={p.cid} ticker={tickerFor(p.cid, data.competitors)} companyName={displayName} onBack={() => setStockOpen(false)} />
         ) : selectedLeader ? (
           <LeaderPage
             leader={selectedLeader}
@@ -907,7 +849,7 @@ export default function Profile() {
             {/* 2. STRATEGIC POSITIONING */}
             <Sec title="Strategic Positioning">
               <p className="cp-prose" style={{ fontSize: "13.5px", lineHeight: "1.65", color: "var(--d-read)", marginBottom: "18px" }}>
-                {p.strategic_positioning || p.assess || `${displayName} is actively scaling indigenous manufacturing capabilities across core defence, aerospace, and tactical systems. The company converts technological partnerships into sovereign programs across tri-services modernisation and domestic procurement mandates.`}
+                {p.strategic_positioning || p.assess || "—"}
               </p>
 
               {/* PARALLAX READ */}
@@ -1070,10 +1012,10 @@ export default function Profile() {
                               <Thumb src={imgUrl} alt="" className="ln-feed-thumb" />
                               <div className="ln-feed-info">
                                 <div className="ln-feed-meta">
-                                  {item.category || "Defence"} · {item.ago || (item.date ? String(item.date).slice(0, 10) : "")}
+                                  {item.category || "—"} · {item.ago || (item.date ? String(item.date).slice(0, 10) : "")}
                                 </div>
                                 <div className="ln-feed-title">{item.title}</div>
-                                <span className="ln-feed-src">{item.source || "Unattributed"}</span>
+                                <span className="ln-feed-src">{item.source || "—"}</span>
                               </div>
                             </ArticleLink>
                           </div>
@@ -1089,7 +1031,7 @@ export default function Profile() {
             <Sec title="Company Stocks">
               <div className="ln-widget-row" style={{ marginTop: "4px" }}>
                 {(() => {
-                  const ticker = tickerFor(p.cid) || (p.cid === "larsen-toubro" ? "LT.NS" : `${p.cid.toUpperCase().slice(0, 6)}.NS`);
+                  const ticker = tickerFor(p.cid, data.competitors) || "—";
                   const st = pulse && pulse.stock;
                   if (!st) return null;
                   const open = () => { setSelectedLeader(null); setStockOpen(true); };
@@ -1122,7 +1064,7 @@ export default function Profile() {
                         <Spark series={st.series} up={(st.changePct || 0) >= 0} />
                       ) : null}
                       <div style={{ fontSize: "11px", color: "var(--d-txt-2)", marginTop: "4px" }}>
-                        {st.exchange || "NSE"} · {st.asOf ? new Date(st.asOf).toLocaleDateString() : "1/10/2026"} · Yahoo Finance
+                        {[st.exchange, st.asOf ? new Date(st.asOf).toLocaleDateString() : null].filter(Boolean).join(" · ")} · Yahoo Finance
                       </div>
                     </div>
                   );
@@ -1192,7 +1134,7 @@ export default function Profile() {
                     }}
                   >
                     <span className="ln-row-date" style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "var(--d-txt-3)", whiteSpace: "nowrap" }}>
-                      {fmtNewsDate(item, idx)}
+                      {fmtNewsDate(item)}
                     </span>
                     <span className="ln-row-title" style={{ fontSize: "13px", color: "var(--d-txt)", fontWeight: "500", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.title}
@@ -1212,7 +1154,7 @@ export default function Profile() {
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {cleanNewsCategory(item.category)}
+                        {item.category || "—"}
                       </span>
                     </span>
                     <span className="ln-row-url" style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "var(--d-txt-3)", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1321,7 +1263,7 @@ function PriceChart({ points, moves, currency }) {
   );
 }
 
-function StockPage({ cid, companyName, onBack }) {
+function StockPage({ cid, ticker, companyName, onBack }) {
   const [range, setRange] = useState("1y");
   const [hist, setHist] = useState({ loading: true });
   useEffect(() => {
@@ -1345,7 +1287,7 @@ function StockPage({ cid, companyName, onBack }) {
         <div>
           <h1 className="cp-person-name">{companyName} · Stock</h1>
           <div className="cp-person-now">
-            {h ? `${h.symbol}${h.exchange ? ` · ${h.exchange}` : " · NSE"}` : tickerFor(cid) || ""}
+            {h ? `${h.symbol}${h.exchange ? ` · ${h.exchange}` : ""}` : ticker || ""}
             <span className="cp-person-at"> · Yahoo Finance</span>
           </div>
         </div>

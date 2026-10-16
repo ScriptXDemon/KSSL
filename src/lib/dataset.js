@@ -782,6 +782,8 @@ function adaptPatents(d) {
          the per-holder country chips counted the same office twice without this. */
       jurisdiction: normCountry(r.country || r.jurisdiction || ""),
       ipc: r.ipc || [],
+      /* the classification's own words, as stored (competitive_patent_filing.classification_text) */
+      ipcText: r.ipcText || "",
       abstract: r.abstract || r.claims || "",
       techArea: r.area || r.techArea || "",
       // threat was dropped here once, so every holder rendered as 'low' while the

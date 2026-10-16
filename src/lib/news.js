@@ -54,7 +54,7 @@ function shape(row, byUrl, i) {
   const d = (row.url && byUrl[row.url]) || null;
   return {
     id: row.id != null ? `news-${row.id}` : `news-${i}`,
-    category: row.category || "Update",
+    category: row.category || "—",
     ago: newsDate(row.date),
     date: row.date || null,
     title: row.title,

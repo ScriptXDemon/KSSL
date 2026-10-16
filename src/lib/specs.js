@@ -1,7 +1,7 @@
 /* Paired-bar spec renderer for the Positioning dossier, plus the gap block that sits
    under the verdict. Kept as string builders because they are dense read-only markup
    with no interaction beyond the container — the same trade the original made. */
-import { clientShort } from "./client.js";
+import { clientShort, stripClientPrefix } from "./client.js";
 import { computeSpecEdge, edgeBasis, edgeVerdict, isNumericVal } from "./edge.js";
 import { escAll } from "./html.js";
 import { formatCrore } from "../utils/formatNumber.js";
@@ -55,7 +55,7 @@ function specRow(s, compName) {
       `<div class="specbar"><div class="sb-label">${s.l}${s.u ? ` <span class="sb-unit">(${s.u})</span>` : ""}</div>` +
       '<div class="sb-pair">' +
       `<div class="sb-side bf"><span class="sb-who">${clientShort()}</span><span class="sb-num">${specValueWithUnit(s.kv, s.u) || s.kv}${dot(kpv)}</span></div>` +
-      `<div class="sb-side comp"><span class="sb-who">${compName || "Competitor"}</span><span class="sb-num">${specValueWithUnit(s.cv, s.u) || s.cv}${dot(cpv)}</span></div>` +
+      `<div class="sb-side comp"><span class="sb-who">${compName || "—"}</span><span class="sb-num">${specValueWithUnit(s.cv, s.u) || s.cv}${dot(cpv)}</span></div>` +
       "</div></div>"
     );
   }
@@ -98,7 +98,7 @@ function specRow(s, compName) {
     `<span class="sb-val${bfWin ? " win" : ""}">${s.kv}${dot(kpv)}${badge(bfWin)}</span>` +
     "</div>" +
     `<div class="sb-cmprow${compWin ? " win" : ""}">` +
-    `<span class="sb-who comp">${compName || "Competitor"}</span>` +
+    `<span class="sb-who comp">${compName || "—"}</span>` +
     `<div class="sb-track"><div class="sb-fill comp${compWin ? ` win ${tier}` : ""}" style="width:${cw}%"></div></div>` +
     `<span class="sb-val${compWin ? " win" : ""}">${s.cv}${dot(cpv)}${badge(compWin)}</span>` +
     "</div>" +
@@ -151,19 +151,9 @@ export function productSpecs(specs, side, labelOf) {
 
 export const SHOW_POSITIONING_SOURCES = false;
 
-/* ONE SPEC FIELD, MANY LABELS -- the same table as backend/app.py _SPEC_SYNONYMS, so the page
-   and the API agree on when "Maximum speed" and "Max speed" are the same field. */
-const SPEC_SYNONYMS = {
-  caliber: "calibre", "maximum range": "range", "max range": "range", "effective range": "range",
-  "operational range": "range", "firing range": "range", "maximum speed": "max speed",
-  speed: "max speed", "top speed": "max speed", "combat weight": "weight", "empty weight": "weight",
-  mass: "weight", "overall length": "length", "engine power": "power", "power output": "power",
-  "payload capacity": "payload",
-};
-export const specKey = (label) => {
-  const k = String(label || "").trim().replace(/\s+/g, " ").toLowerCase();
-  return SPEC_SYNONYMS[k] || k;
-};
+/* One spec field is one stored label. Labels are compared as stored (trimmed, case-folded): two distinct
+   labels are two rows, because merging them would invent a comparability the data does not state. */
+export const specKey = (label) => String(label || "").trim().replace(/\s+/g, " ").toLowerCase();
 
 /* A matchup's own spec sheet, with the fields it lacks filled from the competitor's product
    record (curated + per-document enrichment, merged per field by the backend). The matchup's
@@ -305,7 +295,7 @@ export function specBars(specs, compName) {
 
 /* The whole Spec Comparison panel body for one matchup. */
 export function specPanelHtml(m) {
-  const compName = (m.compBy || m.comp || "Competitor").split("·")[0].split("‧")[0].trim();
+  const compName = (m.compBy || m.comp || "").split("·")[0].split("‧")[0].trim();
   /* USER ASK: "in positioning show only those specs which are being compared." A
      comparison needs a figure on BOTH sides -- a row with one side blank is one
      product's datasheet line, not a comparison. Those are hidden here (still on each
@@ -381,9 +371,9 @@ export function matchupGapHtml(m, model) {
     (g) =>
       g.pillar === "competitive" &&
       g.benchmark_entity === m.comp &&
-      (g.koel_entity === m.bf || g.koel_entity === `KSSL · ${m.anchor}`),
+      g.koel_entity === m.bf,
   );
-  const clientProd = (m.bf || `KSSL · ${m.anchor}`).replace(/^(KSSL|Kalyani Strategic Systems) · /, "");
+  const clientProd = stripClientPrefix(m.bf);
   let dir;
   let mag;
   if (behind > 0.02) {

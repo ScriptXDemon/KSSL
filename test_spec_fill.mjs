@@ -13,13 +13,14 @@ const ok = (c, m) => { if (!c) { bad++; console.log("  FAIL " + m); } else conso
 const r = fillSpecs({ Calibre: "155 mm", "Maximum range": "40 km" },
                     { Range: "54 km", Crew: "4", "Max speed": "65 km/h", Weight: "" });
 ok(r.specs.Calibre === "155 mm" && r.specs["Maximum range"] === "40 km", "the matchup's own values are kept");
-ok(!("Range" in r.specs), "a synonym of a field it has is not added (Range vs Maximum range)");
+ok("Range" in r.specs, "a distinct label is a distinct field: no synonym table merges Range into Maximum range");
 ok(r.specs.Crew === "4" && r.specs["Max speed"] === "65 km/h", "fields it lacks are added");
+ok(specKey("Top speed") !== specKey("Max speed") && specKey("Caliber") !== specKey("Calibre"), "no SPEC_SYNONYMS: labels are compared as stored");
 ok(!("Weight" in r.specs), "an empty value adds nothing");
-ok(JSON.stringify(r.added) === JSON.stringify(["Crew", "Max speed"]), "added lists exactly the new fields");
+ok(JSON.stringify(r.added) === JSON.stringify(["Range", "Crew", "Max speed"]), "added lists exactly the new fields");
 ok(Object.keys(fillSpecs({ A: "1" }, null).specs).length === 1, "no record changes nothing");
 ok(fillSpecs(undefined, { B: "2" }).specs.B === "2", "a matchup with no specs takes the record's");
-ok(specKey(" Top  Speed ") === "max speed" && specKey("Caliber") === "calibre", "labels fold like the backend");
+ok(specKey(" Top  Speed ") === "top speed", "labels fold only for case and spacing");
 
 if (bad) { console.log(bad + " failure(s)"); process.exit(1); }
 console.log("ok - matchup products keep their specs and gain only the missing fields");

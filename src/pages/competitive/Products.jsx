@@ -46,7 +46,7 @@ const cleanCompanyName = (rawName) => {
    This file used to carry its own, with a different acronym list and an American
    default ('Defense Systems') against profile.js's British one, which is how the
    Product and Competitive views ended up disagreeing on both case and spelling. */
-const formatCategoryTitle = (cat) => formatLabel(cat) || "Defence Systems";
+const formatCategoryTitle = (cat) => formatLabel(cat) || "";
 
 /* Product NAMES take the product rule -- the same one the dataset funnel applies to
    the portfolio and the matchup table -- and nothing else. This file ran formatLabel
@@ -161,525 +161,23 @@ export function sameCompany(a, b) {
   return hit === small.size;
 }
 
-export const PRODUCT_IMAGE_MAP = {
-  // --- KSSL Flagship Defence Products ---
-  "kalyani m4": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "m4": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "atags": "https://images.unsplash.com/photo-1569974498991-d3c12a504f95?auto=format&fit=crop&w=600&q=80",
-  "marg 155": "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80",
-  "marg 155 - br": "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80",
-  "bharat 52": "https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=600&q=80",
-  "bharat 45": "https://images.unsplash.com/photo-1569974498991-d3c12a504f95?auto=format&fit=crop&w=600&q=80",
-  "garuda 105": "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=600&q=80",
-  "bharat ulh": "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80",
-  "mpv": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80",
-  "atc": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80",
-  "lbpv": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80",
-  "ltv": "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=600&q=80",
-  "ulsv": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80",
-  "kalyani-rafael missiles (kras)": "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?auto=format&fit=crop&w=600&q=80",
-  "155mm / large-calibre ammunition": "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80",
-  "protective carbine": "https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=600&q=80",
-  "omega one/nine uas / bharat 150": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-  "bharat 150": "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80",
-
-  // --- Adani Defence ---
-  "drishti 10": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=600&q=80",
-  "drishti-10": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=600&q=80",
-  "drishti 10 starliner": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=600&q=80",
-  "vtol 5": "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=600&q=80",
-  "netra mk2": "https://images.unsplash.com/photo-1506947411487-a56738267384?auto=format&fit=crop&w=600&q=80",
-  "aew&c mk-ii": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80",
-  "tara": "https://images.unsplash.com/photo-1584441405886-bc91be61e56a?auto=format&fit=crop&w=600&q=80",
-  "isr, vehicle-mounted counter-drone": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80",
-  "5.56 x 45 mm fmj 62 grs": "https://images.unsplash.com/photo-1595590424283-b8f17842773f?auto=format&fit=crop&w=600&q=80",
-  "7.62 x 51 mm 147 grs": "https://images.unsplash.com/photo-1591123720164-de1348028a82?auto=format&fit=crop&w=600&q=80",
-  "he m 107": "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80",
-  "40 mm lv he": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80",
-  "40 mm mgl heap": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80",
-  "30 mm for agl 17/ags 30": "https://images.unsplash.com/photo-1595590424283-b8f17842773f?auto=format&fit=crop&w=600&q=80",
-  "23 mm apit": "https://images.unsplash.com/photo-1591123720164-de1348028a82?auto=format&fit=crop&w=600&q=80",
-  "m80": "https://images.unsplash.com/photo-1595590424283-b8f17842773f?auto=format&fit=crop&w=600&q=80",
-  "cqb carbine": "https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=600&q=80",
-  "7.62 mm-calibre weapon": "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80",
-  "iwi ace 21n cqb carbine": "https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=600&q=80",
-  "rudram-ii": "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=600&q=80",
-  "nasm-sr": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80",
-  "gaurav": "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=600&q=80",
-  "gaurav glide bomb": "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=600&q=80",
-  "ulm-er": "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?auto=format&fit=crop&w=600&q=80",
-  "prahar": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80",
-
-  // --- Tata Advanced Systems ---
-  "whap 8x8": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "whap": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "kestrel": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "tasl mgs": "https://images.unsplash.com/photo-1569974498991-d3c12a504f95?auto=format&fit=crop&w=600&q=80",
-  "105mm mounted gun system": "https://images.unsplash.com/photo-1569974498991-d3c12a504f95?auto=format&fit=crop&w=600&q=80",
-  "155mm/52-calibre gun": "https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=600&q=80",
-  "vikram vt-21": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80",
-  "vlra": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80",
-  "sd1015 4x4 field artillery tractors": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80",
-  "als-50": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-  "als-250": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-  "male uav": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=600&q=80",
-  "h125 helicopter": "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=600&q=80",
-  "airbus h125": "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=600&q=80",
-  "rafale": "https://images.unsplash.com/photo-1517976547714-720226b864c1?auto=format&fit=crop&w=600&q=80",
-  "c295": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80",
-  "c295mw": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80",
-  "lanza-n": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80",
-
-  // --- Solar Industries ---
-  "pinaka mbrl": "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=600&q=80",
-  "pinaka": "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=600&q=80",
-  "nagastra-1": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-  "nagastra-2": "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=600&q=80",
-  "nagastra-3": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=600&q=80",
-  "lm-0": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-  "lm-1": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-  "lm-2": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-
-  // --- Roshel ---
-  "senator mrap": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "admiral mrap": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "senator pickup": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80",
-  "senator 4x4": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80",
-  "senator": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "roshel senator": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-  "captain": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80",
-
-  // --- AWEIL ---
-  "dhanush 155 mm/52 calibre towed howitzer": "https://images.unsplash.com/photo-1569974498991-d3c12a504f95?auto=format&fit=crop&w=600&q=80",
-  "dhanush": "https://images.unsplash.com/photo-1569974498991-d3c12a504f95?auto=format&fit=crop&w=600&q=80",
-  "155 mm × 45 calibre artillery gun system": "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80",
-
-  // --- Other High Profile Matchup Competitor Products ---
-  "brahmos": "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?auto=format&fit=crop&w=600&q=80",
-  "akash": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80",
-  "qrsam": "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=600&q=80",
-  "switchblade": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-  "shrike 2": "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80",
-  "puma": "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=600&q=80",
-  "vsr-700": "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=600&q=80",
-  "caracal": "https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=600&q=80",
-  "m-346": "https://images.unsplash.com/photo-1520437358207-323b43b50729?auto=format&fit=crop&w=600&q=80",
-  "super stallion": "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=600&q=80",
-  "stallion": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80",
-  "field artillery tractor (fat 4×4)": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80",
-  "gun towing vehicle (gtv 6×6)": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80",
-  "altius-600m": "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-  "barracuda cruise missiles": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80",
-  "bullfrog autonomous weapon system": "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80"
-};
-
-export const CATEGORY_POOLS = {
-  helicopters: [
-    "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1569683795645-b62e50fbf103?auto=format&fit=crop&w=600&q=80"
-  ],
-  aircraft: [
-    "https://images.unsplash.com/photo-1517976547714-720226b864c1?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1520437358207-323b43b50729?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1506947411487-a56738267384?auto=format&fit=crop&w=600&q=80"
-  ],
-  uav: [
-    "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1579829366248-204fe8413f31?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80"
-  ],
-  loiteringMunitions: [
-    "https://images.unsplash.com/photo-1521405924368-64c5b84bec60?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1569683795645-b62e50fbf103?auto=format&fit=crop&w=600&q=80"
-  ],
-  artillery: [
-    "https://images.unsplash.com/photo-1569974498991-d3c12a504f95?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=600&q=80"
-  ],
-  vehicles: [
-    "https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=600&q=80"
-  ],
-  missiles: [
-    "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=600&q=80"
-  ],
-  smallarms: [
-    "https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80"
-  ],
-  ammo: [
-    "https://images.unsplash.com/photo-1595590424283-b8f17842773f?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1591123720164-de1348028a82?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80"
-  ],
-  naval: [
-    "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1505705694340-019e1e335916?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=600&q=80"
-  ],
-  radar: [
-    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80",
-    "https://images.unsplash.com/photo-1584441405886-bc91be61e56a?auto=format&fit=crop&w=600&q=80"
-  ]
-};
-
-function strHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-/* The four figures a product card leads with, from the product's own spec rows; "—" where the
-   datasheet does not publish one. */
+/* The figures a product card leads with: the first four rows of the product's own stored specs. */
 function cardSpecs(p) {
-  const s = (p && p.specs) || {};
-  const eng = [s["Cylinders"] && `${s["Cylinders"]} cyl`, s["Displacement"]].filter(Boolean).join(" · ")
-    || String(s["Engine"] || "").split(",")[0].trim();
-  const fuel = String(s["Fuel at 100 / 75 / 50 % load"] || "");
-  const m = fuel.match(/^([\d.,]+).*?\s([A-Za-z]+\/[A-Za-z]+)\s*$/);
-  return [
-    ["Standby", s["Standby rating"] || "—"],
-    ["Prime", s["Prime rating"] || "—"],
-    ["Engine", eng || "—"],
-    ["Fuel at 100 %", m ? `${m[1]} ${m[2]}` : fuel || "—"],
-  ];
+  return Object.entries((p && p.specs) || {}).slice(0, 4);
 }
 
-export function getProductImage(product) {
-  if (product && product.image && typeof product.image === "string" && product.image.length > 5) {
-    return product.image;
-  }
-  const rawName = (product?.name || "").trim().toLowerCase();
-  const cat = (product?.category || "").trim().toLowerCase();
-  
-  if (PRODUCT_IMAGE_MAP[rawName]) {
-    return PRODUCT_IMAGE_MAP[rawName];
-  }
-  
-  const clean = rawName.replace(/^kssl\s*·\s*/i, "").trim();
-  if (PRODUCT_IMAGE_MAP[clean]) {
-    return PRODUCT_IMAGE_MAP[clean];
-  }
-
-  // Check prefix or partial match in direct map
-  for (const [key, url] of Object.entries(PRODUCT_IMAGE_MAP)) {
-    if (clean === key || (clean.length > 3 && key.includes(clean)) || (key.length > 4 && clean.includes(key))) {
-      return url;
-    }
-  }
-
-  const text = `${clean} ${cat}`;
-  let pool = null;
-
-  // 1. Helicopter / Rotary Wing
-  if (text.includes("helicopter") || text.includes("chopper") || text.includes("rotary") || text.includes("h125") || text.includes("airbus h125") || text.includes("skeldar")) {
-    pool = CATEGORY_POOLS.helicopters;
-  }
-  // 2. Fixed-wing Aircraft / Fighter Jets / Trainers / Transports
-  else if (text.includes("rafale") || text.includes("c295") || text.includes("gripen") || text.includes("m-346") || text.includes("aircraft") || text.includes("fighter") || text.includes("jet") || text.includes("aerospace")) {
-    pool = CATEGORY_POOLS.aircraft;
-  }
-  // 3. Loitering Munitions / Suicide Drones
-  else if (text.includes("loitering munition") || text.includes("kamikaze") || text.includes("nagastra") || text.includes("hero") || text.includes("als-") || text.includes("switchblade") || text.includes("lm-")) {
-    pool = CATEGORY_POOLS.loiteringMunitions;
-  }
-  // 4. UAVs / Recon Drones / UAS
-  else if (text.includes("uav") || text.includes("drone") || text.includes("uas") || text.includes("drishti") || text.includes("hermes") || text.includes("starliner") || text.includes("shrike") || text.includes("puma") || text.includes("vtol") || text.includes("orbiter") || text.includes("aerial")) {
-    pool = CATEGORY_POOLS.uav;
-  }
-  // 5. Missiles / Rockets / Air Defence
-  else if (text.includes("missile") || text.includes("air defence") || text.includes("air defense") || text.includes("brahmos") || text.includes("akash") || text.includes("qrsam") || text.includes("rudram") || text.includes("rocket") || text.includes("interceptor") || text.includes("spike") || text.includes("patriot") || text.includes("stinger") || text.includes("torpedo") || text.includes("glide bomb")) {
-    pool = CATEGORY_POOLS.missiles;
-  }
-  // 6. Artillery / Howitzer / Cannon / Field Guns / MBRL
-  else if (text.includes("artillery") || text.includes("howitzer") || text.includes("atags") || text.includes("marg") || text.includes("dhanush") || text.includes("cannon") || text.includes("mortar") || text.includes("pinaka") || text.includes("mbrl") || text.includes("carl-gustaf") || text.includes("gun system") || text.includes("mounted gun")) {
-    pool = CATEGORY_POOLS.artillery;
-  }
-  // 7. Small Arms / Rifles / Carbines / Pistols / Snipers
-  else if (text.includes("rifle") || text.includes("carbine") || text.includes("small arm") || text.includes("pistol") || text.includes("handgun") || text.includes("gun") || text.includes("sniper") || text.includes("shotgun") || text.includes("machine gun") || text.includes("firearm") || text.includes("p320") || text.includes("p226") || text.includes("mcx") || text.includes("m400") || text.includes("t72") || text.includes("m72") || text.includes("g72") || text.includes("raptor") || text.includes("viper")) {
-    pool = CATEGORY_POOLS.smallarms;
-  }
-  // 8. Ammunition / Munitions / Shells / Rounds
-  else if (text.includes("ammo") || text.includes("ammunition") || text.includes("shell") || text.includes("bullet") || text.includes("calibre") || text.includes("round") || text.includes("cartridge") || text.includes("fmj") || text.includes("apit") || text.includes("heap") || text.includes("bmcs") || text.includes("warhead") || text.includes("explosive")) {
-    pool = CATEGORY_POOLS.ammo;
-  }
-  // 9. Naval / Warships / Maritime
-  else if (text.includes("naval") || text.includes("ship") || text.includes("submarine") || text.includes("vessel") || text.includes("maritime") || text.includes("frigate") || text.includes("corvette") || text.includes("destroyer") || text.includes("patrol craft") || text.includes("smv")) {
-    pool = CATEGORY_POOLS.naval;
-  }
-  // 10. Radar / C4ISR / Sensors / Electro-Optics / Scopes
-  else if (text.includes("radar") || text.includes("sensor") || text.includes("avionics") || text.includes("electronic") || text.includes("optics") || text.includes("netra") || text.includes("aew") || text.includes("lanza") || text.includes("giraffe") || text.includes("scope") || text.includes("sight") || text.includes("binocular") || text.includes("c4isr") || text.includes("counter-drone")) {
-    pool = CATEGORY_POOLS.radar;
-  }
-  // 11. Armoured Vehicles / Tanks / MRAPs / APCs / Tactical Vehicles (Default fallback)
-  else {
-    pool = CATEGORY_POOLS.vehicles;
-  }
-
-  const idx = strHash(clean || "prod") % pool.length;
-  return pool[idx];
-}
-
-
-export function getResolvedSpecs(product) {
-  if (product && product.specs && Object.keys(product.specs).length > 0) {
-    return product.specs;
-  }
-  const name = (product?.name || "").toLowerCase();
-  const cat = (product?.category || "").toLowerCase();
-
-  if (name.includes("drishti") || cat.includes("uav") || cat.includes("drone")) {
-    return {
-      "Endurance": "36 hours continuous flight",
-      "Service Ceiling": "30,000 ft (9,144 m)",
-      "Payload Capacity": "450 kg (Multi-sensor EO/IR & Maritime Radar)",
-      "Communication Range": "1,000 km (Line-of-sight & SATCOM)",
-      "Maximum Take-off Weight": "1,150 kg",
-      "Airframe Structure": "Carbon-composite sovereign aerostructure",
-      "Operational All-Weather": "STANAG 4671 certified (de-icing equipped)",
-      "Indigenisation Content": "Over 60% indigenous Indian manufacturing",
-    };
-  }
-  if (cat.includes("missile") || name.includes("missile") || cat.includes("air defence")) {
-    return {
-      "Operational Range": "25 km – 70 km intercept zone",
-      "Guidance System": "Active RF Seeker & Mid-Course Inertial Navigation",
-      "Warhead Type": "Pre-fragmented high explosive with proximity fuse",
-      "Propulsion": "Solid propellant rocket motor with thrust vectoring",
-      "Reaction Time": "< 6 seconds from target detection to launch",
-      "Platform Compatibility": "8x8 Tactical High-Mobility Vehicle Launcher",
-    };
-  }
-  if (cat.includes("ammo") || cat.includes("ammunition") || name.includes("round") || name.includes("shell") || cat.includes("artillery")) {
-    return {
-      "Calibre": name.includes("155") ? "155mm / 52 Calibre" : "7.62x39mm / 5.56x45mm NATO",
-      "Muzzle Velocity": "820 m/s – 945 m/s",
-      "Maximum Firing Range": "30 km – 40 km with Base Bleed projectile",
-      "Propellant Type": "Bi-modular Charge System (BMCS compliant)",
-      "Operating Temperature": "-30°C to +55°C all-weather clearance",
-      "Shelf Life": "15+ years in hermetically sealed military containers",
-    };
-  }
-  if (cat.includes("small arm") || name.includes("rifle") || name.includes("gun") || name.includes("carbine")) {
-    return {
-      "Calibre": "7.62x39mm / 7.62x51mm NATO",
-      "Firing Mode": "Semi-Automatic & Full Automatic",
-      "Effective Range": "400 m – 800 m",
-      "Rate of Fire": "600 – 650 rounds/min",
-      "Weight (without magazine)": "3.8 kg",
-      "Rail System": "Picatinny MIL-STD-1913 for tactical optics",
-    };
-  }
-  return {
-    "Operating Environment": "All-terrain tri-services deployed (High-altitude / Desert)",
-    "Compliance Standard": "MIL-STD-810H & Indian MoD Def-Stan",
-    "Deployment Architecture": "Modular platform integration",
-    "Sovereign Content": "Indigenously manufactured tier-1 ecosystem",
-    "Maintenance Lifecycle": "Comprehensive sovereign MRO support",
-  };
-}
-
-export function getProductPrograms(product, company) {
-  const pName = (product?.name || "").toLowerCase();
-  const cat = (product?.category || "").toLowerCase();
-
-  if (pName.includes("drishti") || pName.includes("hermes") || cat.includes("uav")) {
-    return [
-      {
-        title: "Indian Navy MALE UAV Induction Program",
-        authority: "Indian Navy · Porbandar Air Enclave",
-        status: "Active Induction",
-        statusColor: "#34d399",
-        date: "Jan 2024 – Present",
-        description: "Procurement and operational deployment of indigenous Drishti-10 MALE maritime reconnaissance drones with 36-hour endurance and SATCOM.",
-      },
-      {
-        title: "Indian Army Tactical Border Surveillance Mandate",
-        authority: "Indian Army · Northern & Western Commands",
-        status: "Delivery Pipeline",
-        statusColor: "#38bdf8",
-        date: "Contract Signed 2023",
-        description: "Induction of multiple UAV systems for round-the-clock ISR along high-altitude border sectors under Make-II emergency procurement provisions.",
-      },
-      {
-        title: "Export Airframe Integration Program",
-        authority: "Elbit Systems & International MoD Customers",
-        status: "Export Execution",
-        statusColor: "#f59e0b",
-        date: "2023 – 2026",
-        description: "Delivery of 20+ composite aerostructures for Hermes 900 / Drishti-10 platforms manufactured at the Hyderabad aerospace cluster.",
-      },
-    ];
-  }
-
-  if (cat.includes("missile") || pName.includes("missile") || cat.includes("air defence")) {
-    return [
-      {
-        title: "Tri-Services Air Defence Modernisation Program",
-        authority: "Ministry of Defence · DRDO & Indian Army",
-        status: "Pre-Induction Trials",
-        statusColor: "#34d399",
-        date: "2024 – 2026",
-        description: "Production and sovereign tier-1 integration for quick-reaction surface-to-air missile systems under DAP 2020 Make-in-India guidelines.",
-      },
-      {
-        title: "Precision Strike Export Qualification",
-        authority: "Department of Defence Production (DDP)",
-        status: "Evaluation Stage",
-        statusColor: "#38bdf8",
-        date: "2025 – 2026",
-        description: "Compliance certification and joint trials for bilateral defence procurement mandates with friendly foreign nations.",
-      },
-    ];
-  }
-
-  if (cat.includes("ammo") || cat.includes("ammunition") || pName.includes("round") || pName.includes("shell") || cat.includes("artillery")) {
-    return [
-      {
-        title: "Sovereign Ammunition Mega-Complex Kanpur Deployment",
-        authority: "Ministry of Defence & UP Defence Corridor",
-        status: "Serial Production",
-        statusColor: "#34d399",
-        date: "2024 – Present",
-        description: "High-volume manufacturing of small arms, medium calibre, and precision artillery ammunition to meet Tri-Services strategic reserves.",
-      },
-      {
-        title: "Long-Range Artillery Charge Modernisation (155mm)",
-        authority: "Indian Army Director General of Artillery",
-        status: "Field Trials",
-        statusColor: "#38bdf8",
-        date: "2025 – 2027",
-        description: "Indigenisation of modular bi-modular charge systems (BMCS) and precision-guided shells for modern 155mm/52-cal howitzers.",
-      },
-    ];
-  }
-
-  if (cat.includes("small arm") || pName.includes("rifle") || pName.includes("carbine") || pName.includes("pistol")) {
-    return [
-      {
-        title: "Paramilitary & State Police Modernisation Program",
-        authority: "Ministry of Home Affairs (MHA) & CAPFs",
-        status: "Contract Execution",
-        statusColor: "#34d399",
-        date: "2023 – 2026",
-        description: "Supply of indigenous assault rifles, sniper systems, and close-quarter battle carbines replacing legacy inventory.",
-      },
-      {
-        title: "Joint Venture Defense Manufacturing Licence",
-        authority: "Department of Industrial Policy and Promotion (DIPP)",
-        status: "Operational",
-        statusColor: "#34d399",
-        date: "Active Mandate",
-        description: "Domestic weapon assembly facility with state-of-the-art testing ranges and sovereign lifecycle maintenance support.",
-      },
-    ];
-  }
-
-  return [
-    {
-      title: `${company?.name || "Indigenous"} ${product?.name || "System"} Defence Acquisition Council (DAC) Mandate`,
-      authority: "Ministry of Defence (MoD) · Government of India",
-      status: "Operational Assessment",
-      statusColor: "#34d399",
-      date: "2024 – 2027",
-      description: "Evaluation and domestic manufacturing roadmap aligned with MoD Positive Indigenisation Lists under DAP 2020.",
-    },
-    {
-      title: "Tri-Services Capability Enhancement & User Trials",
-      authority: "Indian Armed Forces Joint Operations Directorate",
-      status: "Trial Phase",
-      statusColor: "#38bdf8",
-      date: "2025 – 2026",
-      description: "Rigorous terrain and environmental user trials across desert, high-altitude, and coastal theatres.",
-    },
-  ];
-}
-
+/* The matchup stored for a product (serving.competitive_matchup, linked by matchupId): both sides as the
+   dataset names them and the stored verdict as the reason. A product with no stored matchup has no
+   comparison: nothing is matched, worded or filled in here. */
 export function getProductComparison(product, company, data) {
-  const pName = product?.name || "";
-  const cName = company?.name || "";
-  const cat = product?.category || "";
   const matchups = (data && data.matchups) || {};
-
-  // Check if product already has a direct matchupId
-  if (product?.matchupId && matchups[product.matchupId]) {
-    const m = matchups[product.matchupId];
-    return {
-      matchupId: product.matchupId,
-      sideA: m.comp || `${cName} · ${pName}`,
-      sideB: m.bf || `${clientShort()} Counterpart`,
-      reason: m.verdict ? m.verdict.replace(/<[^>]*>/g, "") : `Matched on ${m.cat || cat} category and operational proximity.`,
-    };
-  }
-
-  // Find a matching matchup in data.matchups
-  const all = Object.entries(matchups).map(([id, m]) => ({ ...m, id }));
-  const nameHit = all.find((m) => {
-    const txt = `${m.comp || ""} ${m.compBy || ""}`.toLowerCase();
-    return txt.includes(pName.toLowerCase()) || (pName.length > 5 && txt.includes(pName.slice(0, 5).toLowerCase()));
-  });
-  if (nameHit) {
-    return {
-      matchupId: nameHit.id,
-      sideA: nameHit.comp,
-      sideB: nameHit.bf,
-      reason: nameHit.verdict ? nameHit.verdict.replace(/<[^>]*>/g, "") : `Matched on ${nameHit.cat || cat} specifications.`,
-    };
-  }
-
-  // Find a category hit
-  const catLower = cat.toLowerCase();
-  let baseMatchup = null;
-  if (catLower.includes("uav") || catLower.includes("drone")) baseMatchup = matchups["20033"] || matchups["9003"];
-  else if (catLower.includes("missile") || catLower.includes("air defence")) baseMatchup = matchups["9001"];
-  else if (catLower.includes("ammo") || catLower.includes("ammunition")) baseMatchup = matchups["9002"];
-  else if (catLower.includes("small arm") || catLower.includes("rifle") || catLower.includes("gun")) baseMatchup = matchups["20104"];
-  else if (catLower.includes("armour") || catLower.includes("vehicle") || catLower.includes("tank")) baseMatchup = matchups["20029"];
-  else baseMatchup = matchups["20000"] || all[0];
-
-  // no matchup in the dataset to compare against: nothing to show
-  if (!baseMatchup) baseMatchup = all[0];
-  if (!baseMatchup) return null;
-
-  const dynId = `dyn-${product?.id || nameKey(pName)}`;
-  if (!matchups[dynId]) {
-    matchups[dynId] = {
-      ...baseMatchup,
-      id: dynId,
-      comp: `${cName} · ${pName}`,
-      compBy: cName,
-      bf: baseMatchup.bf,
-      cat: baseMatchup.cat || cat || "Defence Systems",
-      verdict: `<b>${cName} leads on comparable specifications against ${baseMatchup.bf}.</b> Based on published defense parameters.`,
-      specs: (baseMatchup.specs || []).map((s) => ({ ...s, cv: s.cv || "Verified", kv: s.kv || "Sovereign" })),
-    };
-  }
-
+  const m = product && product.matchupId ? matchups[product.matchupId] : null;
+  if (!m) return null;
   return {
-    matchupId: dynId,
-    sideA: `${cName} · ${pName}`,
-    sideB: matchups[dynId].bf,
-    reason: `Matched on ${matchups[dynId].cat} proximity (${pName} vs ${matchups[dynId].bf}).`,
+    matchupId: product.matchupId,
+    sideA: m.comp || "",
+    sideB: m.bf || "",
+    reason: m.verdict ? m.verdict.replace(/<[^>]*>/g, "") : "",
   };
 }
 
@@ -1115,7 +613,7 @@ export default function Products() {
       /* British spelling, as formatCategoryTitle's own default -- this literal was the
          one American one left, so a product with no band grouped under "Defense
          Systems" beside "Defence Systems" headings everywhere else (FE 18). */
-      const cat = p.category || "Defence Systems";
+      const cat = p.category || "—";
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(p);
     });
@@ -1473,7 +971,7 @@ export default function Products() {
                     overflow: "hidden",
                   }}
                 >
-                  {Object.entries(getResolvedSpecs(selectedProduct)).map(([label, val], idx, arr) => (
+                  {Object.entries((selectedProduct && selectedProduct.specs) || {}).map(([label, val], idx, arr) => (
                     <div
                       key={label}
                       style={{
@@ -1517,7 +1015,7 @@ export default function Products() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  {getProductPrograms(selectedProduct, selectedCompany).map((prog, idx) => (
+                  {((selectedProduct && selectedProduct.programs) || []).map((prog, idx) => (
                     <div
                       key={idx}
                       style={{
@@ -1698,7 +1196,7 @@ export default function Products() {
                       </div>
                       <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>
                         <div style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "11px", color: "var(--d-txt-3)", fontFamily: "var(--mono)" }}>
-                          <span style={{ color: "#f0593c", fontWeight: "600" }}>{item.category || "Defence"}</span>
+                          <span style={{ color: "#f0593c", fontWeight: "600" }}>{item.category || "—"}</span>
                           <span>·</span>
                           <span>{item.date ? new Date(item.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Recent"}</span>
                         </div>

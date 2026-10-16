@@ -23,7 +23,7 @@
    =================================================================== */
 import { clientShort } from "./client.js";
 import { attr, escAll, srcChips } from "./html.js";
-import { ipcDescription } from "./ipc.js";
+import { COUNTRY_ISO2_ALIAS } from "./countryFlags.js";
 
 export const PATENT_BACKEND_READY = false;
 
@@ -42,32 +42,11 @@ export const PATENT_BACKEND_READY = false;
    This is the display layer. db/migrations/2026-09-06_patent_country_vocab.sql fixes
    the stored values; until it is run this keeps the tab correct, and after it is run
    this costs nothing and still catches the next alias the harvest invents. */
-const COUNTRY_ALIAS = {
-  INDIA: "IN",
-  USA: "US",
-  "UNITED STATES": "US",
-  "U.S.": "US",
-  "U.S.A.": "US",
-  UK: "GB",
-  "UNITED KINGDOM": "GB",
-  KOREA: "KR",
-  "SOUTH KOREA": "KR",
-  "REPUBLIC OF KOREA": "KR",
-  GERMANY: "DE",
-  FRANCE: "FR",
-  SPAIN: "ES",
-  ISRAEL: "IL",
-  AUSTRALIA: "AU",
-  CANADA: "CA",
-  JAPAN: "JP",
-  CHINA: "CN",
-};
-
 export function normCountry(c) {
   const t = String(c == null ? "" : c).trim();
   if (!t) return "";
   const k = t.toUpperCase();
-  if (COUNTRY_ALIAS[k]) return COUNTRY_ALIAS[k];
+  if (COUNTRY_ISO2_ALIAS[k]) return COUNTRY_ISO2_ALIAS[k];
   // already a code -> canonical case; anything else is left exactly as it arrived
   return /^[a-z]{2}$/i.test(t) ? k : t;
 }
@@ -130,6 +109,7 @@ function normSample(r) {
     pub_kind: r.pub_kind || "",
     jurisdiction: normCountry(r.jurisdiction || ""),
     ipc: r.ipc || [],
+    ipcText: r.ipcText || "",
     abstract: r.abstract || "",
     techArea: r.techArea || "",
     koel_relevance: r.koel_relevance || "",
@@ -250,13 +230,10 @@ export function patRecCard(r, showAssignee, meta) {
        it takes precedence and the classification line steps aside. */
     (r.abstract
       ? `<div class="pat-abs">${esc(r.abstract)}</div>`
-      : (() => {
-          const ipcDesc = ipcDescription(r.ipc);
-          return ipcDesc
-            ? `<div class="pat-abs pat-abs-ipc" title="From the WIPO International Patent Classification scheme. It describes the FIELD the office classified this filing in, not this invention -- no abstract was captured for this record.">` +
-              `<span class="pat-abs-k">Classified under ${esc(ipcDesc.subclass)}</span> ${esc(ipcDesc.meaning)}</div>`
-            : "";
-        })()) +
+      : r.ipcText && (r.ipc || []).length
+        ? `<div class="pat-abs pat-abs-ipc" title="The classification the office placed this filing in, in the classification's own words. It describes the FIELD, not this invention -- no abstract was captured for this record.">` +
+          `<span class="pat-abs-k">Classified under ${esc(String(r.ipc[0]).trim())}</span> ${esc(r.ipcText)}</div>`
+        : "") +
     (r.url
       ? `<a class="pat-view-link" href="${attr(r.url)}" target="_blank" rel="noopener noreferrer">${r.urlIsSearch ? "Search for this filing ↗" : "View patent ↗"}</a>`
       : "") +

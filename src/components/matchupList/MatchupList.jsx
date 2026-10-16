@@ -18,7 +18,7 @@ function splitComp(comp) {
    the category filter offered "Ua Vs & Drones" -- a label no row carries. Raise only,
    through the same function the product names go through, and eat no acronym. */
 const formatCategoryLabel = (str) => {
-  if (!str) return "Uncategorised";
+  if (!str) return "—";
   return titleCaseHeadline(String(str).replace(/&amp;/g, "&").trim());
 };
 
@@ -118,7 +118,7 @@ export default function MatchupList({ data, selected, onSelect, products = [], c
     /* An unknown cat must still render somewhere — mirror how wireDataset appends a
        chip for unknown techCats. Without this, the row counts in the nav badge but
        appears in no group. */
-    const catDefs = [...POS_CATS, ["__uncat", "Uncategorised"]];
+    const catDefs = [...POS_CATS, ["__uncat", "—"]];
     return catDefs.map(([key, label]) => {
       const items = Object.keys(matchups).filter((id) =>
         key === "__uncat"

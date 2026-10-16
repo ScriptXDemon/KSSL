@@ -87,7 +87,7 @@ export function CATEGORY_COLOR(label) {
   return _catSlot.get(label) || OTHER_COLOR;
 }
 
-export const catOf = (t) => (t && t.cat) || "Uncategorised";
+export const catOf = (t) => (t && t.cat) || "—";
 
 /* Every category the corpus carries, most-contracted first — the filter's option list
    and the colour order, from one count so the two can never disagree. */

@@ -114,6 +114,10 @@ const COUNTRY_COORDS = {
    has no honest point: "Europe" was pinned at 54.5N 15.2E, which is inside Poland --
    a country that is separately its own row, so one place got two dots and the reader
    had no way to tell which was which. These are reported beside the map instead. */
+/* A region is not a country: "Europe (11)" and "Africa (1)" sat in the country filter
+   beside sovereign states (QA audit 2026-09-19). A refusal list, not a country list. */
+export const REGIONS = /^(the )?(europe|africa|asia|middle east|latin america|south america|north america|americas|asia[- ]pacific|oceania|global|worldwide|scandinavia|nordics|gulf|mena|emea|apac)$/i;
+
 const REGION_ROWS = new Set(["Africa", "Europe", "Asia", "Middle East",
   "Latin America", "South America", "North America", "Global", "Worldwide"]);
 

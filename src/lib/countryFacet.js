@@ -20,7 +20,7 @@
    "USA" and refuses "Virginia" and "Gujarat" without a hand-typed country list, which
    check_no_fabrication would rightly refuse. */
 
-import { countrySpellings } from "./geoCountries.js";
+import { countrySpellings, REGIONS } from "./geoCountries.js";
 
 const clean = (v) => String(v == null ? "" : v).trim();
 
@@ -190,10 +190,6 @@ function rawCountries(d, cid) {
   [...out].forEach((c) => REGIONS.test(c) && out.delete(c));
   return [...out].sort((a, b) => a.localeCompare(b));
 }
-
-/* A region is not a country: "Europe (11)" and "Africa (1)" sat in the country filter
-   beside sovereign states (QA audit 2026-09-19). A refusal list, not a country list. */
-const REGIONS = /^(the )?(europe|africa|asia|middle east|latin america|south america|north america|americas|asia[- ]pacific|oceania|global|worldwide|scandinavia|nordics|gulf|mena|emea|apac)$/i;
 
 /* One key per country however the source wrote it: "Índia", "GERMANY", "the Netherlands"
    fold onto "India", "Germany", "Netherlands" (QA audit 2026-09-19: 16 countries were
