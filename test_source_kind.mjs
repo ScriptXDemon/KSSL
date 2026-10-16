@@ -88,7 +88,7 @@ ck("the withheld-count caption is removed", !/could not be attributed to an arti
 ck("the full record keeps them and marks them", /INDEX_NOTE/.test(profile));
 /* The date cell is the point of the whole change: do not print a date we have not got. */
 ck("an unattributed row shows no date, it shows the not-measured dash",
-   /item\.sourceKind === INDEX \? DASH : item\.ago/.test(profile));
+   /item\.sourceKind !== INDEX && item\.date/.test(profile) && /\{fmtNewsDate\(item\)\}/.test(profile));
 
 /* THE COUNT, ON REAL DATA. A detector that fires on nothing passes every check above. */
 const path = process.env.KSSL_DATASET;

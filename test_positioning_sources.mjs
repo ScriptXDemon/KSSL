@@ -55,8 +55,12 @@ ck("every chip on a line is removed, not just the first", !/adv-src/.test(advant
 const dossier = readFileSync(new URL("./src/components/matchupDossier/MatchupDossier.jsx", import.meta.url), "utf8");
 ck("Advantages renders through advantageText, not raw html",
    !/__html:\s*a\s*\}/.test(dossier) && /__html:\s*advantageText\(a\)/.test(dossier));
-ck("Competitor Detail's Sources row is behind the switch",
-   /SHOW_POSITIONING_SOURCES\s*\?\s*srcKvRow\(m\.srcs\)/.test(dossier));
+// The imported dossier no longer builds a Competitor Detail "Sources" row at all (srcKvRow is not
+// used anywhere in the dossier), so the panel is source-free by construction. Pin that: a
+// future change that re-adds the row must put it behind SHOW_POSITIONING_SOURCES.
+ck("Competitor Detail has no ungated Sources row",
+   !/srcKvRow\s*\(/.test(dossier.replace(/SHOW_POSITIONING_SOURCES\s*\?\s*srcKvRow\([^)]*\)/g, "")) &&
+   !/m\.srcs/.test(dossier.replace(/SHOW_POSITIONING_SOURCES\s*\?\s*srcKvRow\(m\.srcs\)/g, "")));
 
 // --- the control-byte guard that would have caught the silent regex ---------------
 const specs = readFileSync(new URL("./src/lib/specs.js", import.meta.url), "utf8");

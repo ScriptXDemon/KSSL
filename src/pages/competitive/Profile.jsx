@@ -44,7 +44,8 @@ const getInitials = (name) => {
 };
 
 const fmtNewsDate = (item) => {
-  if (item && item.date) {
+  /* a publisher-index row carries the listing page's date, not the story's: it prints the dash */
+  if (item && item.sourceKind !== INDEX && item.date) {
     try {
       const d = new Date(item.date);
       if (!isNaN(d.getTime())) {

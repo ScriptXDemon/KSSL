@@ -178,7 +178,9 @@ await build({
     },
   }],
 });
-globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+/* The market report opens on its outlook tab (no filters there); the country filter lives on the
+   tender-count tab, which the page restores from localStorage. */
+globalThis.localStorage = { getItem: (k) => (k === "kssl_market_section" ? "active" : null), setItem() {}, removeItem() {} };
 globalThis.window = { location: { hash: "" }, addEventListener() {}, removeEventListener() {} };
 globalThis.document = { addEventListener() {}, removeEventListener() {} };
 
@@ -296,12 +298,23 @@ for (const [which, want] of [["country", WANT.openTenderCountries], ["cat", WANT
     }
   }
   if (cards.length && !bad) ok(`market feed: ${cards.length} promoted tenders carry a real date or none`);
-  /* the tender pipeline card prints the closing date, formatted once, in the Closing
-     date cell of its fixed parameter grid (an unresolved cell is class tpv na and
-     cannot match: it prints the unresolved literal, never a date) */
-  const printed = [...html.tenders.matchAll(/class="tpk">Closing date<\/span><span class="tpv">(\d{1,2} \w+ \d{4})/g)].map((m) => m[1]);
-  if (printed.length !== 2) fail(`tenders: expected 2 cards to print a closing date, found ${printed.length}`);
-  for (const p of printed) if (!DATE.test(p)) fail(`tenders: closing date "${p}" is not in house format`);
+  /* The tender pipeline card shows a countdown chip and the dashboard grid omits the
+     Closing date cell on purpose (src/pages/market/Tenders.jsx DASHBOARD_PARAM_KEYS: the
+     date is read in the side assessment panel). So the date is held to its house format
+     where it is resolved -- resolveTenderRow, the row the panel reads -- and the card
+     must not print a second, differently formatted closing date. */
+  const { resolveTenderRow } = await import("./src/lib/tenderRow.js");
+  const dated = data.tenders.filter((t) => t.closingDate);
+  if (dated.length !== 3) fail(`tenders: expected 3 fixture tenders with a closing date, found ${dated.length}`);
+  for (const t of dated) {
+    const closing = resolveTenderRow(t).params.find((p) => p.key === "closing");
+    if (!closing || !DATE.test(closing.text)) fail(`tenders: closing date of ${t.id} reads "${closing && closing.text}", not house format`);
+  }
+  if (/class="tpk">Closing date</.test(html.tenders)) fail("tenders: the card grid prints a Closing date cell (it belongs to the detail panel)");
+  const chips = [...html.tenders.matchAll(/class="ddl [^"]*">([^<]*)</g)].map((m) => m[1]);
+  if (chips.length !== 3) fail(`tenders: expected 3 open tender cards with a deadline chip, found ${chips.length}`);
+  if (chips.filter((c) => /^\d+ days? left$/.test(c)).length !== 2) fail(`tenders: expected 2 countdown chips, got ${JSON.stringify(chips)}`);
+  if (!chips.includes("no deadline on record")) fail(`tenders: the undated card must say so, got ${JSON.stringify(chips)}`);
   /* the market report's Closes column */
   const cells = [...html.market.matchAll(/<td class="num">([^<]*)<\/td>/g)].map((m) => m[1]).filter((v) => /\d{4}/.test(v));
   for (const v of cells) if (!DATE.test(v)) fail(`market report: Closes cell "${v}" is not in house format`);
