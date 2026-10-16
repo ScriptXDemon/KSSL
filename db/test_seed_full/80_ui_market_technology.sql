@@ -66,13 +66,14 @@ INSERT INTO staging_ui.market_view
   ('tender-assessment',   'Tender assessment',   'Tender assessment',   4, 6,  false, 'No tender has been assessed yet.'),
   ('global-requirement',  'Global requirements', 'Global requirements', 5, 6,  false, 'No requirements on record');
 
--- market_intelligence_tab: the four tabs of Market Intelligence with record counts. 4 rows.
+-- market_intelligence_tab: the five tabs of Market Intelligence with record counts. 5 rows.
 INSERT INTO staging_ui.market_intelligence_tab
   (tab_id, tab_label, tab_order, record_count, is_selected, category_filter, country_filter) VALUES
-  ('active',      'Number of active tenders', 1, 7, true,  NULL, NULL),
-  ('by-category', 'By category',              2, 6, false, NULL, NULL),
-  ('awarded',     'Awarded',                  3, 2, false, NULL, NULL),
-  ('closed',      'Closed',                   4, 2, false, NULL, NULL);
+  ('outlook',     'Market outlook',           1, 6, false, NULL, NULL),
+  ('active',      'Number of active tenders', 2, 7, true,  NULL, NULL),
+  ('by-category', 'By category',              3, 6, false, NULL, NULL),
+  ('awarded',     'Awarded',                  4, 2, false, NULL, NULL),
+  ('closed',      'Closed',                   5, 2, false, NULL, NULL);
 
 -- market_metric: the four tiles above Market Intelligence (value as display text). 5 rows.
 INSERT INTO staging_ui.market_metric

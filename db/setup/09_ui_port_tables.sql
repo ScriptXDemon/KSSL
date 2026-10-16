@@ -1,7 +1,7 @@
 -- Tables and columns the ported 137Parallax UI needs (docs/ui_port/MAPPING.md section C).
 -- Applied by db/make_databases.sh to BOTH databases (like 08): the DO blocks create each table in whichever of these schemas exists in the
 -- database they run in:  staging + staging_ui (kssl_staging)   |   serving + ui (kssl_serving).
---   C1 ui tables       staging_ui.X / ui.X       section_visibility, partner_category, partner_overlap_kind, partner_overlap_effect
+--   C1 ui tables       staging_ui.X / ui.X       section_visibility, partner_category, partner_overlap_kind, partner_overlap_effect, filter_option
 --   C2 content tables  staging.X / serving.X     competitive_synthesis, competitive_synthesis_vulnerability, competitive_synthesis_vulnerability_trace,
 --                                                competitive_field_synthesis, market_award, market_segment_assessment, patent_field_assessment
 --   C3 added columns   client_verdict, client_impact, description, threat_level, client_relevance, area_label, metric_key
@@ -39,6 +39,15 @@ BEGIN
             display_order integer NOT NULL,
             effect_title  text NOT NULL,
             effect_text   text NOT NULL)', s);
+        -- the filter pills and card badge words of the three overview feeds, and the stance words: one row per option.
+        -- A stance is threat or watch and nothing else; a group with no rows draws no pills.
+        EXECUTE format('CREATE TABLE IF NOT EXISTS %I.filter_option (
+            filter_group  text NOT NULL,
+            option_code   text NOT NULL,
+            option_label  text NOT NULL,
+            badge_label   text,
+            display_order integer NOT NULL,
+            PRIMARY KEY (filter_group, option_code))', s);
         -- C3: the one ui column
         IF to_regclass(s || '.competitive_metric') IS NOT NULL THEN
             EXECUTE format('ALTER TABLE %I.competitive_metric ADD COLUMN IF NOT EXISTS metric_key text', s);
@@ -140,7 +149,7 @@ DECLARE r record;
 BEGIN
     IF to_regprocedure('public.kssl_only_via_approve()') IS NULL THEN RETURN; END IF;
     FOR r IN SELECT schemaname, tablename FROM pg_tables
-             WHERE (schemaname = 'ui' AND tablename IN ('section_visibility', 'partner_category', 'partner_overlap_kind', 'partner_overlap_effect'))
+             WHERE (schemaname = 'ui' AND tablename IN ('section_visibility', 'partner_category', 'partner_overlap_kind', 'partner_overlap_effect', 'filter_option'))
                 OR (schemaname = 'serving' AND tablename IN ('competitive_synthesis', 'competitive_synthesis_vulnerability',
                     'competitive_synthesis_vulnerability_trace', 'competitive_field_synthesis', 'market_award',
                     'market_segment_assessment', 'patent_field_assessment')) LOOP

@@ -23,6 +23,7 @@ DELETE FROM staging_ui.partner_overlap_effect;
 DELETE FROM staging_ui.partner_overlap_kind;
 DELETE FROM staging_ui.partner_category;
 DELETE FROM staging_ui.section_visibility;
+DELETE FROM staging_ui.filter_option;
 
 -- Which sections of the app show. The eight KSSL keys are hidden; one other key is visible so the gate is exercised both ways.
 INSERT INTO staging_ui.section_visibility (section_key, visible, note) VALUES
@@ -35,6 +36,15 @@ INSERT INTO staging_ui.section_visibility (section_key, visible, note) VALUES
   ('product-images',        false, 'Hidden for the Aurora Defence (TEST) client'),
   ('chat',                  false, 'Hidden for the Aurora Defence (TEST) client'),
   ('competitor-moment',     true,  'Shown: a section that is not in the hidden list (TEST DATA)');
+
+-- Filter pills and badge words of the overview feeds, and the stance words (a stance is threat or watch only). Fictional wording.
+INSERT INTO staging_ui.filter_option (filter_group, option_code, option_label, badge_label, display_order) VALUES
+  ('stance',           'threat',              'Threat',                 'Threat',      1),
+  ('stance',           'watch',               'Watch',                  'Watch',       2),
+  ('market-feed',      'tenders',             'Latest Tenders',         'TENDER',      1),
+  ('market-feed',      'opportunities',       'Perceived Opportunities','OPPORTUNITY', 2),
+  ('technology-feed',  'competitor-advances', 'Competitor Advancements', NULL,         1),
+  ('technology-feed',  'adoptable',           'Adoptable Advances',     'Adoptable',   2);
 
 -- Relationship legend, one row per partner_type slug of competitive_partnership (Technology partner, MoU / strategic, Supplier, Joint venture).
 INSERT INTO staging_ui.partner_category
