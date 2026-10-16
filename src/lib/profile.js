@@ -248,7 +248,7 @@ export function smartTitleCase(raw) {
 /* Sector carries a default because a competitor with no sector is still in this
    industry; headquarters and the rest use formatLabel directly and stay blank. */
 export function formatSectorName(rawSector) {
-  return formatLabel(rawSector) || "Defence & Aerospace";
+  return formatLabel(rawSector) || "";
 }
 
 /* Standardized company name formatting helper. Reads the ONE acronym list above:

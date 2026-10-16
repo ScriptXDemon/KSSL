@@ -8,25 +8,6 @@ import { escAll } from "./html.js";
 import { formatCrore } from "../utils/formatNumber.js";
 import { logger } from "../utils/logger.js";
 
-/* Tender values arrive in six currencies and two scales, and several already
-   carry the rupee equivalent ("US$225 M (~₹1,867 cr)"). Taking the first
-   number in the string read "~US$4.69 B" as ₹4.69 cr — a ₹39,000 cr Egyptian
-   MRO programme shown as pocket change — and this figure also weights gap
-   severity, so it reordered which gaps looked worst. Prefer a stated ₹ crore
-   figure; otherwise convert at the documented rate below. */
-export const CR_PER_MILLION = { "us$": 8.3, "a$": 5.5, $: 8.3, "€": 9.0, "£": 10.5, aed: 2.26, myr: 1.9 };
-export function parseCr(v) {
-  if (!v) return 0;
-  const s = `${v}`.replace(/,/g, "");
-  const inr = s.match(/₹\s*([\d.]+)/);
-  if (inr) return parseFloat(inr[1]); // already in crore
-  const m = s.match(/(US\$|A\$|\$|€|£|AED|MYR)\s*([\d.]+)\s*(B|bn|billion|M|mn|million)?/i);
-  if (!m) return 0; // "n/d", "Undisclosed (LOI stage)" — no figure to size
-  const per = CR_PER_MILLION[m[1].toLowerCase()] || 0;
-  const inMillions = /^b/i.test(m[3] || "") ? parseFloat(m[2]) * 1000 : parseFloat(m[2]);
-  return inMillions * per;
-}
-
 export function buildGapModel(d) {
   /* Degrade to no gaps on a missing dataset. The destructure below dereferences d
      directly, so buildGapModel(null/undefined) threw before the `d && d.client` guard
@@ -43,17 +24,16 @@ export function buildGapModel(d) {
      KSSL itself had won. Settled programmes still count as tracked context,
      but they set neither the exposure sum nor the deadline horizon. */
   function expForCat(cat) {
-    let val = 0;
+    /* no money figure: tender amounts are in their own currencies and are never converted */
+    const val = 0;
     let cnt = 0;
-    let tracked = 0;
+    const tracked = 0;
     let hz = null;
     try {
       tenders.forEach((t) => {
         if ((t.cat || t.category) !== cat) return;
-        tracked += parseCr(t.value);
         const settled = (t.status || "").toLowerCase() === "awarded" || t.isLive === false;
         if (settled) return;
-        val += parseCr(t.value);
         cnt++;
         const dl = typeof t.dl === "number" ? t.dl : null;
         if (dl !== null && dl > 0) hz = hz === null ? dl : Math.min(hz, dl);
@@ -170,7 +150,7 @@ export function buildGapModel(d) {
           t.cat || t.category || "—",
           `tender.matches.pct=${best.pct}%`,
           {
-            value: parseCr(t.value),
+            value: 0,
             count: 1,
             /* Same settled/awarded + dl>0 guard as expForCat. An awarded contract
                carries dl:0, and a bare `typeof t.dl === "number" ? t.dl : null` let

@@ -83,7 +83,7 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
         {/* verdict always visible */}
         <div className="mu-sec" style={{ background: "var(--l-bg-2)" }}>
           <div className="pos-takeaway">
-            <span className="tl">{m.verdictH || "Positioning verdict"}</span>
+            <span className="tl">{m.verdictH || "—"}</span>
             <span dangerouslySetInnerHTML={{ __html: (m.verdict || "").replace(/\s*Based only on values sourced for both products\.?/i, "").replace(/\s*on \d+ of \d+ comparable field\(s\)/i, "").trim() }} />
           </div>
         </div>

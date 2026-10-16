@@ -23,6 +23,10 @@ const DIST = join(process.cwd(), "dist", "assets");
 const BANNED = [
   // the client is named from data.client, never typed into the UI
   ["Cummins", "client name hardcoded in UI"],
+  // record data that used to be typed into modules and now comes from the dataset (Task 6)
+  ["Monarch Compute Campus", "hand-typed competitor project list (competitorProjects.js)"],
+  ["Brand choice moves to the counter", "hand-typed partner overlap prose (partners.js OV_DEF)"],
+  ["Aegis Advanced Systems", "hand-typed client footprint table (footprint.js)"],
   // hand-typed people in real roles at real companies
   ["Shailesh Vagerwal", "hand-typed executive roster"],
   ["Sukaran Singh", "hand-typed executive roster"],

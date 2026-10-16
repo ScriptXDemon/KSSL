@@ -32,7 +32,7 @@ export function buildProductIndex(matchups, clientLabel) {
     const key = `${side}|${(mk || "").toLowerCase()}|${name.toLowerCase()}`;
     let e = byKey.get(key);
     if (!e) {
-      e = { key, side, name, maker: side === "client" ? clientLabel : mk || maker || "", cat: cat || "Other", country: country || "", specs: {} };
+      e = { key, side, name, maker: side === "client" ? clientLabel : mk || maker || "", cat: cat || "", country: country || "", specs: {} };
       byKey.set(key, e);
     }
     if (!spec || SKIP.has(spec.l)) return;
@@ -46,7 +46,7 @@ export function buildProductIndex(matchups, clientLabel) {
     const specs = m.specs && m.specs.length ? m.specs : [null];
     specs.forEach((s) => {
       add("rival", m.comp, m.compBy, m.cat, m.country, s, s && s.cv, s && s.cn);
-      add("client", m.bf || m.anchor, clientLabel, m.cat, "India", s, s && s.kv, s && s.kn);
+      add("client", m.bf || m.anchor, clientLabel, m.cat, "", s, s && s.kv, s && s.kn);
     });
   });
   return [...byKey.values()].sort((a, b) =>

@@ -2,7 +2,7 @@ import { clientShort } from "./client.js";
 import { globalRequirements } from "./globalRequirements.js";
 /* Overview feed: the sequence logic, the group split, and the per-pillar metric
    strip. Pure — it returns data, and the React components render it. */
-import { parseCr, CR_PER_MILLION } from "./gapModel.js";
+import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
 import { isTender, isProject } from "./tenderIntel.js";
 
 export const SEQ_LABEL = {
@@ -423,8 +423,6 @@ export function marketAttention(openTenders, ctx = {}) {
     if (t.lean === "go") s += 100;            // strong KSSL fit
     else if (t.lean === "maybe") s += 40;     // worth qualifying
     if (geo && t.country && geo.has(t.country)) s += 25;   // geo presence
-    const cr = parseCr(t.value);
-    if (cr > 0) s += Math.min(30, cr / 200);  // high price/value (crore)
     if (t.dl >= 1 && t.dl <= ATTENTION_DAYS) s += 20;      // closing soon
     return s;
   };
@@ -561,14 +559,8 @@ export function metricsFor(cfg, pillar, d) {
       // A tender whose source never published a value contributes nothing; if NO shown
       // tender carries one, the total is unknown, not zero -- "not measured" and "zero"
       // must not look the same.
-      const priced = shown.filter((x) => parseCr(x.value) > 0);
-      const liveCr = priced.reduce((t, x) => t + parseCr(x.value), 0);
-      /* Stating a value and being SIZEABLE are two different things. TED publishes
-         defence values in zloty, krone and koruna as well as euro, and parseCr
-         converts only the currencies whose rate this build documents; those rows
-         print their amount and stay out of the sum, so the subtitle names them
-         rather than promising a total that quietly omits them. */
-      const unconverted = shown.filter((x) => x.value && parseCr(x.value) <= 0).length;
+      const priced = shown.filter(hasAmount);
+      const totals = valueTotals(shown);
       // Fit is a graded field the corpus may not carry at all. If NO open tender was
       // graded, "Strong fits" is not zero-fits -- it is not-assessed, and says so.
       const anyFit = open.some((x) => x.lean);
@@ -579,14 +571,14 @@ export function metricsFor(cfg, pillar, d) {
         ...byLabel,
         "Latest tenders": shown.length,
         "Strong fits": anyFit ? go.length : "—",
-        "Tender value": priced.length ? Math.round(liveCr / CR_PER_MILLION["us$"]).toLocaleString("en-US") : "—",
+        "Tender value": formatTotals(totals),
         "Perceived opportunities": opps,
       };
       const goSub = anyFit ? null : "no fit assessment was served for these tenders";
       if (goSub) { subByLabel["Strong fits"] = goSub; WARN_SUBS.add(goSub); }
       const valSub = priced.length
         ? `${priced.length} of ${shown.length} publish a value` +
-          (unconverted ? ` · ${unconverted} more in a currency not converted here` : "")
+          (totals.length > 1 ? ` · ${totals.length} currencies, not converted` : "")
         : "no tender on this shortlist publishes a value";
       subByLabel["Tender value"] = valSub;
       if (!priced.length) WARN_SUBS.add(valSub);

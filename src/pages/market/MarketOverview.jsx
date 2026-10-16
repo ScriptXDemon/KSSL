@@ -645,7 +645,7 @@ export default function MarketOverview() {
                 <div className="ovc-h" style={{ marginTop: list.length ? 22 : 0 }}>
                   <span className="eyebrow">Past awards</span>
                   <span className="ovc-note">
-                    generator supply, standby power and genset O&amp;M contracts already awarded, newest first · {fmt(awardsList.length)} with a named winner{country === "all" ? "" : ` in ${country}`} · values in USD (SAR 0.2667, AED 0.2723, KWD 3.25)
+                    generator supply, standby power and genset O&amp;M contracts already awarded, newest first · {fmt(awardsList.length)} with a named winner{country === "all" ? "" : ` in ${country}`}
                   </span>
                 </div>
                 {awardsList.length ? (

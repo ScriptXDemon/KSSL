@@ -13,8 +13,6 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
       '<div class="tech-report"><div class="tr-head"><div class="tr-title">Positioning Briefing · CEO</div>' +
       `<div class="tr-sub">${escAll(m.comp || "")} vs ${escAll(m.bf)}</div>` +
       `<div class="tr-meta">CONFIDENTIAL · ${clientShort() ? `${clientShort()} · ` : ""}Prepared ${today} · Category: ${escAll(m.cat || "")}</div></div>` +
-      `<div class="tr-verdict parity"><b>${clientShort()} specification not publicly disclosed.</b></div>` +
-      `<div class="tr-sec"><div class="tr-sec-h">Assessment</div><div class="tr-body">${escAll(m.comp || "")} is a real, sourced competitor mapped to ${clientShort()}'s ${escAll((m.bf || "counterpart").replace(/^KSSL · /, ""))} by role and spec class. ${clientShort()} has not publicly disclosed specifications for this counterpart, The comparison holds at the role and capability-class level.</div></div>` +
       (m.advBf && m.advBf.length
         ? `<div class="tr-sec"><div class="tr-sec-h">${clientShort()} Advantages To Press</div><div class="tr-body">${m.advBf.map((a) => `• ${stripTags(a)}`).join("<br>")}</div></div>`
         : "") +
@@ -57,7 +55,7 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
     `<div class="trep-verdict ${v.cls}">${edgeWord}</div>` +
     `<div class="trep-sec"><div class="trep-h">1 · Bottom line</div><p>${m.verdict.replace(/<b>\[Analysis\]<\/b>\s*/, "")}</p></div>` +
     '<div class="trep-sec"><div class="trep-h">2 · Where each side leads (spec gap)</div>' +
-    `<p><b>${escAll((m.compBy || m.comp || "Competitor").split(" ")[0])} leads:</b> ${leads.comp.length ? escAll(leads.comp.join("; ")) : "—"}</p>` +
+    `<p><b>${escAll((m.compBy || m.comp || "—").split(" ")[0])} leads:</b> ${leads.comp.length ? escAll(leads.comp.join("; ")) : "—"}</p>` +
     `<p style="margin-top:6px"><b>${clientShort()} leads:</b> ${leads.bf.length ? escAll(leads.bf.join("; ")) : "—"}</p>` +
     (leads.even.length
       ? `<p style="margin-top:6px"><b>Comparable:</b> ${escAll(leads.even.join("; "))}</p>`
@@ -79,26 +77,15 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
           .join("") +
         "</div>"
       : "") +
-    `<div class="trep-sources">Competitor specs: ${srcRow ? escAll(srcRow[1]) : "on file"}. ${clientShort()} specs sourced where marked.</div>` +
+    (srcRow ? `<div class="trep-sources">Competitor specs: ${escAll(srcRow[1])}</div>` : "") +
     '<div class="trep-foot"><button class="trep-print" data-print="1">⎙ Print / save as PDF</button></div>' +
     "</div>"
   );
 }
 
-const MAT_LAB_REPORT = {
-  lab: "Lab / research",
-  dev: "In development",
-  prod: "In production",
-  fielded: "Fielded",
-};
-
 export function techReportHtml(iv, d, techCatId, today = formatDate()) {
-  const matLab = MAT_LAB_REPORT[iv.mat] || iv.mat;
-  const gapLab = {
-    behind: `${clientShort()} is BEHIND the leaders`,
-    parity: `${clientShort()} is AT PARITY`,
-    ahead: `${clientShort()} is AHEAD`,
-  }[iv.gap];
+  const matLab = iv.matLabel || "—";
+  const gapLab = iv.gapLabel || "";
   const catName = (() => {
     const c = d.techCats.filter((x) => x.id === techCatId)[0];
     return c ? c.name : "";
@@ -127,7 +114,7 @@ export function techReportHtml(iv, d, techCatId, today = formatDate()) {
     '<div class="tech-report">' +
     `<div class="trep-head"><div><div class="trep-eyebrow">Intelligence Briefing · CEO</div><div class="trep-title">${escAll(iv.t)}</div></div><div class="trep-class">CONFIDENTIAL${clientShort() ? ` · ${clientShort()}` : ""}</div></div>` +
     `<div class="trep-meta">Prepared ${today} · Domain: ${escAll(catName)} · Maturity: ${escAll(matLab)} · Horizon: ${escAll(iv.horizon)}</div>` +
-    `<div class="trep-verdict ${iv.gap}">${gapLab}</div>` +
+    `${gapLab ? `<div class="trep-verdict ${iv.gap}">${escAll(gapLab)}</div>` : ""}` +
     `<div class="trep-sec"><div class="trep-h">1 · Executive summary</div><p>${iv.body}</p></div>` +
     `<div class="trep-sec"><div class="trep-h">2 · What's new</div><p>${iv.whatsNew}</p></div>` +
     `<div class="trep-sec"><div class="trep-h">3 · Strategic implication for ${clientShort()}</div><p>${iv.impact.replace(/<b>\[Analysis\][^<]*<\/b>\s*/, "")}</p></div>` +
@@ -158,7 +145,7 @@ export function techReportHtml(iv, d, techCatId, today = formatDate()) {
           ? [{ label: "Source", url: iv.url }]
           : null,
     ) +
-    "<br>Competitive &amp; market figures drawn from the platform dataset (real where sourced, estimated where marked).</div>" +
+    "</div>" +
     '<div class="trep-foot"><button class="trep-print" data-print="1">⎙ Print / save as PDF</button></div>' +
     "</div>"
   );

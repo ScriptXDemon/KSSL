@@ -333,10 +333,8 @@ export function wireDataset(raw) {
         ],
         /* Groups cut by the tag technologyAttention stamps (buildFeed reads `tags`). */
         groups: [
-          { h: "Competitor Advancements", tags: ["rival"],
-            s: "— tech moves by tracked competitors" },
-          { h: "Adoptable Advances", tags: ["adopt"],
-            s: `— defence-tech from elsewhere ${clientShort()} can learn from or adopt` },
+          { h: "Competitor Advancements", tags: ["rival"] },
+          { h: "Adoptable Advances", tags: ["adopt"] },
         ],
       },
     };
@@ -651,7 +649,7 @@ export function wireDataset(raw) {
             metrics: [
               { l: "Latest tenders", act: "open" },
               { l: "Strong fits", act: "fit" },
-              { l: "Tender value", act: "valued", unit: "USD m" },
+              { l: "Tender value", act: "valued" },
               { l: "Perceived opportunities", act: "opps" },
               { l: "All signals", act: "all" },
             ],
@@ -659,10 +657,8 @@ export function wireDataset(raw) {
                are off in the feed, but the order (tenders then opportunities) and the
                exported report read these. */
             groups: [
-              { h: "Latest Tenders", dirs: ["fav", "threat"],
-                s: `— tenders that fit ${clientShort()}: strong fit, geo presence, high value, closing soon` },
-              { h: "Perceived Opportunities", dirs: ["watch"],
-                s: `— geopolitical & demand moves ${clientShort()} can act on (no tender required)` },
+              { h: "Latest Tenders", dirs: ["fav", "threat"] },
+              { h: "Perceived Opportunities", dirs: ["watch"] },
             ],
           },
         };

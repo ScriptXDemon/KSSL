@@ -559,13 +559,6 @@ export default function Tenders({ mode = "tender" }) {
                       <span className="v" dangerouslySetInnerHTML={{ __html: r[1] }} />
                     </div>
                   ))}
-                  {(t.req || []).some((r) => /indigen|content|offset/i.test(`${r[0]} ${r[1]}`)) ? (
-                    <div className="req-gloss">
-                      “Indigenous content” = the DAP 2020 threshold a bid must clear for its
-                      procurement category (50%+ for Buy Indian-IDDM). A bid that cannot declare the
-                      threshold is technically non-compliant regardless of price.
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
 

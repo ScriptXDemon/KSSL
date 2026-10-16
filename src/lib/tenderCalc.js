@@ -25,8 +25,8 @@ export function computeTenderRealDays(tender, referenceDate = new Date()) {
   if (isAwardedOrSettled) {
     return {
       dl: 0,
-      deadline: tender.deadline || "Awarded / Settled",
-      timing: "Awarded - programme concluded",
+      deadline: tender.deadline || "—",
+      timing: tender.status || "—",
       status: "awarded",
       class: "settled",
       isLive: false,

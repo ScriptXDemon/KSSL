@@ -25,7 +25,7 @@ const fail = (m) => { bad++; console.log("  FAIL " + m); };
 const t = (id, country, cat, over) => ({ id, title: id, country, cat, status: "open", dl: 30, value: null, url: "", ...over });
 const open = [
   t("a1", "India", "Ammunition"), t("a2", "India", "Ammunition"), t("a3", "France", "Ammunition"),
-  t("u1", "India", "UAVs & Drones"), t("s1", "Egypt", "Small Arms", { value: "₹90 cr" }),
+  t("u1", "India", "UAVs & Drones"), t("s1", "Egypt", "Small Arms", { value: "INR 90 crore", valueAmount: 900000000, valueCurrency: "INR" }),
 ];
 const awarded = [t("w1", "Belgium", "Ammunition", { status: "awarded" }), t("w2", "Belgium", "Artillery", { status: "awarded" })];
 

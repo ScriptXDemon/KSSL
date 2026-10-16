@@ -28,7 +28,7 @@ export default function TenderCockpit({ onOpen }) {
   const ranked = I.points.filter((p) => p.fit !== "weak").sort((a, b) => a.t.rank - b.t.rank);
   const top = ranked.filter((p) => isTender(p.t, today)).slice(0, 10);
   const projects = ranked.filter((p) => isProject(p.t, today)).slice(0, 8);
-  const stage = (t) => reqOf(t, "Latest milestone") || reqOf(t, "Status") || "Upcoming";
+  const stage = (t) => reqOf(t, "Latest milestone") || reqOf(t, "Status") || "—";
   const reqOf = (t, k) => ((t.req || []).find((r) => r[0] === k) || [])[1];
   const moves = I.actions.filter((a) => a.days >= 0).slice(0, 6);
   const rowKey = (e, t) => { if (e.key === "Enter") open(t); };

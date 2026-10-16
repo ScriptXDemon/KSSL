@@ -120,7 +120,7 @@ export default function MarketOutlook({ data, o }) {
         head={[["Winner"], ["Brand"], ["Wins", true], ["Value", true], ["Share", true], ["Buyers", true]]}
         note={`who wins the contracts · ${win.named} awards with a named winner, ${usd(win.totalUsd)} in USD`}
         rows={win.rows}
-        source={`${win.records} award records, ${win.named} name a winner, ${win.priced} carry a value (converted to USD by the pack: SAR 0.2667, KWD 3.25). ${win.serviceAwards} of the priced awards are operation or maintenance contracts and make up ${Math.round(win.serviceShare * 100)}% of the value, so a winner's share can reflect servicing as well as supply. Top 10 of ${win.rows.length} winners shown.`}
+        source={`${win.records} award records, ${win.named} name a winner, ${win.priced} carry a value. ${win.serviceAwards} of the priced awards are operation or maintenance contracts and make up ${Math.round(win.serviceShare * 100)}% of the value, so a winner's share can reflect servicing as well as supply. Top 10 of ${win.rows.length} winners shown.`}
         title="Who wins"
       >
         {win.rows.slice(0, 10).map((r) => (

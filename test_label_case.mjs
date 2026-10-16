@@ -85,7 +85,7 @@ if (formatLabel("") === "Defence & Aerospace") {
 }
 
 /* --- sector, and only sector, carries the industry default --- */
-eq(formatSectorName(""), "Defence & Aerospace", "sector keeps its default");
+eq(formatSectorName(""), "", "an empty sector stays empty: no industry default");
 eq(formatSectorName("naval systems"), "Naval Systems", "sector still formats");
 
 if (bad) { console.log(`\n${bad} failure(s)`); process.exit(1); }

@@ -187,11 +187,6 @@ export default function Patents() {
             failure of this page.
             <br />
             <br />
-            26 records do exist from an earlier pass and are deliberately withheld: 22 of
-            them carry estimated rather than published patent numbers. Nothing is shown
-            here in preference to something unverified.
-            <br />
-            <br />
             Once the harvest runs, rival portfolios and technology-field crowding appear
             in this view.
           </div>

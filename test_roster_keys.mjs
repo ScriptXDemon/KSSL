@@ -74,8 +74,9 @@ ck("selfCheck uses the same index, not its own", true,
    /const roster = rosterIndex\(KSSL_PARTNERS\)/.test(psrc));
 ck("...and the same lookup", true, /rosterLookup\(roster, p\)/.test(psrc));
 
-// ---- the live snapshot: every flagged partner now resolves -----------------------
-const d = JSON.parse(readFileSync("../db/live_dataset.json", "utf8"));
+// ---- the fixture snapshot: every flagged partner now resolves -----------------------
+const d = JSON.parse(readFileSync("./fixtures/kssl_dataset.json", "utf8"));
+(await import("./src/lib/client.js")).setClient(d.client);
 const wired = (await import("./src/lib/dataset.js")).wireDataset(d);
 const live = rosterIndex(wired.KSSL_PARTNERS);
 const missing = [];
@@ -88,7 +89,7 @@ for (const c of Object.values(wired.competitors || {})) {
     if (!rosterLookup(live, p)) missing.push(p.label);
   }
 }
-ck("on the committed snapshot, every flagged partner resolves", [], missing);
+ck("on the fixture, every flagged partner resolves", [], missing);
 ck("...and there were flagged partners to resolve (the check can still fail)", true, flagged > 0);
 
 console.log(bad ? `\n${bad} failure(s)` : "\nok - one roster index, used by the join and by the guard that checks it");

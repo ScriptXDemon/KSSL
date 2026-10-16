@@ -9,7 +9,7 @@
    And `bucketTenders`' `t.dl <= 0` is TRUE for the served `null`, so raw rows bucket
    as 100% closed. Wired input is a correctness requirement, not a convention. */
 import { clientShort } from "./client.js";
-import { parseCr, CR_PER_MILLION } from "./gapModel.js";
+import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
 import { facetOptionsByName } from "./countryFacet.js";
 import { bucketTenders, marketAttention } from "./overview.js";
 
@@ -144,14 +144,8 @@ export function marketMetrics(tenders) {
   const { open, awarded, closed } = bucketTenders(list);
   const countries = new Set(list.map((t) => t.country).filter(Boolean));
   const portals = new Set(list.map((t) => hostOf(t.url)).filter(Boolean));
-  const priced = list.filter((t) => parseCr(t.value) > 0);
-  const crore = priced.reduce((n, t) => n + parseCr(t.value), 0);
-  /* Stating an amount and being SIZEABLE are two different things. TED publishes
-     defence values in zloty, krone and koruna as well as euro, and parseCr converts
-     only the currencies whose rate this build documents. Those rows print their
-     amount and stay out of the total, so the subtitle has to say so -- counting them
-     as "publish an amount" would promise a total that silently omits them. */
-  const unconverted = list.filter((t) => t.value && parseCr(t.value) <= 0).length;
+  const priced = list.filter(hasAmount);
+  const totals = valueTotals(list);
   return [
     {
       l: "Active tenders",
@@ -177,11 +171,10 @@ export function marketMetrics(tenders) {
          contracts are worth nothing". */
       l: "Value disclosed",
       act: "value",
-      v: priced.length ? Math.round(crore / CR_PER_MILLION["us$"]).toLocaleString("en-US") : "—",
-      unit: priced.length ? "USD m" : "",
+      v: formatTotals(totals),
+      unit: "",
       sub: priced.length
-        ? `${priced.length} of ${list.length} publish an amount` +
-          (unconverted ? ` · ${unconverted} more in a currency not converted here` : "")
+        ? `${priced.length} of ${list.length} publish an amount${totals.length > 1 ? ` · ${totals.length} currencies, not converted` : ""}`
         : "no tender on record publishes an amount",
     },
   ];
@@ -348,7 +341,7 @@ export function reportFacets(scope, { country, cat } = {}) {
    hard-coded string, on a corpus where 14 do. Measured from the rows instead. */
 export function valueNote(rows) {
   const list = rows || [];
-  const priced = list.filter((t) => parseCr(t.value) > 0).length;
+  const priced = list.filter(hasAmount).length;
   return priced
     ? `${priced} of ${list.length} publish${priced === 1 ? "es" : ""} a value`
     : "no tender listed here publishes a value";

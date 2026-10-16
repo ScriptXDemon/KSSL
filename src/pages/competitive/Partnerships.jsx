@@ -141,33 +141,18 @@ export default function Partnerships() {
 
   const selCo = cid ? data.competitors[cid] : null;
   const c = selCo ? { ...selCo, id: cid } : null;
-  const VERIFIED_KSSL_PARTNERS = useMemo(() => [
-    { id: "kssl_p01", label: "DRDO", country: "India", ptype: "Co-Development", rel: "joint_development", status: "active", note: "Co-development of ATAGS 155mm/52 cal artillery and Garuda 105 systems" },
-    { id: "kssl_p02", label: "Rafael Advanced Defense Systems", country: "Israel", ptype: "Joint venture", rel: "joint_venture", status: "active", note: "Kalyani Rafael Advanced Systems (KRAS) for Spike anti-tank guided missiles" },
-    { id: "kssl_p03", label: "AM General", country: "USA", ptype: "Strategic alliance", rel: "strategic", status: "active", note: "Mobile Tactical Cannon (MArG 155mm on Humvee/BRV platform) for US Army" },
-    { id: "kssl_p04", label: "Paramount Group", country: "South Africa", ptype: "Joint venture", rel: "joint_venture", status: "active", note: "Manufacturing Kalyani M4 armoured vehicles and Kalyani Maverick" },
-    { id: "kssl_p05", label: "Saab", country: "Sweden", ptype: "Partnership / MoU", rel: "strategic", status: "active", note: "Strategic cooperation on air defence systems and RBS 70 NG" },
-    { id: "kssl_p06", label: "Elbit Systems", country: "Israel", ptype: "Technology transfer", rel: "licensing", status: "active", note: "Collaboration on advanced artillery components and weapon systems" },
-    { id: "kssl_p07", label: "Thales", country: "France", ptype: "MoU / Technology", rel: "strategic", status: "active", note: "Cooperation on radar, optronics and fire control integration" },
-    { id: "kssl_p08", label: "BAE Systems", country: "United Kingdom", ptype: "Supply agreement", rel: "supply", status: "active", note: "Artillery forgings and high-precision ordnance component supply" },
-    { id: "kssl_p09", label: "PLR Systems", country: "India", ptype: "Subsidiary / JV", rel: "subsidiary", status: "active", note: "Indigenous small arms manufacturing (Tavor, Galil, Negev, X95)" },
-    { id: "kssl_p10", label: "Seco Tools", country: "Sweden", ptype: "Supply agreement", rel: "supply", status: "active", note: "Specialized defense tooling and precision machining collaboration" },
-  ], []);
-
   /* In Regions mode, display partners grouped by sovereign country flag.
      If a competitor is chosen, map that competitor by country; otherwise map KSSL's own alliance network. */
   const byRegion = groupMode === "region";
   const ksslCo = useMemo(() => {
-    const raw = data.KSSL_PARTNERS && data.KSSL_PARTNERS.length > 1
-      ? data.KSSL_PARTNERS
-      : VERIFIED_KSSL_PARTNERS;
+    const raw = data.KSSL_PARTNERS || [];
     return {
       id: (data.client && data.client.id),
       name: clientName,
       dir: "client",
       partners: raw,
     };
-  }, [data, clientName, VERIFIED_KSSL_PARTNERS]);
+  }, [data, clientName]);
   const gc = c;
   const gcid = gc ? gc.id : null;
   // what the drawer / layout treat as "something is selected"

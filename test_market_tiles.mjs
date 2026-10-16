@@ -65,7 +65,7 @@ const raw = {
   tenders: [
     tender("t-open-1"),
     tender("t-open-2", { country: "France" }),
-    tender("t-open-val", { value: "₹1,200 cr", country: "Egypt" }),
+    tender("t-open-val", { value: "USD 145 million", valueAmount: 145000000, valueCurrency: "USD", country: "Egypt" }),
     tender("t-awarded", { status: "awarded" }),
     tender("t-closed", { status: "open", deadline: "Closed 01 Jan 2020" }),
   ],
@@ -90,8 +90,8 @@ const act = (l) => (m.find((x) => x.l === l) || {}).act;
 if (v("All signals") !== String(cfg.cards.length)) fail(`All signals reads ${v("All signals")}, feed holds ${cfg.cards.length}`);
 if (v("Latest tenders") !== "3") fail(`Latest tenders reads ${v("Latest tenders")}, 3 are on the shortlist`);
 if (v("Strong fits") !== "—") fail(`Strong fits reads ${v("Strong fits")}, no tender is graded so it must read "—"`);
-// the tile reads USD m: the tender states ₹1,200 cr, which converts at the documented 8.3 cr per USD m
-if (v("Tender value") !== "145") fail(`Tender value reads ${v("Tender value")}, one shown tender publishes ₹1,200 cr (USD 145 m)`);
+// the tile shows the stored amount in its own currency; nothing is converted
+if (v("Tender value") !== "USD 145 m") fail(`Tender value reads ${v("Tender value")}, one shown tender states USD 145 million`);
 // the two demand cards (no KSSL taxonomy served in this fixture, so the lane is kept) are
 // the Perceived Opportunities stream on the same feed
 if (v("Perceived opportunities") !== "2") fail(`Perceived opportunities reads ${v("Perceived opportunities")}, expected the 2 watch cards`);
