@@ -17,6 +17,7 @@ Layout, navigation, tab strips, filter bars, card anatomy, graph, map, and table
 |---|---|
 | "ASK PARALLAX" button bottom left is absent | hidden (`chat`) |
 | Top-right client chip reads "Aurora (TEST)" instead of "Cummins Arabia"; names, products, countries, numbers and rail counts differ | seed (client and data come from the database) |
+| Rail words read "Partnerships", "Patents", "Global requirements", "Overview / Innovations" (technology) where the reference says "Partnership", "Patent", "Global Requirements", "Overview / Innovations" | the stored navigation labels (`ui.competitive_navigation`, `ui.market_view`, `ui.technology_ui_view`); the reference has them as literals |
 | Rail count badges differ (9/5/30/15/5/5/10/14/14, 9/7/6/11, 10/16 vs 18/8/32/91/7/8/58/3/37, ...) | seed (counts are derived from the rows served) |
 
 ## Per route
@@ -24,12 +25,10 @@ Layout, navigation, tab strips, filter bars, card anatomy, graph, map, and table
 ### competitive / overview
 | Difference | Reason |
 |---|---|
-| The four-tile metric strip (Competitive threats, Watch signals, Companies tracked, Rating matched pairs) is absent | UNEXPECTED, see U1 |
-| The direction filter pills (ALL 18 / THREAT 6 / WATCH 12) beside Search are absent | UNEXPECTED, see U1 |
-| The list heading reads "SIGNALS" instead of "COMPETITIVE INTELLIGENCE" | UNEXPECTED, see U1 |
-| Card dates read "11 Oct 2026" (fixed in this task; they printed the stored ISO "2026-10-11") | was UNEXPECTED, fixed in `signalDate()` |
-| Reference card text ends with an "Action: ..." sentence | seed (that sentence is part of the stored Cummins card text; the seed cards carry their own stored sentence) |
-| Order and content of the cards | R5 (stored sequence) and seed |
+| The strip shows three tiles (Competitors tracked, Competitive threats, Watch signals) in the first three slots, the rest empty; the reference has four (Competitive threats, Watch signals, Companies tracked, Rating matched pairs) | the tile words are the stored `ui.competitive_metric` labels bound by `metric_key`; "Rating matched pairs" was never measured in the reference either (it printed "not wired") and has no stored row |
+| Pills ALL / THREAT / WATCH with counts, heading "COMPETITIVE INTELLIGENCE", threat / watch badges and their colours match the reference | was UNEXPECTED U1, resolved in fix round 1: pills are `ui.filter_option` group `stance`; the heading is chrome (no table holds it); badges use the stored badge word |
+| Card dates read "11 Oct 2026" | fixed earlier (stored ISO dates are written in the house format) |
+| Card text, order and counts | seed and R5 (stored sequence) |
 
 ### competitive / profile
 | Difference | Reason |
@@ -42,7 +41,8 @@ Layout, navigation, tab strips, filter bars, card anatomy, graph, map, and table
 ### competitive / threat-analysis (Competitor Moment)
 | Difference | Reason |
 |---|---|
-| Subtitle "0 graded a threat" and pills read raw "HIGH" / lower-case | was UNEXPECTED, fixed in this task: the Moment page compared the codes THREAT / WATCH / FAV, but the stored levels are high / watch / opportunity. It now reads the word, tag class and threat count from `ui.competitive_competitor_moment_level`. After the fix: "5 graded a threat", pills "HIGH THREAT / WATCH / OPPORTUNITY" |
+| Subtitle "0 graded a threat" and pills read raw "HIGH" / lower-case | was UNEXPECTED, fixed: the word, tag class and threat count come from `ui.competitive_competitor_moment_level`. Now "5 graded a threat", pills "HIGH THREAT" and "WATCH". The third stored level (opportunity) draws no pill, as the reference's third level drew none (its word was empty) |
+| The time-window chips are the stored windows ("Last 30 days" / "Last 90 days" / "Last 12 months") plus the "All" reset, not Today / Week / Month | `ui.competitive_competitor_moment_time_window` (fix round 1) |
 | Cards carry a source tile (e.g. "PLACEHOLDER BUSINESS JOURNAL") and category chips, not photos | seed (no images) |
 | Cards are ordered by date, newest first | R5 |
 
@@ -88,6 +88,7 @@ Layout, navigation, tab strips, filter bars, card anatomy, graph, map, and table
 | Difference | Reason |
 |---|---|
 | Fit words read STRONG / PARTIAL, not GOOD / PARTIAL | R7 (KSSL vocabulary strong / partial / weak) |
+| Rail reads Top opportunity / Tenders / Global requirements / Market Intelligence (sentence case "requirements") and the tiles read the stored words | `ui.market_view` (rail_label, rail_order) and `ui.market_top_opportunity_view`; the seed orders match the reference |
 | "Decides" shows the stored text ("Award expected in Q1 2027"), not a date | seed (stored text) |
 | Revenue column and subtitle read "revenue is the analyst estimate" and the "ranked by revenue the client can win x how well a model fits" sentence is gone; the "no genset tender yet" subtitle is neutral | genset / R18 (no claim wording) |
 | Tender value tile "EUR 9 m . USD 1,201 m"; "Perceived opportunities 0" | R9 (per currency); seed |
@@ -116,15 +117,62 @@ Layout, navigation, tab strips, filter bars, card anatomy, graph, map, and table
 ### technology / t-overview, innovation
 | Difference | Reason |
 |---|---|
-| Layout, tiles (Competitor advances, Adoptable advances, Domains tracked), tags and tabs match; domain tabs are the seed's six categories | seed |
-| Card dates read "10 Oct 2026" after the date fix | was UNEXPECTED, fixed |
+| Heading "Technology Overview", tiles "Competitor advances / Adoptable technologies / Innovations tracked" (innovations counted, not domains), rail "Overview / Innovations", sequence menu "Newest first / Oldest first / Threat first", search placeholder "Search signals..." | the stored words: `ui.technology_ui_view`, `serving.technology_metric` (bound by metric_key). The reference says "Technology Knowledge", "Adoptable advances", "Domains tracked", "Priority (threats first)" from literals in its code |
+| Competitor-advance rows carry no badge, adoptable rows carry the green ADOPTABLE badge (as in the reference) | `ui.filter_option` group `technology-feed` (badge_label null for the first) |
+| Layout, cards and tabs match; the innovation tabs are the seed's six categories | seed |
 
-## UNEXPECTED differences still open
+## UNEXPECTED differences
 
-1. **U1: the Competitive overview has no metric strip, no direction filter pills, and the heading "SIGNALS".** `backend/areas/a_competitive.py` ships `overviewConfig.competitive` with `title: null, metrics: [], filters: []` (ruling R12: the backend sends no English labels), and the UI has no reader for the label tables that MAPPING E names (`ui.competitive_metric`, `ui.competitive_overview_feed`): `uiText()` was never built. The market and technology lanes still show their tiles because `src/lib/dataset.js` keeps their English labels as literals (those literals are themselves hardcoded labels; MAPPING E says they should come from `ui.market_metric` / `ui.technology_metric`). Fix: build the competitive lane's `metrics`, `filters` and `title` in `dataset.js` from `data.database.ui.competitive_metric` (label, `metric_key`) and bind `metricsFor` by `metric_key`, not by label string.
-2. **U3 (minor): the Patent rail has no client entry** (see above). `compOrder` holds rivals only.
+Resolved in fix round 1: U1 (the Competitive overview had no strip, no pills and the heading "SIGNALS": it is now built from `ui.competitive_metric` and `ui.filter_option`, see "Label sources"). Fixed earlier by the visual comparison: ISO dates printed on signal cards; the Moment page ignored the stored levels; the patent "Data source" note had a hardcoded provider list (now only stored sources, no default prose).
 
-Fixed in this task, found by this comparison: a hardcoded default provider list in the patent "Data source" note (`patApiNote`); stored ISO dates printed raw on the signal cards (now "11 Oct 2026"); the Competitor Moment page's level words, pill class and threat count did not read the stored levels (now read `ui.competitive_competitor_moment_level`); the Profile list view printed the listing-page date for publisher-index rows (now the dash); two review lists on Partnership had Approve bars on rows the review API cannot approve alone (competitive_synthesis rides on the competitor card) and one list that could not be reached (field-level patterns).
+Still open:
+- U3 (minor): the Patent rail has no client entry. `compOrder` holds rivals only; the reference lists the client with 0 filings.
+- U4: the labels listed as NOT WIRED under "Label sources" are still literals in code although MAPPING E maps them to a ui table.
+
+## Label sources
+
+What the screens' words are made of, so a hardcoded word that looks identical to the reference is not mistaken for data.
+
+Wired to the database (read with `src/lib/uiText.js`, covered by `test_ui_labels.mjs` and e2e FE-006 / FE-022): competitive overview tiles (`ui.competitive_metric`); stance pills, badge words and the stance words in the detail panel and Projects (`ui.filter_option` group `stance`); technology tiles (`serving.technology_metric`); technology pills, groups and badge (`ui.filter_option` group `technology-feed`); technology heading, sequence menu, sequence label and search placeholder (`ui.technology_ui_view`); market top-opportunity tiles and heading (`ui.market_top_opportunity_view`); market feed pills, groups and badges (`ui.filter_option` group `market-feed`); market report tiles (`ui.market_metric`); the rail labels, rail order and page headings of all three pillars (`ui.competitive_navigation`, `ui.market_view`, `ui.technology_ui_view`); Market Intelligence tabs (`ui.market_intelligence_tab`); the Moment time-window chips and the Profile news windows (`ui.competitive_competitor_moment_time_window`); Moment level words (`ui.competitive_competitor_moment_level`); Projects filters and sequence (`ui.ui_project_*` through `projectsConfig`). A row, label or table that is missing draws nothing (no tile, no pill, no tab, no rail item); there is no default set.
+
+Data, not labels: the options of every country, category, revenue-tier, origin and company filter are the distinct stored values of the rows on screen. The only literal in those controls is the reset word "All".
+
+Chrome by decision (MAPPING E5): the competitive overview heading "Competitive Intelligence"; the sequence menus and search placeholder of the competitive and market overviews; the reset pills "All" / "All time" / "All dates"; archived and hidden view titles (Finances, Gap Analysis, Awarded and Closed Tenders); block titles, column headers, parameter labels, call-to-action words.
+
+NOT WIRED (U4; MAPPING E maps them to a ui table but the code still carries the literal): the Tenders and Global Requirements filter labels and sort notes (`ui.market_tenders_view`, `ui.market_global_requirement_*`), the empty-state texts (`ui.market_view.empty_state_text`), the Top-opportunity section titles and notes (`ui.market_top_opportunity_view.*_section_label`), the Product Evaluation tab labels (`ui.competitive_positioning_tab`), the pillar names Market and Technology (`ui.market_pillar.display_name`, `ui.technology_pillar.pillar_name`), the impact eyebrows (`competitive_signal_detail.impact_eyebrow`).
+
+New table this round: `ui.filter_option(filter_group, option_code, option_label, badge_label, display_order)` (staging_ui + ui, guard trigger, seeded). It is meant to be filled by the prompts. Its groups: `stance` (threat, watch), `market-feed` (tenders, opportunities), `technology-feed` (competitor-advances, adoptable).
+
+## Cummins hide rules preserved
+
+The reference source (read only) was audited for every place it deliberately hides something. The user rule: what the Cummins UI hides stays hidden, stated without hardcoded values. The file:line references are into the Cummins `frontend/src` tree.
+
+| Cummins hide rule (file:line) | Where and how the port keeps it |
+|---|---|
+| `lib/dataset.js:344-347` the competitive overview drops the third stance's filter and its cards | `src/lib/lanes.js` builds the pills from the stored stance rows (threat and watch only); `src/lib/dataset.js` marks a card whose stored stance is neither as `noStance` and leaves it off the competitive overview; no stance is kept anywhere (`uiText.stanceOf`). `test_threat_logic.mjs`, `test_ui_labels.mjs` |
+| `pages/overview/Overview.jsx:86` no third-stance badge anywhere; `pages/competitive/ThreatAnalysis.jsx:21` its Moment level word is empty, so it draws no pill | no third stance in `src` (a test greps for it); the Moment page draws a word and pill only when the stored level's tag is a stance (`ThreatAnalysis.jsx levelWord`) |
+| `pages/competitive/Profile.jsx:791`, `Products.jsx:1376`, `Projects.jsx:156`, `ThreatAnalysis.jsx:124` the dot colour falls back to watch for any other value | the dot is drawn only for a stored threat or watch; any other value draws no dot (no stance is invented) |
+| `lib/geo.js:47`, `pages/competitive/Geo.jsx:695` the client's own marker reuses the third-stance class | class `client` (`geo.css .pk-dot.client`, `.geo-d-h.dir-client`); no stance word |
+| `lib/overview.js:694` the third-stance tile predicate | removed with the stance (`overview.js tilePredicate`); `TILE_LABELS` has no such entry (`test_feed_state.mjs`) |
+| `lib/dataset.js:371` only ADOPTABLE is labelled on a technology row | `lanes.js technologyLane`: the stored badge word of each option; the competitor-advance option has none, so no badge |
+| `lib/dataset.js:373`, `:696` the All / Competitor / Adoptable and All / Latest Tenders / Perceived Opportunities buttons are off on those pillars; `:714` and `Overview.jsx:382` the group banner is off | `hideFilterButtons: true` on both lanes (`dataset.js`); `Overview.jsx` renders no group banner; the pills stay in the config for the tiles and the count line |
+| `lib/dataset.js:690` the TENDER badge reads green | kind `tender` gives `.dirtag.k-tender` (`shell.css`) |
+| `components/metricsStrip/MetricsStrip.jsx:82,113,125` two slots empty, no tile dot, no descriptive subline (the warning subline stays) | the unused slots are empty cells (`lanes.js withBlanks`, `MetricsStrip` `blank`); dot and subline code unchanged |
+| `components/sidebar/Sidebar.jsx:28,33` no overview glyph, no rail marker | `Sidebar.jsx` unchanged in that part |
+| `components/signalCard/SignalCard.jsx:49` the HIGH / MEDIUM / LOW badge is off | not rendered; severity is a judgement the port no longer carries (R5) |
+| `components/subHead/SubHead.jsx:13,93,102` Copy Summary, Export JSON and the on-screen count line are off | `SubHead.jsx` and `chrome.css` unchanged |
+| `components/topBar/TopBar.jsx:204` the Feed / Live box is off | `TopBar.jsx` unchanged |
+| `lib/route.js:22,54`, `components/layout/Layout.jsx:193,209` archived views are off the rail but still routed | `route.js ARCHIVED_VIEWS`; Layout still renders them |
+| `lib/overview.js:19` the depth and category sequences are off the menu | `SEQ_OPTIONS` lists priority and recency only (`seqMode` still accepts the rest) |
+| `lib/specs.js:114` no sources on the Spec Comparison | `SHOW_POSITIONING_SOURCES = false`; `test_positioning_sources.mjs` holds all three panels source-free |
+| `components/detailPanel/DetailPanel.jsx:72-93` the facts "stance", "date", "publisher", "primary lens" and unresolved tender rows are dropped; `:179,254` quote marks off | `DetailPanel.jsx` unchanged in that part |
+| `pages/market/Tenders.jsx:448` the card grid shows five parameters; the rest live in the panel | `DASHBOARD_PARAM_KEYS` unchanged |
+| `lib/partners.js:2266` the partner card is name, relationship and detail link only | unchanged |
+| `pages/overview/Overview.jsx:328,350` no group straplines, no "30 of 82 ... served" line | not rendered |
+| `pages/competitive/Positioning.jsx:238` the competitor product name is a plain label; `Partnerships.jsx:57` a company opens with its branches spread | unchanged |
+| `styles/*.css` every `display:none` rule (`.alert .sig`, `.srcbadge`, `.cp-note`, `.pg-graph-foot`, `.pg-legend-title`, `.view`, ...) | the style files carry the same rules (counted per file against the reference) |
+| `pages/competitive/Geo.jsx:299-301` a dealer branch or depot is not listed as a product | gone: the rule matched genset product names ("tracked range", "diesel and gas gensets") in the Cummins data, so it was deleted with them |
+| `lib/dataset.js:160-167` threat routing strict by operator choice | a pipeline rule, not a UI hide: the port reads the stored stance |
 
 ## Empty-dataset check (Review Focus 1)
 
