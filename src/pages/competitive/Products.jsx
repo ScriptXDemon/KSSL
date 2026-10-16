@@ -37,6 +37,7 @@ function writePulse(k, v) {
    later, on a dashboard whose job is "what is new". Same key/value shape, held in
    memory, cleared on a pillar change. See lib/viewState. */
 import * as viewState from "../../lib/viewState";
+import { Review } from "../../components/review/Review.jsx";
 const cleanCompanyName = (rawName) => {
   if (!rawName) return "";
   let name = unescapeEntities(String(rawName)).split("(")[0].split("-")[0].trim();
@@ -468,6 +469,7 @@ export default function Products() {
         const mu = matchupForOwn(nm);
         prods.push({
           id: `co-prod-${obj.id || nm}`,
+          _src: obj._src,
           matchupId: mu ? mu.id : null,
           name: formatProductName(nm),
           company: clientName,
@@ -534,6 +536,7 @@ export default function Products() {
           seenKeys.push(pk);
           prods.push({
             id: obj.id ? `co-prod-${obj.id}` : `co-prod-${name}`,
+            _src: obj._src,
             matchupId: matchupFor(name),
             name: formatProductName(stripCompanyPrefix(name, co.name || selectedCompany.name)),
             company: selectedCompany.name,
@@ -915,6 +918,7 @@ export default function Products() {
                   <h3 style={{ fontSize: "20px", fontWeight: "700", color: "#ffffff", margin: 0 }}>
                     {selectedCompany.name} - {selectedProduct.name}
                   </h3>
+                  <Review src={selectedProduct._src} />
                 </div>
 
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -1165,8 +1169,8 @@ export default function Products() {
                 {/* Grid of news cards */}
                 <div className="ln-grid">
                   {(filteredProdArticles.length > 0 ? filteredProdArticles.slice(0, 6) : (productMentions.length > 0 ? productMentions.slice(0, 6) : [])).map((item, idx) => (
+                    <div key={item.id || item.url || `pn-${idx}`}>
                     <ArticleLink
-                      key={item.id || item.url || `pn-${idx}`}
                       article={item}
                       className="ln-card"
                       style={{
@@ -1201,6 +1205,8 @@ export default function Products() {
                         </div>
                       </div>
                     </ArticleLink>
+                    <Review src={item._src} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1227,6 +1233,7 @@ export default function Products() {
                 <h2 style={{ fontSize: "16px", fontWeight: "700", color: "var(--d-txt)", margin: 0 }}>
                   {selectedCompany.name} Product Portfolio
                 </h2>
+                {selectedCompany.isClient ? <Review src={data.client && data.client._src} /> : null}
               </div>
 
               <div style={{ display: "flex", gap: "10px", alignItems: "center", marginLeft: "auto", flexWrap: "wrap" }}>
@@ -1358,6 +1365,7 @@ export default function Products() {
                           </dl>
                           <div className="pc-foot">
                             <span className="pc-dc" />
+                            <Review src={p._src} />
                             <span className="pc-view">View specs →</span>
                           </div>
                         </div>

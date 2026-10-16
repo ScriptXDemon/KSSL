@@ -8,6 +8,7 @@ import FeedFilters from "../../components/subHead/FeedFilters.jsx";
 import { STANCE_CLASS, STANCE_WORD, projectFeed, sortableSeq, latestWhen, day } from "../../lib/projects";
 import { srcChips } from "../../lib/html";
 import { formatDate } from "../../utils/formatDate";
+import { Review } from "../../components/review/Review";
 
 /* Projects: what each competitor is working on or pursuing. The competitors are
    listed down the left; each project is a row in the Overview's layout, and its panel says what it is, where
@@ -46,6 +47,7 @@ function ProjectPanel({ p, steps, regionLabel, onClose }) {
             {STANCE_WORD[stance] ? <span className={cls ? `dirpill dir-${cls}` : "dirpill"}>{STANCE_WORD[stance]}</span> : null}
           </div>
           <div className="ct">{p.name}</div>
+          <Review src={p._src} />
         </div>
 
         <Sec title="At a glance">
@@ -219,6 +221,7 @@ export default function Projects({ onSelectionChange }) {
                         <span className="kph-label">{p.stage}:</span>
                         <span className="kph-val">{[cid === ALL ? p.company : null, p.customer, p.location].filter(Boolean).join(" · ")}</span>
                       </div>
+                      <Review src={p._src} />
                     </div>
                     <div className="aside">
                       {cls && STANCE_WORD[p.assessment.stance] ? <span className={`dirtag ${cls}`}>{STANCE_WORD[p.assessment.stance]}</span> : null}

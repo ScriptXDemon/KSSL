@@ -11,6 +11,7 @@ import { srcChips } from "../../lib/html";
 import { formatLabel, smartTitleCase } from "../../lib/profile";
 import { facetOptions } from "../../lib/countryFacet";
 import { NOT_ON_RECORD, reqLabel, resolveTenderRow, tenderFactRows } from "../../lib/tenderRow";
+import { Review } from "../../components/review/Review";
 
 const fitClass = (p) => {
   const n = parseInt(p, 10);
@@ -470,6 +471,7 @@ export default function Tenders({ mode = "tender" }) {
                       <span className={`fitpct${scored ? "" : " grade"}`}>{fp}</span>
                     </div>
                   ) : null}
+                  <Review src={row._src} />
                 </div>
               );
             })
@@ -501,6 +503,7 @@ export default function Tenders({ mode = "tender" }) {
                 </div>
                 <span className="eyebrow">Tender Assessment</span>
                 <div className="ct">{smartTitleCase(t.title)}</div>
+                <Review src={t._src} />
                 <div className="sub" style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
                   <div>{metaLine([t.issuer, t.country, t.value])}</div>
                   <div>{metaLine([t.timing || t.deadline])}</div>

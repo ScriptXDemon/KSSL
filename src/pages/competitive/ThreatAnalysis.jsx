@@ -8,6 +8,7 @@ import { formatDate } from "../../utils/formatDate";
 import Thumb from "../../components/thumb/Thumb.jsx";
 import { sourceHref } from "../../components/sourceLink/SourceLink.jsx";
 import { srcChips } from "../../lib/html";
+import { Review } from "../../components/review/Review.jsx";
 
 /* Competitor Moment: what each tracked competitor has just done, newest first, with what it
    means for the client. Every row is one dated, sourced move from `competitorNews` (the same
@@ -195,6 +196,7 @@ export default function ThreatAnalysis() {
                   </div>
                   <div className="cm-title">{m.title}</div>
                   {m.description ? <div className="cm-desc">{m.description}</div> : null}
+                  <Review src={m._src} />
                 </div>
               </div>
             ))}
@@ -226,6 +228,7 @@ export default function ThreatAnalysis() {
                 </div>
                 <div className="ct" style={{ paddingRight: "40px" }}>{open.title}</div>
                 <div className="sub" style={{ marginTop: "8px" }}>{open.company} · {formatDate(open.date)}</div>
+                <Review src={open._src} />
               </div>
               {sourceHref(open.image) || /^(product|news)-images\//.test(open.image || "") ? (
                 <div className="ctx-sec">

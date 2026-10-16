@@ -379,6 +379,7 @@ export function buildProfile(d, cid) {
 
   return {
     cid,
+    _src: c._src,
     name,
     sector: formatSectorName(c.sector),
     /* NOT formatSectorName: that returns 'Defence & Aerospace' for an empty value, and
