@@ -452,7 +452,6 @@ export default function Products() {
          rival pairing (DQCA, C550D5, C1750D6E ...) was missing from it, and a tender that names one could not open
          it. The client's served products list (specs, image, source) leads, as it does for a rival; a matchup
          only adds its Compare button, and a model that only a matchup names is still listed after. */
-      const bandLabel = (data && data.BAND_LABEL) || {};
       const coOwn = (data.competitors || {})[clientCid] || {};
       const matchupForOwn = (nm) => {
         const k = prodKey(nm);
@@ -471,11 +470,10 @@ export default function Products() {
           matchupId: mu ? mu.id : null,
           name: formatProductName(nm),
           company: clientName,
-          category: formatCategoryTitle((obj.band && bandLabel[obj.band]) || (mu && mu.cat) || obj.category),
+          category: formatCategoryTitle((mu && mu.cat) || obj.category),
           source: obj.source || "",
           sourceUrl: obj.source_url || "",
           specs: obj.specs && typeof obj.specs === "object" ? obj.specs : {},
-          incomplete: obj.incomplete === true,
           specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
           tier: obj.tier || null,
           reason: mu ? mu.reason || "" : "",
@@ -554,8 +552,7 @@ export default function Products() {
             specs: obj.specs && typeof obj.specs === "object" ? obj.specs : {},
             /* fewer than 2 extracted specs: a real product whose record is thin. It is listed
                and SAYS so, rather than being hidden or passing as a full sheet. */
-            incomplete: obj.incomplete === true,
-            specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
+              specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
             tier: obj.tier || null,
             reason: "",
             image: obj.image || null,
@@ -1349,8 +1346,7 @@ export default function Products() {
                           }}
                         >
                           <div className="pc-head">
-                            <span className="pc-tag">{p.series || p.category || "Genset"}</span>
-                            {p.hz ? <span className="pc-hz">{p.hz} Hz</span> : null}
+                            <span className="pc-tag">{p.category || "—"}</span>
                           </div>
                           <div className="pc-name" title={p.name}>{p.name}</div>
                           <dl className="pc-specs">
@@ -1362,9 +1358,7 @@ export default function Products() {
                             ))}
                           </dl>
                           <div className="pc-foot">
-                            <span className="pc-dc">
-                              {p.specs && p.specs["Data centre rating"] ? "Data-centre rated" : ""}
-                            </span>
+                            <span className="pc-dc" />
                             <span className="pc-view">View specs →</span>
                           </div>
                         </div>

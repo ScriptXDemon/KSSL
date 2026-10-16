@@ -82,7 +82,7 @@ export function ownActivityLabels(rows, actLabel, clientLabel) {
 
    That is the house rule "not measured must not look like zero" in its other direction:
    estimated must not look like measured. The client's own footprint outside India is
-   exactly this case -- the Saudi Arabia and Europe rows are both src='syn'. */
+   exactly this case -- a client row with src='syn'. */
 export const isEstimate = (row) => !!row && row.src === "syn";
 
 /** How many of these rows are sourced and how many are estimates. */
@@ -145,14 +145,13 @@ export function presenceBadge({ clientLabel, rows, rivalCount, actLabel }) {
   };
 }
 
-/* "IS KSSL ONLY INDIA?" -- asked of this map, and the map could not answer it.
+/* "IS THE CLIENT IN ONE PLACE ONLY?" -- asked of this map, and the map could not answer it.
 
-   The client has rows in three places: India, Saudi Arabia and "Europe". Only one of
-   those is a plottable country. "Europe" is a continent and is deliberately not pinned
-   (a point for it landed inside Poland, which is separately its own row), and the Saudi
-   Arabia row is an analytical estimate. So a reader saw one green dot over India and
-   read it as the whole footprint -- an answer the data does not support, produced by
-   two honest rules with nothing tying them together for the client's own row.
+   A client can hold rows for a country, for a region, and for an estimate. Only a country is
+   plottable: a region is a region and is deliberately not pinned, and an estimate must not look
+   like a measurement. So a reader saw one green dot and read it as the whole footprint -- an answer
+   the data does not support, produced by honest rules with nothing tying them together for the
+   client's own row.
 
    This states the client's footprint in words beside the map: every country it holds a
    row in, which of those are estimates, and the regional rows that exist and cannot be

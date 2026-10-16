@@ -184,7 +184,7 @@ export default function Positioning() {
     /* "N COMPARABLE PAIRS" COUNTED EVERY MATCHUP, and "Class-matched pairs" headed the
        same list -- both over rows the comparability gate rejects. A pair is comparable
        when at least one independent dimension is measured on BOTH sides (specDims,
-       stored by wireDataset from computeSpecEdge); most rows here have none, and their
+       stored with the matchup); most rows here have none, and their
        client column reads "no published figure" from top to bottom. The two counts are
        stated separately now, and a row with no shared measurable says so rather than
        being filed under a heading that claims it has one. */

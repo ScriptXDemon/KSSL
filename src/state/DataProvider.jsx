@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { datasetService } from "../api/datasetService";
 import { wireDataset } from "../lib/dataset";
 import { setClient, clientName } from "../lib/client.js";
-import { edgeSelfCheck } from "../lib/edge";
 import { createGeo } from "../lib/geo";
 import { createPartners } from "../lib/partners";
 import { buildGapModel } from "../lib/gapModel";
@@ -66,7 +65,6 @@ export function DataProvider({ children }) {
   useEffect(() => {
     if (!value) return;
     try {
-      edgeSelfCheck();
       value.partners.selfCheck();
       value.partners.geomCheck();
       value.geo.selfCheck();

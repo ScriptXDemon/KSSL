@@ -24,9 +24,8 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
   }
   const v = edgeVerdict(edge);
   const edgeWord = v.phrase.toUpperCase();
-  /* Spec leads come from the same decided votes that produced the edge index —
-     computeSpecEdge already excludes pairing axes, null-direction rows and
-     sub-deadband deltas, so "leads" here can never contradict the gauge. */
+  /* Spec leads are the rows whose gap is beyond the dead-band; the edge score itself is the stored one.
+     computeSpecEdge skips null-direction rows and sub-deadband deltas. */
   const ce = computeSpecEdge(m);
   const specByLabel = {};
   (m.specs || []).forEach((s) => {

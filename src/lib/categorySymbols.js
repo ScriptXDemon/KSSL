@@ -2,7 +2,7 @@
  *
  * Vector icons placed inside category node circles (e.g. Technology chip,
  * Supplier crate, Joint Venture handshake/alliance, MoU charter document,
- * Acquisition crosshairs target, Other network, plus the genset-channel set:
+ * Acquisition crosshairs target, Other network, plus the channel set:
  * distributor truck, dealer shopfront, packager stack, rental clock, OEM gear,
  * framework contract, localization factory, service spanner, key-account briefcase).
  */

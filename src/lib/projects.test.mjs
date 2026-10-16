@@ -10,7 +10,7 @@ const cfg = d.projectsConfig;
 test("the project constants are gone from the code", () => {
   assert.ok(!fs.existsSync(new URL("./competitorProjects.js", import.meta.url)), "competitorProjects.js is deleted");
   const src = fs.readFileSync(new URL("./projects.js", import.meta.url), "utf8");
-  assert.ok(!/export const PROJECTS_DATA|PROJECT_STAGES|PROJECT_FILTERS|PROJECT_SEQ|"Gulf"|Worldwide/.test(src));
+  assert.ok(!/export const PROJECTS_DATA|PROJECT_STAGES|PROJECT_FILTERS|PROJECT_SEQ|Worldwide/.test(src));
 });
 
 test("every fixture project belongs to a tracked competitor and stands on a configured stage and filter", () => {
@@ -49,6 +49,6 @@ test("metrics are counted from the rows, with no region tile", () => {
   assert.equal(m[0].v, String(P.length));
   assert.equal(m[1].v, String(new Set(P.map((p) => p.cid)).size));
   assert.equal(m.length, 3);
-  assert.ok(!m.some((t) => /gulf/i.test(t.act + t.l)));
+  assert.ok(!m.some((t) => /region/i.test(t.act)), "no region tile");
   assert.equal(projectMetrics([])[0].v, "0");
 });

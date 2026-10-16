@@ -94,11 +94,11 @@ export function buildGapModel(d) {
         lags = dims
           .filter((x) => x.a < 0)
           .sort((a, b) => a.a - b.a)
-          .map((x) => ({ l: x.l, pct: Math.round(-x.raw * 100), perKva: !!x.perKva }));
+          .map((x) => ({ l: x.l, pct: Math.round(-x.raw * 100) }));
         leads = dims
           .filter((x) => x.a > 0)
           .sort((a, b) => b.a - a.a)
-          .map((x) => ({ l: x.l, pct: Math.round(x.raw * 100), perKva: !!x.perKva }));
+          .map((x) => ({ l: x.l, pct: Math.round(x.raw * 100) }));
       } catch (e) {
         /* a matchup with no measured dims contributes no named lags */
       }
@@ -260,7 +260,7 @@ export function buildGapModel(d) {
      category. Derived from competitors[].partners[].mean 'CORE OVERLAP (cat)' flags.
      Contest-density gap. */
   try {
-    // overlap phrase -> shared category vocabulary, built from the kVA bands
+    // overlap phrase -> shared category vocabulary, built from the stored categories
     const PCAT = {};
     try {
       POS_CATS.forEach((p) => {

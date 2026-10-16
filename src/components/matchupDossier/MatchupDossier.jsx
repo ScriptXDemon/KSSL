@@ -45,7 +45,7 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
               asserted analysis anyway.
 
               specDims is how many independent dimensions BOTH products publish (stored
-              by wireDataset from computeSpecEdge), so the badge states that count and
+              with the matchup), so the badge states that count and
               says plainly when it is zero.
 
               NOTE: shell.css carries `.srcbadge{display:none !important}`, so nothing

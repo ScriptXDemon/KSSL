@@ -22,8 +22,8 @@ const formatCategoryLabel = (str) => {
   return titleCaseHeadline(String(str).replace(/&amp;/g, "&").trim());
 };
 
-/* The competitor-product list: kVA band → KSSL anchor product → the rivals paired
-   against it. Bands collapse; the four selects narrow each other, so a combination
+/* The competitor-product list: category → KSSL anchor product → the rivals paired
+   against it. Groups collapse; the four selects narrow each other, so a combination
    that matches nothing can't be chosen. */
 export default function MatchupList({ data, selected, onSelect, products = [], compare = null, onCompare }) {
   const { matchups, POS_CATS, CAT_KEY } = data;

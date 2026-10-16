@@ -196,8 +196,7 @@ export default function GeoMap({ data, geo, selectedCountry, onSelectCountry }) 
          a map. Two faults live in there rather than here: the badge used to append the
          LABELS of the client's own rows, and actLabel.bf is "KSSL present", so India
          rendered "KSSL Present · KSSL present / Local production"; and it never read
-         src, so an analytical estimate (the client's Saudi Arabia and Europe rows are
-         both src='syn') drew exactly like a sourced presence. */
+         src, so an analytical estimate (a client row with src='syn') drew exactly like a sourced presence. */
       const badge = presenceBadge({
         clientLabel,
         rows: ownData[ct] || [],

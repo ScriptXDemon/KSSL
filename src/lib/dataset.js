@@ -6,7 +6,6 @@
    Pure: takes the fetched object, returns a new wired one. Nothing is written to
    `window`, so the app can re-fetch and re-wire without a reload. */
 import { clientShort } from "./client.js";
-import { computeSpecEdge } from "./edge.js";
 import { pairingReason } from "./specs.js";
 import { wireTendersWithRealDays } from "./tenderCalc.js";
 import { tenderGist, tenderSummary } from "./tenderRow.js";
@@ -332,34 +331,18 @@ export function wireDataset(raw) {
     logger.warn("wiring:techCats", e);
   }
 
-  /* matchups[].edge is read everywhere as a 0-100 competitive index (50 = parity,
-     <50 = client behind): the gap block, the positioning report, the gap engine and
-     the scoped chat all assume that. It is derived, not stored — the dataset ships
-     only the measured specs plus kvaDeltaPct (a signed rating delta, a different
-     quantity), so compute the index here exactly as the dossier gauge does. */
+  /* matchups[].edge is the STORED 0-100 score (50 = parity, <50 = client behind), read everywhere
+     as it is: the gap block, the positioning report, the gap engine and the scoped chat. It is not
+     recomputed here (ruling R6). specDims / specDecided are stored with it. The served pairing prose
+     promises source links the spec panel does not print; see pairingReason in lib/specs.js. Cleaned
+     once, here, so the dossier, the Products drawer and the exported report cannot disagree. */
   try {
     Object.keys(d.matchups).forEach((id) => {
-      const ce = computeSpecEdge(d.matchups[id]);
-      d.matchups[id].edge = ce.edge; // null when too few measured specs
-      /* COMPARABILITY, STORED ALONGSIDE THE INDEX.
-
-         Positioning called every matchup a "comparable pair" and every dossier
-         "Verified specs · analysed", over a corpus where most rows have no dimension
-         measured on BOTH sides -- the client column of many reads "no published
-         figure" from top to bottom. computeSpecEdge already knows: `n` is how many
-         independent dimensions both products publish and `decided` how many separated
-         them. Those are the only honest basis for the word "comparable", so they are
-         kept here rather than re-derived per surface. */
-      d.matchups[id].specDims = ce.n;
-      d.matchups[id].specDecided = ce.decided;
-      /* The served pairing prose promises source links the spec panel does not print;
-         see pairingReason in lib/specs.js. Cleaned once, here, so the dossier, the
-         Products drawer and the exported report cannot disagree about it. */
       if (d.matchups[id].reason != null)
         d.matchups[id].reason = pairingReason(d.matchups[id].reason);
     });
   } catch (e) {
-    logger.warn("wiring:matchup.edge", e);
+    logger.warn("wiring:matchup.reason", e);
   }
 
   /* RESOLVE THE CLIENT'S ID ONCE, FROM THE DATA.

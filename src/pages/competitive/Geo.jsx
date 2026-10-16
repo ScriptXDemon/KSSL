@@ -56,7 +56,6 @@ export default function Geo() {
   const [menuQuery, setMenuQuery] = useState("");
   const [back, setBack] = useState(savedGeo.back || null); // {mode, arg}
   const [pair, setPair] = useState(savedGeo.pair || null); // {cid, country}
-  const [cmp, setCmp] = useState(null); // {prod} while the product comparison popup is open
   const [prodIndex, setProdIndex] = useState(
     savedGeo.prodIndex !== undefined ? savedGeo.prodIndex : null,
   );
@@ -147,10 +146,6 @@ export default function Geo() {
     if (backMode) setBack({ mode: backMode, arg: backArg });
   };
 
-  useEffect(() => { setCmp(null); }, [pair && pair.cid, pair && pair.country]);
-
-  const cmpOverlap = pair && cmp ? geo.geoOverlap(pair.cid, pair.country) : null;
-  const cmpProd = cmpOverlap && cmp.prod ? geo.geoProductCompare(cmpOverlap, cmp.prod) : null;
   const prods = pair ? geo.productsFor(pair.cid, pair.country) : [];
   const prod = prodIndex !== null && prods ? prods[prodIndex] : null;
 
@@ -238,7 +233,6 @@ export default function Geo() {
         data: prod,
         comp: co ? co.name : pair.cid,
         country: pair.country,
-        counter: prod.c !== "bf" ? geo.koelCounter(prod) : null,
       },
       {
         pillar: "Competitive",
@@ -277,45 +271,25 @@ export default function Geo() {
      `pair` wins over `resolved`: drilling from a country row into its products sets
      the pair without changing the two dropdowns, and the list has to follow the drill
      rather than the dropdowns. The Back button clears the pair to come back out. */
-  /* A row is either an OFFERING (the range a company sells in a country) or a SITE (a dealer branch, depot,
-     factory or office). Only an offering has a product to counter; a site shows who runs it and where. */
-  const isOffering = (p) => /tracked range/.test(p.name || "") || /diesel and gas gensets/.test(p.name || "") || p.c === "bf";
-  const rangeFor = (cid, country) => {
-    const r = geo.productsFor(cid, country).find((x) => /tracked range/.test(x.name || ""));
-    return r ? r.val : null;
-  };
+  /* the activity word of a footprint row: the client's own rows keep the original in `c0` (dataset.js) */
+  const actOf = (p) => escAll(geo.actLabel[p.c0 || p.c]);
 
   const relList = () => {
     if (pair) {
       // `pair` is rehydrated from localStorage: a company dropped from a later
       // dataset would otherwise take the whole panel down on mount
       const c = data.geoComps.find((x) => x.id === pair.cid);
-      const ov = c && !c.isBf ? geo.geoOverlap(pair.cid, pair.country) : null;
       const ovPanel = c && c.isBf ? geo.geoOwnPanel(pair.country) : "";
       return (
-        (ov ? geo.geoProductListHtml(ov, cmp && cmp.prod) : "") +
         ovPanel +
         prods
           .map((p, i) => {
-            const site = !isOffering(p);
-            /* a dealer branch or depot is a site, not a product: it is not listed (owner request) */
-            if (site && !(c && c.isBf)) return "";
-            const kc = !site && p.c !== "bf" ? geo.koelCounter(p) : null;
-            const counterLine = site
-              ? p.val && !/^(n\/d|not verified|none verified)/i.test(p.val)
-                ? `<div class="ri-counter site"><span class="rc-lab">Operated by</span> <span class="rc-prod">${escAll(p.val)}</span></div>`
-                : ""
-              : kc
-              ? `<div class="ri-counter"><span class="rc-lab">${clientName} counters with</span> <span class="rc-prod">${escAll(kc.p)}</span></div>`
-              : p.c !== "bf"
-                ? `<div class="ri-counter none"><span class="rc-lab">${clientName} counter</span> <span class="rc-prod muted">no direct like-for-like product</span></div>`
-                : "";
             return `<div class="geo-rel-item prod${i === prodIndex ? " active" : ""}" data-pi="${i}"><span class="ri-act ${p.c}"></span><div class="ri-main"><div class="ri-nm">${escAll(p.name)} ${
               p.src === "syn"
                 ? '<span class="syn" title="Illustrative" style="margin-left:4px"></span>'
                 : '<span class="srcbadge" style="margin-left:4px;font-size:7.5px;padding:1px 4px">Sourced</span>'
-            }</div><div class="ri-desc"><span class="ri-actlab ${p.c}">${geo.actLabel[p.c]}</span> · ${escAll(p.qty)}</div>${counterLine}<span class="ri-tag">${escAll(p.stage)}${
-              !site && p.val && p.val !== "n/d" ? ` · ${escAll(p.val)}` : ""
+            }</div><div class="ri-desc"><span class="ri-actlab ${p.c}">${actOf(p)}</span> · ${escAll(p.qty)}</div><span class="ri-tag">${escAll(p.stage)}${
+              p.val && p.val !== "n/d" ? ` · ${escAll(p.val)}` : ""
             }</span></div><span class="ri-chev">›</span></div>`;
           })
           .join("")
@@ -338,19 +312,8 @@ export default function Geo() {
             : ov
               ? ` ov-${ov.tier}`
               : "";
-          const meets = ov
-            ? ` · meets ${clientName} in ${(ov.tier === "spec"
-                ? ov.bandsSpec
-                : ov.bands
-              )
-                .map(geo.geoBandShort)
-                .join(", ")}${
-                ov.tier === "spec" && ov.bandsOnly.length
-                  ? ` (+${ov.bandsOnly.length} range-only)`
-                  : ""
-              }`
-            : "";
-          return `<div class="geo-rel-item${cls}" data-country="${attr(ct)}"><span class="ri-act ${rows[0].c}"></span><div class="ri-main"><div class="ri-nm">${badge}${escAll(ct)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${geo.actLabel[rows[0].c]}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">since ${escAll(rows[0].since)}</span></div></div>`;
+          const meets = ov && ov.ranges.length ? ` · meets ${clientName} in ${escAll(ov.ranges.join(", "))}` : "";
+          return `<div class="geo-rel-item${cls}" data-country="${attr(ct)}"><span class="ri-act ${rows[0].c}"></span><div class="ri-main"><div class="ri-nm">${badge}${escAll(ct)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actOf(rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">since ${escAll(rows[0].since)}</span></div></div>`;
         })
         .join("");
     }
@@ -360,19 +323,8 @@ export default function Geo() {
         .map((c) => {
           const rows = geo.productsFor(c.id, resolved.country);
           const ov = geo.geoOverlap(c.id, resolved.country);
-          const meets = ov
-            ? ` · meets ${clientName} in ${(ov.tier === "spec"
-                ? ov.bandsSpec
-                : ov.bands
-              )
-                .map(geo.geoBandShort)
-                .join(", ")}${
-                ov.tier === "spec" && ov.bandsOnly.length
-                  ? ` (+${ov.bandsOnly.length} range-only)`
-                  : ""
-              }`
-            : "";
-          return `<div class="geo-rel-item${ov ? ` ov-${ov.tier}` : ""}" data-comp="${attr(c.id)}"><span class="ri-act ${rows[0].c}"></span><div class="ri-main"><div class="ri-nm">${geo.geoOvBadge(ov)}${escAll(c.name)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${geo.actLabel[rows[0].c]}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">${escAll(rows[0].name)}</span></div></div>`;
+          const meets = ov && ov.ranges.length ? ` · meets ${clientName} in ${escAll(ov.ranges.join(", "))}` : "";
+          return `<div class="geo-rel-item${ov ? ` ov-${ov.tier}` : ""}" data-comp="${attr(c.id)}"><span class="ri-act ${rows[0].c}"></span><div class="ri-main"><div class="ri-nm">${geo.geoOvBadge(ov)}${escAll(c.name)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actOf(rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">${escAll(rows[0].name)}</span></div></div>`;
         })
         .join("");
     }
@@ -383,37 +335,17 @@ export default function Geo() {
   const detailBody = () => {
     if (!pair || !prod) return "";
     const p = prod;
-    const site = !isOffering(p);
-    const range = site ? rangeFor(pair.cid, pair.country) : null;
-    const kv = site
-      ? [
-          ["Facility", p.stage],
-          ["Operated by", p.val],
-          ["Place", p.qty],
-          ["Activity", geo.actLabel[p.c]],
-          ["Range sold here", range],
-          ["Since", p.since],
-        ].filter((x) => x[1] && x[1] !== "n/d" && !/not verified/i.test(String(x[1])))
-      : [
-          ["Activity", geo.actLabel[p.c]],
-          ["Rating range", p.qty],
-          ...(p.val && p.val !== p.qty ? [["Value", p.val]] : []),
-          ["Stage", p.stage],
-          ["Since", p.since],
-        ];
+    const kv = [
+      ["Activity", geo.actLabel[p.c0 || p.c]],
+      ["Quantity", p.qty],
+      ...(p.val && p.val !== p.qty ? [["Value", p.val]] : []),
+      ["Stage", p.stage],
+      ["Since", p.since],
+    ];
     /* The "What this means for KSSL" caption was removed: it was a hand-written
        interpretation the code authored per activity type ("a local foothold that can
        deepen over time", "often precedes platform competition"), not a served fact. The
        activity itself is the structured "Activity" row below and stays. */
-    const kc = p.c !== "bf" ? geo.koelCounter(p) : null;
-    const counterBlock =
-      site || p.c === "bf"
-        ? ""
-        : p.c !== "bf"
-        ? kc
-          ? `<div class="geo-counter"><span class="tl">${clientName} counters with</span><div class="gc-prod">${escAll(kc.p)}</div><div class="gc-note">${escAll(kc.note)}</div></div>`
-          : `<div class="geo-counter none"><span class="tl">${clientName} counters with</span><div class="gc-prod muted">No direct like-for-like product</div><div class="gc-note">${clientName} has no equivalent line in this class - a portfolio gap rather than a contested bid.</div></div>`
-        : "";
     const coName = comp ? (data.geoComps.find((x) => x.id === comp)?.name || comp) : (pair ? pair.cid : "OEM");
     const newsCardsHtml = !geoNewsArticles.length ? "" : `
       <div style="padding: 16px 18px 24px 18px; border-top: 1px solid #e2e8f0; margin-top: 16px; background: #f8fafc;">
@@ -464,7 +396,7 @@ export default function Geo() {
     `;
 
     return (
-      `<div class="geo-d-sec"><span class="eyebrow">${site ? "Site" : "Product"}</span><div style="font-size:12.5px;color:var(--l-txt-2);line-height:1.5;margin-bottom:12px">${p.note}</div>` +
+      `<div class="geo-d-sec"><span class="eyebrow">Product</span><div style="font-size:12.5px;color:var(--l-txt-2);line-height:1.5;margin-bottom:12px">${p.note}</div>` +
       kv
         .map(
           (x) =>
@@ -478,9 +410,8 @@ export default function Geo() {
           ? p.srcnote
           : p.src === "syn"
             ? "analytical estimate"
-            : "open-source",
+            : "—",
       )} ${srcChips(p.srcs)}</span></div></div>` +
-      counterBlock +
       newsCardsHtml
     );
   };
@@ -493,7 +424,8 @@ export default function Geo() {
       }
       const counts = {};
       prods.forEach((p) => {
-        counts[p.c] = (counts[p.c] || 0) + 1;
+        const k = p.c0 || p.c;
+        counts[k] = (counts[k] || 0) + 1;
       });
       const chips = Object.keys(counts)
         .map(
@@ -555,8 +487,8 @@ export default function Geo() {
       let sub = `${rivals} competitor${rivals !== 1 ? "s" : ""} active${presence}`;
       if (bf)
         sub += ovs.length
-          ? ` · ${nSpec} contest ${clientName} on rating-matched models${nCat ? `, ${nCat} on category only` : ""}`
-          : ` · no rival offering overlaps ${clientName}’s rating bands here`;
+          ? ` · ${nSpec} with a confirmed overlap${nCat ? `, ${nCat} on category only` : ""}`
+          : ` · no rival with a stored overlap here`;
       return {
         kind: "Market",
         name: resolved.country,
@@ -886,7 +818,7 @@ export default function Geo() {
             </div>
 
             <div
-              className={`geo-det-overlay-body${prod || cmp ? " has-prod" : " no-prod"}`}
+              className={`geo-det-overlay-body${prod ? " has-prod" : " no-prod"}`}
             >
               <div className="geo-rel-overlay-list">
                 <HtmlBlock
@@ -906,44 +838,13 @@ export default function Geo() {
                         resolved.country,
                       ),
                     ".geo-rel-item[data-pi]": (el) => {
-                      setCmp(null);
                       setProdIndex(Number(el.getAttribute("data-pi")));
-                    },
-                    ".geo-rel-item[data-cmp-prod]": (el) => {
-                      setProdIndex(null);
-                      setCmp({ prod: el.getAttribute("data-cmp-prod") });
                     },
                   }}
                   html={relList()}
                   id="geo-rel-list"
                 />
               </div>
-
-              {cmpProd && !prod && (
-                <div className="geo-det-product-sec" style={{ background: "transparent", display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-                  <div className="geo-det-product-scroll" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", paddingBottom: "24px" }}>
-                    <div className="geo-d-h" style={{ position: "relative", background: "#ffffff", color: "#0f172a", padding: "14px 18px", borderBottom: "1px solid #e2e8f0" }}>
-                      <button
-                        aria-label="Close comparison"
-                        className="geo-close-btn"
-                        onClick={() => setCmp(null)}
-                        title="Close"
-                        type="button"
-                        style={{ position: "absolute", right: "14px", top: "12px", cursor: "pointer", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "14px", color: "#334155", padding: "3px 8px", lineHeight: 1 }}
-                      >
-                        ✕
-                      </button>
-                      <span className="eyebrow" style={{ color: "#64748b", display: "block", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        Product comparison · {cmpOverlap.comp.name} in {pair.country}
-                      </span>
-                      <div className="ct" style={{ fontSize: "15px", color: "#0f172a", fontWeight: 700, marginTop: "2px", lineHeight: 1.3, paddingRight: "40px" }}>
-                        {cmpProd.title}
-                      </div>
-                    </div>
-                    <HtmlBlock html={cmpProd.html} id="geo-cmp-body" />
-                  </div>
-                </div>
-              )}
 
               {prod && (
                 <div
@@ -1019,7 +920,7 @@ export default function Geo() {
                           lineHeight: "1.4",
                         }}
                       >
-                        {geo.actLabel[prod.c]}
+                        {geo.actLabel[prod.c0 || prod.c]}
                       </div>
                     </div>
                     {/* No delegated news handler any more: the card IS an anchor, so the

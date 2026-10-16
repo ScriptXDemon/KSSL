@@ -91,7 +91,7 @@
   .geo-ov-tbl th{font-family:var(--mono);font-size:8.5px;letter-spacing:.07em;text-transform:uppercase;
     color:var(--l-txt-4);text-align:left;font-weight:600;padding:0 10px 5px 0;border-bottom:1px solid var(--l-line)}
   .geo-ov-tbl td{padding:5px 10px 5px 0;border-bottom:1px solid var(--l-line);color:var(--l-txt-2);vertical-align:top}
-  .geo-ov-tbl td:first-child{white-space:nowrap}   /* "(> 1500 kVA)" must not break */
+  .geo-ov-tbl td:first-child{white-space:nowrap}   /* a range label must not break */
   .geo-ov-tbl .n{text-align:right;font-family:var(--mono);padding-right:14px}
   .geo-ov-tbl th.n{text-align:right}
   .gv-bad{color:#b5341f;font-weight:600}

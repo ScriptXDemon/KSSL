@@ -2,15 +2,11 @@
    Which rivals beat KSSL in this category, on what, and what it wins them.
 
    WHY THIS DOES NOT USE THE EDGE INDEX AS ITS VERDICT
-   The Positioning gauge reduces a matchup to one number by averaging the signed
-   advantage across dimensions. That is fine for a gauge that shows its own
-   workings, but it cannot answer "does this rival have an advantage", because
-   averaging lets advantages on different dimensions CANCEL. the client vs KG1-750WS
-   is ahead on ground area (11%) and fuel tank (14%) and behind on power-to-weight
-   (15%); the mean is -0.03 and the matchup reads 47/100 — parity. 85 matchups
-   read parity while the rival led more dimensions than KSSL.
-   kW/kg and sq.m/kVA are not fungible: a buyer does not average their spec sheet,
-   they buy the machine that wins the dimensions their site cares about.
+   The stored edge score reduces a matchup to one number, which cannot answer "does this rival
+   have an advantage": advantages on different dimensions CANCEL in a single figure, so a
+   matchup can read near parity while the rival leads more dimensions than the client. Dimensions
+   are not fungible: a buyer does not average a spec sheet, they buy the product that wins the
+   dimensions their site cares about.
 
    So this view aggregates DIMENSION OUTCOMES directly. For each dimension it
    counts how often each side is ahead across the rival's matchups, and reports
@@ -18,10 +14,8 @@
    carries the denominator it was computed from.
 
    A dimension is only claimed when there is enough data to claim it: `comparable`
-   counts matchups where BOTH products published that spec. Caterpillar India
-   looked like it led power-to-weight by 29% in the 376-1500 kVA band — on 1 of
-   its 25 matchups. That is a coverage fact, not a competitive one, and it now
-   says so. */
+   counts matchups where BOTH products published that spec. A lead seen on 1 of a
+   rival's 25 matchups is a coverage fact, not a competitive one, and it says so. */
 import { clientShort } from "./client.js";
 import { computeSpecEdge } from "./edge.js";
 import { escAll } from "./html.js";
@@ -41,139 +35,17 @@ const gmed = (xs) => {
   return p.length ? p[Math.floor(p.length / 2)] : 0;
 };
 
-/* Per-dimension presentation. Noise is scaled against 10 dB inside the index, so
-   its raw magnitude is dB*10 — printing it as a percentage would show "55%" for a
-   5.5 dB difference. Each dimension carries its own unit and its own ladder,
-   because 5% on fuel and 5 dB on noise are not the same size of problem. */
-export const GAP_DIM = {
-  "Max range": {
-    short: "Max range",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [25, 15, 10, 5],
-  },
-  "Artillery|Weight": {
-    short: "Weight",
-    dir: "lower is better",
-    arrow: "↓",
-    unit: "%",
-    scale: 1,
-    bins: [30, 20, 10, 5],
-  },
-  Crew: {
-    short: "Crew",
-    dir: "fewer is better",
-    arrow: "↓",
-    unit: "%",
-    scale: 1,
-    bins: [40, 25, 15, 10],
-  },
-  "Rate of fire": {
-    short: "Rate of fire",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [30, 20, 12, 10],
-  },
-  "Combat weight": {
-    short: "Combat weight",
-    dir: "lower is better",
-    arrow: "↓",
-    unit: "%",
-    scale: 1,
-    bins: [40, 25, 15, 5],
-  },
-  "Crew / pax": {
-    short: "Crew / capacity",
-    dir: "more capacity is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [50, 25, 15, 10],
-  },
-  "Effective range": {
-    short: "Effective range",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [50, 30, 20, 15],
-  },
-  "Small Arms|Weight": {
-    short: "Weight",
-    dir: "lower is better",
-    arrow: "↓",
-    unit: "%",
-    scale: 1,
-    bins: [25, 15, 10, 5],
-  },
-  "UAVs & Drones|Endurance": {
-    short: "Endurance",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [50, 30, 20, 10],
-  },
-  "Marine / Naval|Endurance": {
-    short: "Endurance",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [50, 30, 20, 10],
-  },
-  "UAVs & Drones|Range": {
-    short: "Range",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [50, 30, 20, 10],
-  },
-  "Missiles & Air Defence|Range": {
-    short: "Range",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [50, 30, 20, 10],
-  },
-  Speed: {
-    short: "Speed",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [60, 30, 20, 10],
-  },
-  "Annual capacity": {
-    short: "Annual capacity",
-    dir: "higher is better",
-    arrow: "↑",
-    unit: "%",
-    scale: 1,
-    bins: [100, 50, 25, 10],
-  },
-};
-/* Category-scoped resolution, exactly as the source platform did it: 'Weight' means
-   a howitzer in Artillery and a rifle in Small Arms, so the scoped entry wins and
-   the plain label is the fallback. gapRivals stamps the active category. */
-let _gapMetaCat = "";
-const GAP_ORDER = [...new Set(Object.keys(GAP_DIM).map((k) => k.split("|").pop()))];
-export const gdmeta = (l) =>
-  GAP_DIM[`${_gapMetaCat}|${l}`] ||
-  GAP_DIM[l] || {
-    short: String(l).replace(/\s*\(.*\)$/, ""),
-    dir: "",
-    arrow: "",
-    unit: "%",
-    scale: 1,
-    bins: [40, 20, 8, 1],
-  };
+/* Per-dimension presentation. Every dimension is a spec label exactly as stored; none is special. They share one
+   ladder of lead sizes (percent), because a table of per-label units and ladders would assume a product family. */
+const GAP_BINS = [40, 20, 8, 1];
+export const gdmeta = (l) => ({
+  short: String(l).replace(/\s*\(.*\)$/, ""),
+  dir: "",
+  arrow: "",
+  unit: "%",
+  scale: 1,
+  bins: GAP_BINS,
+});
 export const gval = (l, pct) => {
   const m = gdmeta(l);
   const v = pct * m.scale;
@@ -241,7 +113,6 @@ export function pairVals(x) {
    margin, record and worst-case are kept because they are real facts the table
    shows alongside it. */
 export function gapRivals(matchups, cat, clientName = clientShort()) {
-  _gapMetaCat = cat || "";
   const by = {};
   Object.keys(matchups).forEach((id) => {
     const m = matchups[id];
@@ -271,8 +142,7 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
     .map((r) => {
       const n = r.rows.length;
       const presentLabels = Object.keys(r.d);
-      const activeOrder = GAP_ORDER.filter((l) => presentLabels.includes(l));
-      const orderList = activeOrder.length ? activeOrder : GAP_ORDER;
+      const orderList = presentLabels;
 
       const all = orderList.map((l) => {
         const s = r.d[l];
@@ -330,9 +200,8 @@ export function gapRivals(matchups, cat, clientName = clientShort()) {
       let k;
       let w;
       // Per-matchup outcome also has to come from dimensions. Classifying by the index
-      // (lead>8) reintroduced the cancellation: Greaves Cotton owns 2 dimensions to
-      // KSSL's 1 in the 16-75 kVA band, yet its index margin is -9.3, so the bar and
-      // the record bar both pointed at KSSL on a row verdicted "KSSL behind".
+      // (lead>8) reintroduced the cancellation: a rival can own more dimensions than the
+      // client while its index margin points the other way.
       // A matchup goes to whichever side is ahead on more dimensions.
       const rivalWins = r.rows.filter(
         (x) => x.dims.filter((dd) => dd.a < 0).length > x.dims.filter((dd) => dd.a > 0).length,
@@ -445,10 +314,11 @@ export function gapCategories(matchups) {
 }
 
 function gapDimRows(rivals) {
-  const activeOrder = GAP_ORDER.filter((l) =>
-    rivals.some((r) => r.all && r.all.some((x) => x.l === l && x.own !== "nodata")),
-  );
-  const orderList = activeOrder.length ? activeOrder : GAP_ORDER;
+  // the dimensions are the spec labels the rivals carry, in the order they first appear
+  const orderList = [];
+  rivals.forEach((r) => (r.all || []).forEach((x) => {
+    if (x.own !== "nodata" && !orderList.includes(x.l)) orderList.push(x.l);
+  }));
 
   return orderList
     .map((l) => {
@@ -603,7 +473,7 @@ function gapDimGrid(rivals, clientName = clientShort()) {
   return h;
 }
 
-/* The whole right-hand canvas for one kVA band, as one string. Rows carry
+/* The whole right-hand canvas for one category, as one string. Rows carry
    data-mu so the React page can delegate the click through to Positioning. */
 /* Every comparison the subtitle counts, one line each.
 
