@@ -20,9 +20,8 @@ export const SEQ_SUB = {
 };
 
 /* WHAT THE DROPDOWN OFFERS, not what the engine can do. `category` is off the menu at the operator's
-   request; its comparator below is untouched, and seqMode() still ACCEPTS it, so a saved URL or a
-   restored session carrying ?seq=category keeps working and simply has no menu entry to show for itself.
-   Re-listing it here is the whole of putting it back. */
+   request; its comparator below is untouched, but readFeedSeq() accepts only the menu options (and `oldest`), so a
+   saved session carrying category falls back to priority. Re-listing it here (and in SEQ_MODES) is the whole of putting it back. */
 export const SEQ_OPTIONS = [
   ["priority", "Priority (threats first)"],
   ["recency", "Most recent"],
