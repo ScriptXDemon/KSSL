@@ -65,7 +65,7 @@ check("a quoted label is attribute-escaped",
 // a missing client name must not print "undefined's roster" at the user (checked on the
 // shared badge, the one that now renders a tooltip; unchecked no longer prints anything)
 check("no client name degrades to prose, not undefined",
-      overlapBadge({ label: "A", koel: {} }, ""), (h) => h.includes("the client") && !h.includes("undefined"));
+      overlapBadge({ label: "A", koel: {} }, ""), (h) => h.includes("the partner roster") && !h.includes("undefined"));
 
 // THE REGRESSION: the exact staging shape. 0 of 42 ties carried cid, so under the old
 // two-state badge all 42 -- Rafael included -- rendered as confirmed direct partners.

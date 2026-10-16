@@ -11,7 +11,7 @@ export const ASSUME = {
   // chance the client books the genset share, by where the tender stands
   pWin: { live: 0.25, evaluation: 0.35, pursuit: 0.1 },
   // how much of the value a fit grade lets the client serve
-  fitWeight: { strong: 1, partial: 0.5, poor: 0 },
+  fitWeight: { strong: 1, partial: 0.5, weak: 0 },
   // decision -> genset purchase order: a direct supply/works tender orders soon after
   // award; a main contract / EPC / PPP buys its gensets a year or so after award
   orderLagDays: { direct: 90, main: 365 },
@@ -30,7 +30,10 @@ const OEM_RX = /caterpillar|\bcat\b|zahid|al-?bahar|mtu|rolls-royce|rehlko|kohle
 const TIED = [[/abunay+an/i, "Kohler"], [/galadari/i, "Baudouin"], [/al ?masaood/i, "mtu"], [/kanoo/i, "Perkins"]];
 
 const mid = (t) => Number(t.revenueMid) || 0;
-const fits = (t) => t.clientFit && t.clientFit !== "poor";
+/* the stored fit words, as served: strong / partial / weak */
+export const FIT_LABEL = { strong: "Good", partial: "Partial", weak: "Not a fit" };
+
+const fits = (t) => t.clientFit && t.clientFit !== "weak";
 const reqVal = (t, k) => ((t.req || []).find((r) => r[0] === k) || [])[1];
 
 /* THE TWO TABLES ON THE MARKET OVERVIEW, AND WHAT BELONGS IN EACH.
@@ -113,7 +116,7 @@ export function tenderIntel(data, today = new Date()) {
   /* 1. headline + funnel */
   const closingSoon = ok.filter((t) => !t.pursuit && t.dl > 0 && t.dl <= ASSUME.closingSoonDays);
   const funnel = [
-    { k: "Genset revenue in play", v: sum(all.filter((t) => t.clientFit !== "poor")), n: ok.length },
+    { k: "Genset revenue in play", v: sum(all.filter((t) => t.clientFit !== "weak")), n: ok.length },
     { k: `Fits a ${clientShort()} model today`, v: sum(all.filter((t) => t.clientFit === "strong")), n: all.filter((t) => t.clientFit === "strong").length },
     { k: "Win-weighted (stage × fit)", v: sum(ok, winWeighted), n: ok.length },
   ];
@@ -223,7 +226,7 @@ export function tenderIntel(data, today = new Date()) {
 
   return {
     headline: { inPlay: funnel[0].v, fits: funnel[1].v, closingSoon: sum(closingSoon), closingN: closingSoon.length,
-                ranked: all.length, poor: all.length - ok.length },
+                ranked: all.length, weak: all.length - ok.length },
     funnel,
     forecast,
     segments: group("cat"),

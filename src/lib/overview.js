@@ -783,7 +783,7 @@ export function navCounts(d, gapModel) {
        lane here put a 141 on a feed that shows the shortlist. */
     /* The Market overview is the tender tables now (Top tenders, Projects): its badge counts their rows. The signal
        cards moved to Global Requirements, whose badge counts them. */
-    const ranked = (d.tenders || []).filter((t) => t.rank && t.clientFit !== "poor");
+    const ranked = (d.tenders || []).filter((t) => t.rank && t.clientFit !== "weak");
     counts["m-overview"] =
       Math.min(10, ranked.filter((t) => isTender(t)).length) + Math.min(8, ranked.filter((t) => isProject(t)).length);
     counts["global-requirement"] = globalRequirements(d).length;   // the rows the page lists

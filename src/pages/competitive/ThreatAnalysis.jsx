@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
+import { clientShort } from "../../lib/client.js";
 import { rosterOf } from "../../lib/profile";
 import { competitorFullName } from "../../lib/companyNames";
 import { formatDate } from "../../utils/formatDate";
@@ -84,7 +85,7 @@ export default function ThreatAnalysis() {
   const open = sel ? moves.find((m) => keyOf(m) === sel) || null : null;
   const threats = moves.filter((m) => m.level === "THREAT").length;
   const label = co ? co.name : "All competitors";
-  const clientName = (data && data.client && (data.client.short || data.client.name)) || "the client";
+  const clientName = clientShort();
 
   useEffect(() => {
     setScope("competitive", { moves: moves.length, competitor: co ? co.cid : null }, {
@@ -250,7 +251,7 @@ export default function ThreatAnalysis() {
                 <div className="cd-prose">{open.description || "Not on record"}</div>
               </div>
               <div className="ctx-sec">
-                <span className="eyebrow">Analysis · what it means for {clientName}</span>
+                <span className="eyebrow">Analysis{clientName ? ` · what it means for ${clientName}` : ""}</span>
                 <div className="cd-prose">{meaning || "Not assessed."}</div>
               </div>
               {lenses ? (

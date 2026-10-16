@@ -20,16 +20,16 @@ const data = {
         competitorFit: [{ company: "Rehlko", products: ["KD1000"] }], actions: [{ do: "buy booklet", due: "2026-10-03" }] }),
     t({ title: "pursuit partial", revenueMid: 10e6, clientFit: "partial", pursuit: true, dl: 9999,
         competitorFit: [{ company: "Rehlko", products: ["KD1500"] }], competitors: ["Al-Rashid group (6 of 12)", "Caterpillar", "MHI", "Abdullah Abunayyan Trading (Kohler)"] }),
-    t({ title: "poor", revenueMid: 1e9, clientFit: "poor" }),
+    t({ title: "weak", revenueMid: 1e9, clientFit: "weak" }),
     t({ title: "unranked", rank: undefined, revenueMid: 5e6, clientFit: "strong" }),
   ],
 };
 const I = tenderIntel(data, today);
 
-// the poor fit's USD 1bn never counts; the unranked row is out
+// the weak fit's USD 1bn never counts; the unranked row is out
 assert.equal(I.headline.inPlay, 12e6);
 assert.equal(I.headline.fits, 2e6);
-assert.equal(I.headline.poor, 1);
+assert.equal(I.headline.weak, 1);
 assert.equal(I.headline.closingSoon, 2e6);                  // live, fits, dl 10 <= 21
 // win-weighted: 2M x 1 x 0.25 + 10M x 0.5 x 0.1
 assert.equal(Math.round(I.funnel[2].v), 1e6);

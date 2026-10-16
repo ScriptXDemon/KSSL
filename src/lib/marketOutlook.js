@@ -42,7 +42,7 @@ export function cardMeta(c) {
   return { kind: p[0] || "", country: p[1] || "", segment: p.length > 3 ? p[2] : "", date };
 }
 const isRealCountry = (c) => !!c && !/^(global|worldwide|international)$/i.test(c) && c.length < 40 && !/[,(]/.test(c);
-const revenueOf = (t) => (t.clientFit === "poor" ? 0 : Number(t.revenueMid) || 0);
+const revenueOf = (t) => (t.clientFit === "weak" ? 0 : Number(t.revenueMid) || 0);
 const fits = (t) => t.clientFit === "strong" || t.clientFit === "partial";
 
 /* winner names differ in case, "Co." and "group": one key per company */
@@ -160,7 +160,7 @@ export function sizes(d) {
   const byName = new Map(cat.map((p) => [p.name, p]));
   const rows = new Map();
   let named = 0;
-  (d.tenders || []).filter((t) => t.rank && t.clientFit !== "poor").forEach((t) => {
+  (d.tenders || []).filter((t) => t.rank && t.clientFit !== "weak").forEach((t) => {
     const rival = (t.competitorFit || [])[0];
     const p = (rival && (rival.products || []).map((n) => byName.get(n)).find((x) => x && x.kva && x.hz))
       || (t.matches || []).map((m) => byName.get(m.n)).find((x) => x && x.kva && x.hz);
@@ -177,7 +177,7 @@ export function sizes(d) {
     const models = cat.filter((p) => p.own && p.hz === r.hz && p.kva && bandOf(p.kva)[0] === r.lo).map((p) => p.name);
     return { ...r, models, covered: models.length > 0 };
   }).sort((a, b) => b.value - a.value);
-  return { named, ranked: (d.tenders || []).filter((t) => t.rank && t.clientFit !== "poor").length, rows: out };
+  return { named, ranked: (d.tenders || []).filter((t) => t.rank && t.clientFit !== "weak").length, rows: out };
 }
 
 /* ---- 4. repeat buyers ---- */

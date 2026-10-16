@@ -1,3 +1,4 @@
+import { clientShort } from "../../lib/client.js";
 import { usd, segmentLabel, WINDOW_DAYS } from "../../lib/marketOutlook";
 import { formatDate } from "../../utils/formatDate";
 import "../../styles/market-overview.css";
@@ -34,7 +35,7 @@ function Block({ title, note, source, empty, rows, head, children, className = "
 }
 
 export default function MarketOutlook({ data, o }) {
-  const client = (data.client && (data.client.short || data.client.name)) || "the client";
+  const client = clientShort();
   const win = o.winners;
   const seg = o.segments;
   const dated = seg.reduce((n, r) => n + r.recent + r.before, 0);
@@ -136,8 +137,8 @@ export default function MarketOutlook({ data, o }) {
 
       <Block
         empty="no ranked tender names a size"
-        head={[["Set size"], ["Tenders", true], ["Value", true], [`${client} covers it`]]}
-        note={`the kVA and frequency buyers need, against the ${client} catalogue · a gap is a size with tenders and no model`}
+        head={[["Set size"], ["Tenders", true], ["Value", true], [client ? `${client} covers it` : "Covered"]]}
+        note={`the kVA and frequency buyers need, against the ${client ? `${client} ` : ""}catalogue · a gap is a size with tenders and no model`}
         rows={sz.rows}
         source={`${sz.named} of ${sz.ranked} ranked tenders name a size: the size is that of the best-fit rival model on the tender, because buyers rarely publish a rating. ${sz.ranked - sz.named} tenders have no rated model and are not counted. Covered means a ${client} model of the same frequency in the same rating band. Value is the pack's revenue estimate.`}
         title="Sizes buyers need"
@@ -147,7 +148,7 @@ export default function MarketOutlook({ data, o }) {
             <td className="ovt-t">{r.key}</td>
             <td className="num">{r.tenders}</td>
             <td className="num">{usd(r.value)}</td>
-            <td>{r.covered ? r.models.join(", ") : <span className="ti-fit poor">Gap</span>}</td>
+            <td>{r.covered ? r.models.join(", ") : <span className="ti-fit weak">Gap</span>}</td>
           </tr>
         ))}
       </Block>

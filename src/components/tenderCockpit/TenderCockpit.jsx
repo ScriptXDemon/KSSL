@@ -1,7 +1,8 @@
 import { useMemo } from "react";
+import { clientShort } from "../../lib/client.js";
 import { useData } from "../../state/DataProvider";
 import { useAppState } from "../../state/AppState";
-import { tenderIntel, isTender, isProject, usdM } from "../../lib/tenderIntel.js";
+import { tenderIntel, isTender, isProject, usdM, FIT_LABEL } from "../../lib/tenderIntel.js";
 import "../../styles/market-overview.css";
 import "../../styles/tender-intel.css";
 
@@ -10,7 +11,7 @@ import "../../styles/tender-intel.css";
    strip above (lib/overview metricsFor). What to chase, and what to do next -- nothing
    else. Every row opens the tender's detail beside the table. */
 
-const FIT = { strong: "Good", partial: "Partial", poor: "Not a fit" };
+const FIT = FIT_LABEL;
 const dateOf = (d) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
 export default function TenderCockpit({ onOpen }) {
@@ -20,11 +21,11 @@ export default function TenderCockpit({ onOpen }) {
   const I = useMemo(() => tenderIntel(data, today), [data, today]);
   if (!I.points.length) return null;
 
-  const client = (data.client && (data.client.short || data.client.name)) || "the client";
+  const client = clientShort();
   // a row opens the tender in the page it is on (onOpen); the Tender Pipeline jump is the fallback
   const open = (t) => (onOpen ? onOpen(t) : jumpTo("market", "tender", { tenderTitle: t.title }));
   // t.rank orders by revenue x fit weight (strong 1, partial 0.5; pursuits x0.8), see db/tender_fit.py; each table is then numbered from 1
-  const ranked = I.points.filter((p) => p.fit !== "poor").sort((a, b) => a.t.rank - b.t.rank);
+  const ranked = I.points.filter((p) => p.fit !== "weak").sort((a, b) => a.t.rank - b.t.rank);
   const top = ranked.filter((p) => isTender(p.t, today)).slice(0, 10);
   const projects = ranked.filter((p) => isProject(p.t, today)).slice(0, 8);
   const stage = (t) => reqOf(t, "Latest milestone") || reqOf(t, "Status") || "Upcoming";
@@ -37,7 +38,7 @@ export default function TenderCockpit({ onOpen }) {
       <div className="ovt">
         <div className="ovc-h">
           <span className="eyebrow">Top tenders</span>
-          <span className="ovc-note">ranked by revenue {client} can win × how well a {client} model fits · revenue is an estimate</span>
+          <span className="ovc-note">{client ? `ranked by revenue ${client} can win × how well a ${client} model fits` : "ranked by revenue that can be won × how well a model fits"} · revenue is an estimate</span>
         </div>
         <div className="ovt-scroll">
           <table>
@@ -46,8 +47,8 @@ export default function TenderCockpit({ onOpen }) {
                 <th className="num">Rank</th>
                 <th>Tender</th>
                 <th>Decides</th>
-                <th>{client} fit</th>
-                <th>{client} model</th>
+                <th>{client ? `${client} fit` : "Fit"}</th>
+                <th>{client ? `${client} model` : "Model"}</th>
                 <th>Rival to beat</th>
                 <th className="num">Revenue</th>
               </tr>
@@ -88,8 +89,8 @@ export default function TenderCockpit({ onOpen }) {
                   <th className="num">Rank</th>
                   <th>Project</th>
                   <th>Where it stands</th>
-                  <th>{client} fit</th>
-                  <th>{client} model</th>
+                  <th>{client ? `${client} fit` : "Fit"}</th>
+                  <th>{client ? `${client} model` : "Model"}</th>
                   <th>Rival to beat</th>
                   <th className="num">Revenue</th>
                 </tr>

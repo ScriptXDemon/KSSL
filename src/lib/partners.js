@@ -675,10 +675,10 @@ export function overlapBadge(p, clientName) {
      The state stays honest (overlapState still returns "unchecked"); it just isn't shouted. */
   if (state !== "shared") return "";
   const [bg, fg, br, text] = OVERLAP_BADGE[state];
-  const who = clientName || "the client";
+  const roster = clientName ? `${clientName}'s own partner roster` : "the partner roster";
   const title = state === "shared"
-    ? `${(p && p.label) || "This partner"} is also on ${who}'s own partner roster.`
-    : `Not yet matched against ${who}'s roster -- whether it is shared is unknown.`;
+    ? `${(p && p.label) || "This partner"} is also on ${roster}.`
+    : `Not yet matched against ${roster} -- whether it is shared is unknown.`;
   return `<span class="ov-badge ov-${state}" title="${escAttr(title)}" style="font-family: var(--mono); font-size: 9.5px; background: ${bg}; color: ${fg}; border: 1px solid ${br}; padding: 2px 7px; border-radius: 4px; font-weight: 700; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;">${text}</span>`;
 }
 

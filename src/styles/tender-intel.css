@@ -8,7 +8,7 @@
 .ti-fit{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .ti-fit.strong{color:var(--fav)}
 .ti-fit.partial{color:var(--watch)}
-.ti-fit.poor{color:var(--threat)}
+.ti-fit.weak{color:var(--threat)}
 /* one line each: title and buyer, full text on hover -- rows stay scannable */
 .ti-simple .ti-title,.ti-simple .ovt-buyer{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px}
 .ti-simple .ovt-buyer{font-weight:400;color:var(--d-txt-3);font-size:11px;margin-top:2px}

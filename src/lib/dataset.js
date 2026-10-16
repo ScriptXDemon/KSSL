@@ -245,7 +245,7 @@ export function wireDataset(raw) {
         out.partners = c.partners
           /* a row with an analyst's read (`mean`) was written by hand, not minted by the extractor,
              so the gate does not apply: it dropped Midis Group (long name), the Kuwait DGCA /
-             Ministry account and the Mitsubishi utility accounts from the the client set */
+             Ministry account and the Mitsubishi utility accounts from the client set */
           .filter((p) => !(p && typeof p.label === "string" && !p.mean && isJunkPartner(p.label)))
           .map((p) =>
             p && typeof p.label === "string" ? { ...p, label: tidySeparators(p.label) } : p);
@@ -863,14 +863,13 @@ function adaptPatents(d) {
       .split(/[^a-z0-9]+/)
       .filter((w) => w.length > 2 && !STOP.test(w));
   }
-  const clientRe = new RegExp(
-    ((d.client && d.client.name) || "the client")
-      .replace(/\s*\(.*?\)\s*/g, "")
-      .replace(/[^a-z0-9 ]/gi, "")
-      .trim()
-      .replace(/\s+/g, "\\s+"),
-    "i",
-  );
+  // no client name, no client pattern: an empty RegExp would match every name
+  const clientPattern = ((d.client && d.client.name) || "")
+    .replace(/\s*\(.*?\)\s*/g, "")
+    .replace(/[^a-z0-9 ]/gi, "")
+    .trim()
+    .replace(/\s+/g, "\\s+");
+  const clientRe = clientPattern ? new RegExp(clientPattern, "i") : { test: () => false };
   const compToks = d.compOrder.map((cid) => ({
     cid,
     t: toks(d.competitors[cid].name),

@@ -657,9 +657,9 @@ export function getProductComparison(product, company, data) {
   else if (catLower.includes("armour") || catLower.includes("vehicle") || catLower.includes("tank")) baseMatchup = matchups["20029"];
   else baseMatchup = matchups["20000"] || all[0];
 
-  if (!baseMatchup) {
-    baseMatchup = all[0] || { id: "20033", comp: `${cName} · ${pName}`, bf: "KSSL · Bharat 150", cat: "Defence" };
-  }
+  // no matchup in the dataset to compare against: nothing to show
+  if (!baseMatchup) baseMatchup = all[0];
+  if (!baseMatchup) return null;
 
   const dynId = `dyn-${product?.id || nameKey(pName)}`;
   if (!matchups[dynId]) {
@@ -668,7 +668,7 @@ export function getProductComparison(product, company, data) {
       id: dynId,
       comp: `${cName} · ${pName}`,
       compBy: cName,
-      bf: baseMatchup.bf || "KSSL · Counterpart",
+      bf: baseMatchup.bf,
       cat: baseMatchup.cat || cat || "Defence Systems",
       verdict: `<b>${cName} leads on comparable specifications against ${baseMatchup.bf}.</b> Based on published defense parameters.`,
       specs: (baseMatchup.specs || []).map((s) => ({ ...s, cv: s.cv || "Verified", kv: s.kv || "Sovereign" })),
@@ -1561,7 +1561,8 @@ export default function Products() {
                 </div>
               </div>
 
-              {/* 3. PRODUCT COMPARISON */}
+              {/* 3. PRODUCT COMPARISON: only when the dataset has a matchup to compare against */}
+              {getProductComparison(selectedProduct, selectedCompany, data) && (
               <div>
                 <div
                   style={{
@@ -1636,6 +1637,7 @@ export default function Products() {
                   );
                 })()}
               </div>
+              )}
 
               {/* 4. NEWS */}
               <div>

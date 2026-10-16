@@ -100,8 +100,7 @@ export function DataProvider({ children }) {
           <br />
           <br />
           The app reads everything from <code>GET /api/dataset</code>. Start the
-          backend: <code>cd KSSL_Deploy &amp;&amp; docker compose up -d</code> (or run
-          <code>uvicorn app:app --port 8600</code> in <code>backend/</code>), then retry.
+          backend (see the README), then retry.
         </div>
         <button
           className="boot-retry"

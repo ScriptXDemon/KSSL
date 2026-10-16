@@ -348,10 +348,10 @@ export function createGeo(d) {
   }
 
   /* ---- the complete product comparison behind an overlap ----
-     For every overlapping band, each matched the client / rival model pair, spec by spec, with who wins each
+     For every overlapping band, each matched client / rival model pair, spec by spec, with who wins each
      directional row (`hi` true = higher is better, false = lower is better, null = not a ranking row). cv is
      the competitor's value, kv the client's. A pair is ahead for whoever wins more directional rows.
-     A band with no matched pair says so and names the the client line that would answer it by rating. */
+     A band with no matched pair says so and names the client line that would answer it by rating. */
   const stripCo = (s) => String(s || "").replace(/^[^·]*·\s*/, "");
   function geoWinner(s) {
     if (s.hi == null || s.cn == null || s.kn == null || s.cn === s.kn) return null;

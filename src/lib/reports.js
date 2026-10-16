@@ -12,7 +12,7 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
     return (
       '<div class="tech-report"><div class="tr-head"><div class="tr-title">Positioning Briefing · CEO</div>' +
       `<div class="tr-sub">${escAll(m.comp || "")} vs ${escAll(m.bf)}</div>` +
-      `<div class="tr-meta">CONFIDENTIAL · KSSL · Prepared ${today} · Category: ${escAll(m.cat || "")}</div></div>` +
+      `<div class="tr-meta">CONFIDENTIAL · ${clientShort() ? `${clientShort()} · ` : ""}Prepared ${today} · Category: ${escAll(m.cat || "")}</div></div>` +
       `<div class="tr-verdict parity"><b>${clientShort()} specification not publicly disclosed.</b></div>` +
       `<div class="tr-sec"><div class="tr-sec-h">Assessment</div><div class="tr-body">${escAll(m.comp || "")} is a real, sourced competitor mapped to ${clientShort()}'s ${escAll((m.bf || "counterpart").replace(/^KSSL · /, ""))} by role and spec class. ${clientShort()} has not publicly disclosed specifications for this counterpart, The comparison holds at the role and capability-class level.</div></div>` +
       (m.advBf && m.advBf.length
@@ -52,7 +52,7 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
   const srcRow = (m.det || []).find((d) => d[0] === "Provenance" || d[0] === "Source");
   return (
     '<div class="tech-report">' +
-    `<div class="trep-head"><div><div class="trep-eyebrow">Positioning Briefing · CEO</div><div class="trep-title">${escAll(m.comp)} vs ${escAll(m.bf)}</div></div><div class="trep-class">CONFIDENTIAL · ${clientShort()}</div></div>` +
+    `<div class="trep-head"><div><div class="trep-eyebrow">Positioning Briefing · CEO</div><div class="trep-title">${escAll(m.comp)} vs ${escAll(m.bf)}</div></div><div class="trep-class">CONFIDENTIAL${clientShort() ? ` · ${clientShort()}` : ""}</div></div>` +
     `<div class="trep-meta">Prepared ${today} · Category: ${escAll(m.cat)} · Competitor: ${escAll(m.compBy)}</div>` +
     `<div class="trep-verdict ${v.cls}">${edgeWord}</div>` +
     `<div class="trep-sec"><div class="trep-h">1 · Bottom line</div><p>${m.verdict.replace(/<b>\[Analysis\]<\/b>\s*/, "")}</p></div>` +
@@ -125,7 +125,7 @@ export function techReportHtml(iv, d, techCatId, today = formatDate()) {
   }
   return (
     '<div class="tech-report">' +
-    `<div class="trep-head"><div><div class="trep-eyebrow">Intelligence Briefing · CEO</div><div class="trep-title">${escAll(iv.t)}</div></div><div class="trep-class">CONFIDENTIAL · ${clientShort()}</div></div>` +
+    `<div class="trep-head"><div><div class="trep-eyebrow">Intelligence Briefing · CEO</div><div class="trep-title">${escAll(iv.t)}</div></div><div class="trep-class">CONFIDENTIAL${clientShort() ? ` · ${clientShort()}` : ""}</div></div>` +
     `<div class="trep-meta">Prepared ${today} · Domain: ${escAll(catName)} · Maturity: ${escAll(matLab)} · Horizon: ${escAll(iv.horizon)}</div>` +
     `<div class="trep-verdict ${iv.gap}">${gapLab}</div>` +
     `<div class="trep-sec"><div class="trep-h">1 · Executive summary</div><p>${iv.body}</p></div>` +
