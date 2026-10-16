@@ -90,7 +90,7 @@ export default function MarketOutlook({ data, o }) {
                   <span className="od-sub">{r.winnerWins} of {r.named} award{r.named === 1 ? "" : "s"}</span>
                 </>
               ) : (
-                <span className="od-none">{r.named ? `${r.named} named award${r.named === 1 ? "" : "s"}, no value published` : "No past award on record"}</span>
+                <span className="od-none">No past award on record</span>
               )}
             </td>
             <td>{r.recommendation ? <span className="od-main">{r.recommendation}</span> : "—"}</td>

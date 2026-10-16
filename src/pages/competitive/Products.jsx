@@ -550,9 +550,7 @@ export default function Products() {
                this is the product's own figures, not a KSSL comparison, so no matchup
                is needed. Empty stays empty; nothing is invented. */
             specs: obj.specs && typeof obj.specs === "object" ? obj.specs : {},
-            /* fewer than 2 extracted specs: a real product whose record is thin. It is listed
-               and SAYS so, rather than being hidden or passing as a full sheet. */
-              specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
+            specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
             tier: obj.tier || null,
             reason: "",
             image: obj.image || null,
