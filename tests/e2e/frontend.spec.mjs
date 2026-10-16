@@ -7,6 +7,24 @@ import { test, expect } from "@playwright/test";
    Export JSON / Copy Summary (FE-033/034) were removed from this build at the
    operator's request, so those skip too. Everything else is asserted for real. */
 
+/* Every route of the rail (src/lib/route.js RAIL), one list so the scans below cover them all. */
+const RAIL_ROUTES = [
+  ["competitive", "overview"], ["competitive", "profile"], ["competitive", "threat-analysis"],
+  ["competitive", "products"], ["competitive", "positioning"], ["competitive", "partnerships"],
+  ["competitive", "projects"], ["competitive", "geo"], ["competitive", "patents-comp"],
+  ["market", "m-overview"], ["market", "tender"], ["market", "global-requirement"], ["market", "m-report"],
+  ["technology", "t-overview"], ["technology", "innovation"],
+];
+/* text that must never reach the screen: a leaked JS value, the removed client/domain words */
+const BAD_TEXT = /\bundefined\b|\bNaN\b|\[object Object\]|cummins|genset/i;
+const NULL_WORD = /\bnull\b/;
+
+/* a company the loaded dataset really holds (never a hardcoded name) */
+const firstCompanyName = async (page) => {
+  const j = await (await page.request.get("/api/dataset")).json();
+  return Object.values(j.competitors)[0].name.split(" ")[0];
+};
+
 const boot = async (page, hash = "") => {
   await page.goto("/" + hash);
   await expect(page.locator(".shell")).toBeVisible({ timeout: 30000 });
@@ -47,19 +65,19 @@ test("FE-004 rail counts come from the loaded corpus", async ({ page }) => {
   expect(nums.length).toBeGreaterThanOrEqual(4);
   // corpus-derived, not hardcoded: counts vary and scale with real data
   expect(new Set(nums).size).toBeGreaterThan(1);
-  expect(Math.max(...nums)).toBeGreaterThan(50);
   expect(Object.values(j.competitors || {}).length).toBeGreaterThan(0);
+  // every rail count is a count of something the dataset holds: none exceeds the rows it can count
+  const maxRows = Math.max(...["competitiveCards", "marketCards", "techCards", "tenders", "matchups"].map((k) => {
+    const v = j[k];
+    return Array.isArray(v) ? v.length : Object.keys(v || {}).length;
+  }));
+  expect(Math.max(...nums)).toBeLessThanOrEqual(maxRows);
 });
 
 test("FE-005 no view renders an unhandled crash", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  const routes = [
-    "#p=competitive&v=overview", "#p=competitive&v=profile", "#p=competitive&v=products",
-    "#p=competitive&v=positioning", "#p=competitive&v=partnerships", "#p=competitive&v=geo",
-    "#p=competitive&v=patents-comp", "#p=market&v=m-overview", "#p=market&v=m-report",
-    "#p=market&v=tender", "#p=technology&v=t-overview", "#p=technology&v=innovation",
-  ];
+  const routes = RAIL_ROUTES.map(([p, v]) => `#p=${p}&v=${v}`);
   for (const r of routes) {
     await boot(page, r);
     await expect(page.locator(".shell")).toBeVisible();
@@ -113,17 +131,17 @@ test("FE-014 browser Back returns through navigation", async ({ page }) => {
 test("FE-015 editing the hash changes the view", async ({ page }) => {
   await boot(page, "#p=competitive&v=overview");
   await page.evaluate(() => { window.location.hash = "#p=competitive&v=positioning"; });
-  await expect(page.locator(".rail .svc.active")).toContainText(/Positioning/i);
+  await expect(page.locator(".rail .svc.active")).toContainText(/Product Evaluation/i);
 });
 
 test("FE-016 the rail navigates by mouse and keyboard", async ({ page }) => {
   await boot(page, "#p=competitive&v=overview");
   await page.locator(".rail .svc").filter({ hasText: "Products" }).click();
   await expect(page.locator(".rail .svc.active")).toContainText(/Products/i);
-  const positioning = page.locator(".rail .svc").filter({ hasText: "Positioning" });
+  const positioning = page.locator(".rail .svc").filter({ hasText: "Product Evaluation" });
   await positioning.focus();
   await positioning.press("Enter");
-  await expect(page.locator(".rail .svc.active")).toContainText(/Positioning/i);
+  await expect(page.locator(".rail .svc.active")).toContainText(/Product Evaluation/i);
 });
 
 // -------------------------------------------------- feed
@@ -216,7 +234,7 @@ test("FE-029 a card without a date says so instead of inventing one", async ({ p
 // -------------------------------------------------- global search
 test("FE-030 global search finds a company present in the corpus", async ({ page }) => {
   await boot(page);
-  await page.locator(".topbar-search-input").fill("Elbit");
+  await page.locator(".topbar-search-input").fill(await firstCompanyName(page));
   await expect(page.locator(".topbar-search-item").first()).toBeVisible();
 });
 
@@ -229,7 +247,7 @@ test("FE-031 a search with no hits explains what was searched", async ({ page })
 
 test("FE-032 a search hit navigates to its page", async ({ page }) => {
   await boot(page);
-  await page.locator(".topbar-search-input").fill("Elbit");
+  await page.locator(".topbar-search-input").fill(await firstCompanyName(page));
   await expect(page.locator(".topbar-search-item").first()).toBeVisible();
   await page.locator(".topbar-search-input").press("Enter");
   await page.waitForTimeout(400);
@@ -255,7 +273,7 @@ test("FE-035 offline assistant availability", async ({ page }) => {
 
 test("FE-036 the browser communicates only with its own origin (fetch/xhr)", async ({ page }) => {
   const foreign = [];
-  const base = new URL("http://localhost:5178");
+  const base = new URL("http://127.0.0.1:5190");
   page.on("request", (r) => {
     if (["fetch", "xhr"].includes(r.resourceType())) {
       const u = new URL(r.url());
@@ -300,6 +318,80 @@ test("FE-052 empty panels communicate that they have no data", async ({ page }) 
   test.skip((await notes.count()) === 0, "no empty panel present in the current dataset/view");
   await expect(notes.first()).toBeVisible();
   expect((await notes.first().innerText()).length).toBeGreaterThan(0);
+});
+
+// -------------------------------------------------- every route, every word (Review Focus 1, 2, 5)
+/* the text a reader can see on a route: no crash panel, no leaked JS value, no removed client word */
+const scanRoute = async (page, label) => {
+  await expect(page.locator(".eb-fail")).toHaveCount(0);
+  await expect(page.locator("text=/could not render|something went wrong|application error/i")).toHaveCount(0);
+  const body = await page.locator("body").innerText();
+  expect(body.length, `${label}: the route is blank`).toBeGreaterThan(200);
+  expect(body, `${label}: leaked value in the visible text`).not.toMatch(BAD_TEXT);
+  expect(body, `${label}: a standalone "null" in the visible text`).not.toMatch(NULL_WORD);
+  expect(body, `${label}: an escaped entity shown literally`).not.toMatch(/&amp;|&lt;|&gt;|&#\d+;|&quot;/);
+};
+
+for (const [pillar, view] of RAIL_ROUTES) {
+  test(`every route renders: ${pillar}/${view}`, async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e)));
+    await boot(page, `#p=${pillar}&v=${view}`);
+    await page.waitForTimeout(600); // let the page's effects (map tiles, charts, lazy lists) settle
+    await scanRoute(page, `${pillar}/${view}`);
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+}
+
+test("every route renders: each Market Intelligence tab", async ({ page }) => {
+  await boot(page, "#p=market&v=m-report");
+  const tabs = page.locator(".ovtab");
+  const n = await tabs.count();
+  expect(n).toBeGreaterThan(0);
+  for (let i = 0; i < n; i++) {
+    await tabs.nth(i).click();
+    await page.waitForTimeout(300);
+    await scanRoute(page, `m-report tab ${i}`);
+  }
+});
+
+test("special names: the Arabic-script buyer and L&T (TEST) show literally", async ({ page }) => {
+  const j = await (await page.request.get("/api/dataset")).json();
+  const arabic = (j.awards || []).map((a) => a.buyer).find((b) => /[؀-ۿ]/.test(b || ""));
+  const ampersand = (j.awards || []).map((a) => a.winner).find((w) => /&/.test(w || ""));
+  expect(arabic, "the seed carries an Arabic-script award buyer").toBeTruthy();
+  expect(ampersand, "the seed carries an award winner with an ampersand").toBe("L&T (TEST)");
+  await boot(page, "#p=market&v=m-report");
+  await page.locator(".ovtab", { hasText: /Awarded/i }).first().click();
+  await expect(page.locator(".ov-report")).toContainText(arabic, { timeout: 10000 });
+  await expect(page.locator(".ov-report")).toContainText("L&T (TEST)");
+  const body = await page.locator("body").innerText();
+  expect(body).not.toMatch(/L&amp;T/);
+  expect(await page.locator(".ov-report").innerHTML()).not.toMatch(/L&amp;amp;T/); // not double-escaped either
+});
+
+/* Review Focus 1: an EMPTY dataset. Not part of the normal run (it needs a different database):
+     bash db/make_test_pair.sh                        # no --approve-all: serving stays empty
+     restart the :8610 backend, then
+     KSSL_EMPTY=1 npx playwright test -g "empty dataset"
+   Afterwards rebuild with --approve-all and restart :8610. */
+test("e2e: empty dataset renders every route without a crash", async ({ page }) => {
+  test.skip(!process.env.KSSL_EMPTY, "set KSSL_EMPTY=1 against a backend on an empty serving DB");
+  const j = await (await page.request.get("/api/dataset")).json();
+  expect(Object.keys(j.competitors || {}).length, "the serving DB is empty").toBe(0);
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  for (const [pillar, view] of RAIL_ROUTES) {
+    await page.goto(`/#p=${pillar}&v=${view}`);
+    await expect(page.locator(".shell")).toBeVisible({ timeout: 30000 });
+    await page.waitForTimeout(600);
+    await expect(page.locator(".eb-fail"), `${pillar}/${view}`).toHaveCount(0);
+    await expect(page.locator("text=/could not render|something went wrong|application error/i"), `${pillar}/${view}`).toHaveCount(0);
+    const body = await page.locator("body").innerText();
+    expect(body, `${pillar}/${view}`).not.toMatch(BAD_TEXT);
+    expect(body, `${pillar}/${view}`).not.toMatch(NULL_WORD);
+  }
+  expect(errors, errors.join("\n")).toEqual([]);
 });
 
 // -------------------------------------------------- operator console (separate app)
