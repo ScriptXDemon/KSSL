@@ -36,7 +36,7 @@ lacks("src/lib/partners.js", /\|\| "Other"/, "Other fallback");
 /* no client name typed into logic: a quoted "KSSL" or Kalyani literal outside comments */
 ["src/lib/specs.js", "src/lib/gapModel.js", "src/lib/search.js", "src/pages/competitive/Products.jsx"].forEach((f) => {
   const code = (src(f) || "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-  ck(`${f} has no KSSL / Kalyani literal in code`, !/["'`(\/^]\s*(KSSL|Kalyani)/.test(code));
+  ck(`${f} has no KSSL / Kalyani literal in code`, !/["'`(\/^]\s*(KSSL|Kalyani)\b/.test(code));
 });
 console.log(bad ? `\n${bad} FAILED` : "\nok - no record constant is left in code");
 process.exit(bad ? 1 : 0);

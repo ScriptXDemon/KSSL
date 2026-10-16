@@ -60,7 +60,7 @@ ck("Advantages renders through advantageText, not raw html",
 // future change that re-adds the row must put it behind SHOW_POSITIONING_SOURCES.
 ck("Competitor Detail has no ungated Sources row",
    !/srcKvRow\s*\(/.test(dossier.replace(/SHOW_POSITIONING_SOURCES\s*\?\s*srcKvRow\([^)]*\)/g, "")) &&
-   !/m\.srcs/.test(dossier.replace(/SHOW_POSITIONING_SOURCES\s*\?\s*srcKvRow\(m\.srcs\)/g, "")));
+   !/\bm\.srcs\b/.test(dossier.replace(/SHOW_POSITIONING_SOURCES\s*\?\s*srcKvRow\(m\.srcs\)/g, "")));
 
 // --- the control-byte guard that would have caught the silent regex ---------------
 const specs = readFileSync(new URL("./src/lib/specs.js", import.meta.url), "utf8");

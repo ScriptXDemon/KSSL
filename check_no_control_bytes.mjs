@@ -18,7 +18,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const ROOTS = ["src", "../extraction/signals", "../pipeline"];
+const ROOTS = ["src", "tests", "../extraction/signals", "../pipeline"];
 const EXT = /\.(m?js|jsx|ts|tsx|css|py)$/;
 const SKIP = /node_modules|[\/]dist[\/]/;
 
@@ -40,8 +40,10 @@ const walk = (dir, out = []) => {
 
 const bad = [];
 let scanned = 0;
+/* the test_*.mjs and check_*.mjs files at the repo root are source too (a test regex can lose its \b the same way) */
+const rootFiles = readdirSync(".").filter((e) => /^(test_|check_)[^/]*\.mjs$/.test(e));
 for (const root of ROOTS) {
-  for (const file of walk(root)) {
+  for (const file of [...walk(root), ...(root === "src" ? rootFiles : [])]) {
     scanned += 1;
     const buf = readFileSync(file);
     for (let i = 0; i < buf.length; i += 1) {

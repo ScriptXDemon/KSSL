@@ -112,7 +112,7 @@ if (oppServed.length === 0)
   fail("the overview feed must carry the Perceived Opportunities stream (watch cards)");
 if (served.length !== tenderServed.length + oppServed.length)
   fail("the feed is the two streams and nothing else -- tenders + opportunities");
-if (/fit|act on|defence-tech|can adopt/.test(((d.overviewConfig || {}).market || {}).cnt || ""))
+if (/\bfit|act on|defence-tech|can adopt/.test(((d.overviewConfig || {}).market || {}).cnt || ""))
   fail("the subhead claims a fit or an action the data does not hold");
 if (/demand signals/.test(((d.overviewConfig || {}).market || {}).cnt || ""))
   fail("the subhead still calls the feed 'demand signals'");

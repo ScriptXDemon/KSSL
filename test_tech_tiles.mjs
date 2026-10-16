@@ -69,7 +69,7 @@ if (isRivalCard(adopt("a")) !== false) fail("a card with no competitor must clas
     ...(cfg.filters || []).map((f) => f.l),
     ...(cfg.metrics || []).map((m) => m.l),
   ].join(" | ");
-  if (/Gap|Watch|Capability threat/i.test(labels)) fail(`a gap/watch label survives in the tech config: ${labels}`);
+  if (/\bGap\b|\bWatch\b|Capability threat/i.test(labels)) fail(`a gap/watch label survives in the tech config: ${labels}`);
 
   const m = metricsFor(cfg, "technology", d);
   const v = (l) => (m.find((x) => x.l === l) || {}).v;

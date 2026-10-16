@@ -23,11 +23,11 @@ ck("all-caps single word lowered", "ONLY", smartTitleCase("ONLY"));
 ck("lowercase word is capitalized", "Hello World", smartTitleCase("hello world"));
 
 // ---- 2. there is no acronym list: stored capitals are cased by the label rule, nothing is corrected -------------------------------------------
-ck(" is not corrected (no list)", "Usa", smartTitleCase("usa"));
-ck(" is not corrected (no list)", "Uav", smartTitleCase("uav"));
-ck(" is not corrected (no list) mid-phrase", "The UK Fleet", smartTitleCase("the UK fleet"));
-ck(" is not corrected (no list)", "Eu", smartTitleCase("eu"));
-ck(" is not corrected (no list)", "Un", smartTitleCase("un"));
+ck("usa is not corrected (no list)", "Usa", smartTitleCase("usa"));
+ck("uav is not corrected (no list)", "Uav", smartTitleCase("uav"));
+ck("the UK fleet is not corrected (no list) mid-phrase", "The UK Fleet", smartTitleCase("the UK fleet"));
+ck("eu is not corrected (no list)", "Eu", smartTitleCase("eu"));
+ck("un is not corrected (no list)", "Un", smartTitleCase("un"));
 ck("K9 (digit token) preserved verbatim", "K9", smartTitleCase("K9"));
 ck("plural UAVS is not corrected (no list)", "UAVS", smartTitleCase("UAVS"));
 
