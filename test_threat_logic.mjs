@@ -1,44 +1,46 @@
-/* Threat classifier (lib/threat.js): segment overlap, geography, alliance.
-   Runs on load; asserts the four-part read moves dir/severity correctly. */
-import { build } from "esbuild";
-import { tmpdir } from "os";
-import { join } from "path";
-import { writeFileSync, readFileSync, rmSync } from "fs";
+/* Threat is a stored field of the competitor and of the signal; the browser re-grades nothing
+ * (lib/threat.js, ruling R5/R7).
+ *
+ *     node test_threat_logic.mjs
+ */
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import * as TH from "./src/lib/threat.js";
+import { wireDataset } from "./src/lib/dataset.js";
 
-const out = join(tmpdir(), `threat_${Date.now()}.mjs`);
-await build({ entryPoints: ["src/lib/threat.js"], bundle: true, format: "esm", outfile: out, logLevel: "silent" });
-const { refineThreat } = await import("file://" + out.replace(/\\/g, "/"));
-rmSync(out, { force: true });
+const { threatOf } = TH;
 
-const ctx = { ksslCats: new Set(["Artillery", "UAVs & Drones"]), partnerKeys: new Set(["boeing"]) };
-const card = (o) => ({ dir: "threat", severity: "high", severityLabel: "high", severityRank: 0, lens: "Competitive", ...o });
-let bad = 0;
-const ck = (c, m) => { if (!c) { bad++; console.error("FAIL:", m); } else console.log("  ok  " + m); };
+// a competitor's threat is its own field, as stored; absent -> null
+assert.equal(threatOf({ name: "x" }), null);
+assert.equal(threatOf({ threat: "" }), null);
+assert.equal(threatOf({ threat: null }), null);
+assert.equal(threatOf({ threat: "threat" }), "threat");
+assert.equal(threatOf({ threat: "watch" }), "watch");
+assert.equal(threatOf({ threat: "fav" }), "fav");
+assert.equal(threatOf(null), null);
 
-// 1 · WHAT — an ISR/EO subsystem tagged as a KSSL category is still watch-only
-const spectro = refineThreat(card({ title: "Elbit secures $270m for SPECTRO ISR systems", tags: "UAVs & Drones",
-  sec: [{ read: "multi-spectral electro-optic ISTAR payloads for airborne surveillance" }] }), ctx);
-ck(spectro.dir === "watch" && spectro.severity === "low", "ISR/EO subsystem -> watch/low despite KSSL category tag");
+// no keyword engine: the regex re-grader and its severity grades are gone
+for (const gone of ["refineThreat", "refineThreats", "SEV", "NON_KSSL", "PLATFORM", "INDIA", "EXPORT"])
+  assert.equal(gone in TH, false, `${gone} must not be exported`);
+const src = readFileSync(new URL("./src/lib/threat.js", import.meta.url), "utf8");
+assert.ok(!/RegExp|\/\b\(|saudi|spanish|qatari|ISR|electro|howitzer|india/i.test(src), "no keyword regexes in threat.js");
 
-// a real KSSL platform stays a threat
-const arty = refineThreat(card({ title: "Rival wins domestic howitzer artillery order", sec: [] }), ctx);
-ck(arty.dir === "threat", "artillery platform -> stays threat");
+// the loader does not move a stored dir (threat / watch / fav) on any competitor signal
+const fx = JSON.parse(readFileSync(new URL("./fixtures/kssl_dataset.json", import.meta.url)));
+const wired = wireDataset(JSON.parse(JSON.stringify(fx)));
+const stored = new Map(fx.competitiveCards.map((c) => [c.id, c.dir]));
+assert.ok(stored.size > 0);
+for (const c of wired.competitiveCards) {
+  assert.equal(c.dir, stored.get(c.id), `${c.id}: dir is the stored word`);
+  assert.equal("threatWhy" in c, false, "no browser-written threat reason");
+}
+// a partner's signal is not downgraded, an export signal is not capped: same cards, same words
+assert.deepEqual(wired.competitiveCards.map((c) => c.dir), fx.competitiveCards.map((c) => c.dir));
 
-// 2 · WHERE — foreign export caps a high threat to medium
-const exp = refineThreat(card({ title: "Hanwha wins Spanish K9 tracked artillery contract", sec: [] }), ctx);
-ck(exp.dir === "threat" && exp.severity === "medium", "foreign-export artillery -> capped to medium");
+// the competitor rows carry their threat word to the profile unchanged
+for (const [id, c] of Object.entries(fx.competitors)) {
+  if (c.dir === "client") continue;
+  assert.equal(threatOf(wired.competitors[id]), threatOf(c));
+}
 
-// Indian MoD procurement raises an artillery threat to high
-const ind = refineThreat(card({ severity: "medium", severityRank: 1, title: "Tata wins Indian Army artillery contract", sec: [] }), ctx);
-ck(ind.dir === "threat" && ind.severity === "high", "Indian-Army artillery -> raised to high");
-
-// 3 · WHO — KSSL's own partner is not a threat
-const partner = refineThreat(card({ title: "Boeing unveils new missile", company: "Boeing", sec: [] }), ctx);
-ck(partner.dir === "watch", "KSSL partner (Boeing) -> watch, not a threat");
-
-// a plain foreign non-KSSL-segment item is untouched (no false downgrade needed, no escalation)
-const soft = refineThreat(card({ dir: "watch", severity: "low", severityRank: 2, title: "Vendor ships C4I software suite", sec: [] }), ctx);
-ck(soft.dir === "watch", "software item stays watch");
-
-console.log(bad ? `\n${bad} failure(s)` : "\nok - threat classifier");
-if (bad) process.exit(1);
+console.log("ok - threat is the stored field; nothing is re-graded in the browser");

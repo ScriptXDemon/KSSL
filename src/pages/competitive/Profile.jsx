@@ -727,7 +727,7 @@ export default function Profile() {
               tabIndex={0}
             >
               <span className="pli-n" style={{ display: "flex", alignItems: "center", gap: "8px", whiteSpace: "normal" }}>
-                <span className={`wdot ${r.threat === "high" ? "threat" : r.threat === "low" ? "fav" : "watch"}`} style={{ flexShrink: 0 }} />
+                <span className={`wdot${r.threat ? ` ${r.threat}` : ""}`} style={{ flexShrink: 0 }} />
                 <span style={{ minWidth: 0, wordBreak: "break-word" }}>
                   <span>{competitorFullName(r.cid, r.name, data.competitors)}</span>
                 </span>

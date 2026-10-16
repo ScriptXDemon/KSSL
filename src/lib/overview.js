@@ -7,20 +7,17 @@ import { cockpit } from "./tenderIntel.js";
 
 export const SEQ_LABEL = {
   recency: "Most Recent First",
-  depth: "Richest Analysis First",
   category: "Grouped by Domain",
 };
 export const SEQ_SUB = {
   recency: "newest signals at top",
-  depth: "most analytical lenses first",
   category: "ordered by category",
 };
 
-/* WHAT THE DROPDOWN OFFERS, not what the engine can do. `depth` and `category` are off
-   the menu at the operator's request; their comparators below are untouched, and
-   seqMode() still ACCEPTS both, so a saved URL or a restored session carrying
-   ?seq=depth keeps working and simply has no menu entry to show for itself.
-   Re-listing them here is the whole of putting them back. */
+/* WHAT THE DROPDOWN OFFERS, not what the engine can do. `category` is off the menu at the operator's
+   request; its comparator below is untouched, and seqMode() still ACCEPTS it, so a saved URL or a
+   restored session carrying ?seq=category keeps working and simply has no menu entry to show for itself.
+   Re-listing it here is the whole of putting it back. */
 export const SEQ_OPTIONS = [
   ["priority", "Priority (threats first)"],
   ["recency", "Most recent"],
@@ -101,51 +98,34 @@ export function cutGroupsByDirection(groups, firstDirs = ["threat"]) {
 
 /* THE ONE COMPARATOR. Every surface that orders signal cards calls this.
 
-   The operator asked for two things: "in threat only those news should come first which
-   actually a direct competitor plus that news should create some kind impact", and
-   "based on threat severity do sequencing of signal card everywhere where severity is
-   high and recent show it first". The first is decided upstream, at write time --
-   extraction/signals/threat_gate.py demotes a card whose company is not a served
-   competitor, so `dir` here already means what it says. The second is this function.
+   Direction first (threat, watch, fav), then the card's date, newest first, then the sequence number the database
+   stores for the card (ruling R5). Nothing here grades a card: severity, impact and shortlist ordering are
+   judgements the browser does not make, and a severity field on a card is never read.
 
-   SEVERITY IS READ, NEVER DERIVED. `severityRank` is computed once, by the backend, from
-   threat_gate.SEVERITY_RANK, and travels on the card. Deriving it here as well is the
-   exact fault this repo has already paid for: one edge weight was computed on both sides
-   and the frontend silently overwrote the served value, so a 1-0 winner was scored as
-   behind. If the backend did not send a rank -- an older deploy, or a card the frontend
-   itself synthesised from a tender -- the card is UNASSESSED, which is a real state and
-   ranks last, not a zero and not a "low".
-
-   A CARD WITH NO DATE SORTS LAST. dateVal("") is 0 and the date key is descending, so an
-   undated card falls to the bottom of its severity band rather than sorting as though it
-   were published today; SignalCard prints "date not known" on it rather than an empty
-   corner. */
-export const SEVERITY_UNASSESSED_RANK = 3;   // == threat_gate.SEVERITY_RANK[null]
+   A CARD WITH NO DATE SORTS LAST. dateVal("") is 0 and the date key is descending, so an undated card falls to the
+   bottom of its direction band rather than sorting as though it were published today; SignalCard prints "date not
+   known" on it rather than an empty corner. A card with no stored sequence follows the sequenced ones of its date,
+   in the order it was served. */
 export const DIR_RANK = { threat: 0, watch: 1, fav: 2 };
 export const NO_DATE_LABEL = "date not known";
-// The words for the absent state. "low" is a measurement; this is the lack of one.
-export const SEVERITY_UNASSESSED_LABEL = "severity not assessed";
 
-export function severityRankOf(card) {
-  const r = card && card.severityRank;
-  return typeof r === "number" && Number.isFinite(r) ? r : SEVERITY_UNASSESSED_RANK;
-}
+const seqOf = (c) => {
+  const n = c && c.seq != null && c.seq !== "" ? Number(c.seq) : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+const bySeq = (a, b) => {
+  const x = seqOf(a);
+  const y = seqOf(b);
+  return x === y ? 0 : x === null ? 1 : y === null ? -1 : x - y;
+};
 
 export function compareCards(data) {
   const when = (c) => dateVal(signalDate(c, data));
-  // ungraded (severity not assessed) sinks to the bottom of its direction band, so a
-  // brand-new card we could not grade never leads a graded one.
-  const ungraded = (c) => (severityRankOf(c) === SEVERITY_UNASSESSED_RANK ? 1 : 0);
   return (a, b) =>
     (DIR_RANK[a.dir] === undefined ? 9 : DIR_RANK[a.dir]) -
       (DIR_RANK[b.dir] === undefined ? 9 : DIR_RANK[b.dir]) ||
-    ungraded(a) - ungraded(b) ||
-    // operator ("latest threat should be first"): date LEADS within the graded band;
-    // severity only breaks a same-date tie -- and the SERVED rank decides that tie, never
-    // a re-derivation from the display word.
     when(b) - when(a) ||
-    severityRankOf(a) - severityRankOf(b) ||
-    (b.sec ? b.sec.length : 0) - (a.sec ? a.sec.length : 0);
+    bySeq(a, b);
 }
 
 /* Ordered, re-ranked and split into the groups the feed renders.
@@ -159,16 +139,11 @@ export function compareCards(data) {
 export function buildFeed(cfg, seqMode, data) {
   const cmp = compareCards(data);
   const when = (c) => dateVal(signalDate(c, data));
-  const depth = (c) => (c.sec ? c.sec.length : 0);
   let cards = (cfg.cards || []).slice();
   /* EVERY MODE ENDS IN THE SAME COMPARATOR. A sequence option changes which key leads,
-     never what "worse" means -- so "most recent" still puts a high-severity card above a
-     low-severity one published the same day, and there is exactly one definition of the
-     severity order in this file. */
+     never the order inside a tie. */
   if (seqMode === "recency") {
     cards.sort((a, b) => when(b) - when(a) || cmp(a, b));
-  } else if (seqMode === "depth") {
-    cards.sort((a, b) => depth(b) - depth(a) || cmp(a, b));
   } else if (seqMode === "category") {
     cards.sort((a, b) => String(a.meta).localeCompare(String(b.meta)) || cmp(a, b));
   } else {
@@ -182,7 +157,7 @@ export function buildFeed(cfg, seqMode, data) {
      that carries no `groups` degrades to one flat group instead of throwing on the
      `groupDefs.some(...)` deref below. */
   const groupDefs =
-    seqMode === "priority" && cfg.groups
+    seqMode === "priority" && cfg.groups && cfg.groups.length
       ? cfg.groups
       : [{ n: 99, h: SEQ_LABEL[seqMode] || "All signals", s: SEQ_SUB[seqMode] || "" }];
 

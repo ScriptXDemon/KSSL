@@ -371,7 +371,8 @@ export function patTechBody(d, area, res) {
     crowded: ["#c0654a", "Crowded"],
     locked: ["#9c2b2b", "Locked up"],
   };
-  const cm = crowdMap[td.crowding] || crowdMap.emerging;
+  // a field with no stored crowding word shows a dash, not a guessed grade
+  const cm = crowdMap[td.crowding] || ["inherit", "—"];
   let h = "";
   h +=
     `<div class="ws-crowd"><div><span class="ws-crowd-l">Field crowding</span><span class="ws-crowd-v" style="color:${cm[0]}">${cm[1]}</span></div>` +

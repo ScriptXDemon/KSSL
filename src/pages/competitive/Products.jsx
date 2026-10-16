@@ -5,6 +5,7 @@ import { revenueOptions, revenueTierOf } from "../../lib/revenueFacet";
 import { useData } from "../../state/DataProvider";
 import { companyNews, productNews, feedSplit } from "../../lib/news";
 import { formatLabel, formatSectorName, formatProductName } from "../../lib/profile";
+import { threatOf } from "../../lib/threat";
 import { productSpecs, specValueWithUnit } from "../../lib/specs";
 import { unescapeEntities } from "../../lib/html";
 import { companyCountries, facetOptionsByName } from "../../lib/countryFacet";
@@ -256,7 +257,7 @@ export default function Products() {
         rows.push({
           cid: id,
           name: cleanCompanyName(co.name || id),
-          threat: co.threat || "watch",
+          threat: threatOf(co),
           sector: co.sector || "",
           country: meta.country,
           countries: meta.countries,
@@ -870,7 +871,7 @@ export default function Products() {
               }}
             >
               <span className="pli-n" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span className={`wdot ${r.threat === "high" ? "threat" : r.threat === "fav" ? "fav" : "watch"}`} />
+                <span className={`wdot${r.threat ? ` ${r.threat}` : ""}`} />
                 {r.name}
               </span>
             </div>

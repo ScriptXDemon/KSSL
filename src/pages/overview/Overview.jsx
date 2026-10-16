@@ -50,7 +50,7 @@ export default function Overview({
   const { setScope, takePending } = useAppState();
   const [selected, setSelected] = useState(null);
   /* A detail the feed does not carry: a Top-tenders row can be a tender outside the Latest Tenders
-     shortlist, so it has no data.details entry. DetailPanel reads such a tender off data.tenders by id. */
+     cards, so it has no data.details entry. DetailPanel reads such a tender off data.tenders by id. */
   const [extraDetail, setExtraDetail] = useState(null);
   const [feedSearchQuery, setFeedSearchQuery] = useState("");
 
@@ -70,13 +70,12 @@ export default function Overview({
 
   const cfg0 = data.overviewConfig[pillarKey] || data.overviewConfig.competitive;
   const cfg = useMemo(
-    /* A cardFilter reads the pillar's WHOLE served lane, not the overview shortlist: the shortlist keeps the
-       latest tenders and only the 24 newest perceived opportunities, so filtering it listed 8 of the 27 Global
+    /* A cardFilter reads the pillar's WHOLE served lane, not the overview cards: those keep the
+       latest tenders and only the 24 newest perceived opportunities, so filtering them listed 8 of the 27 Global
        signals. */
     () => (cardFilter || title ? { ...cfg0, ...(cardFilter ? { cards: (data[`${pillarKey}Cards`] || cfg0.cards || []).filter(cardFilter) } : {}), ...(title ? { title } : {}) } : cfg0),
     [cfg0, cardFilter, title, data, pillarKey],
   );
-  const shortlist = cfg.shortlist || null;
   /* The card's status word. Technology cards are grouped by kind (rival/adopt), not by
      dir, so a flat dir->word map stamped the same "Advancement" on every card; read the
      tag word when the config carries one. Every other pillar keeps the dir map. */
@@ -266,11 +265,6 @@ export default function Overview({
           title: c.title || null,
           company: c.company || null,
           direction: c.dir || null,
-          /* The feed is sequenced by these, so an exported report that omitted them
-             could not be checked against the order it was exported from. null severity
-             is the "not assessed" state, not a missing field. */
-          severity: c.severity || null,
-          impact: c.impact || null,
           date: signalDate(c, data) || null,
           sowhat: c.sowhat || null,
           url: c.url || null,
@@ -361,14 +355,6 @@ export default function Overview({
           counts={filterCounts}
         />}
       </div>
-
-      {/* The "30 of 82 ... from 1,212 served" line is OFF at the operator's request: it
-          is delivered to a client, and a page explaining its own arithmetic reads as
-          working notes. The honesty it was carrying has moved somewhere better -- the
-          rail's Overview badge now counts what the overview SHOWS (lib/overview.navCounts)
-          instead of the whole served lane, so a 30-card overview says 30 rather than
-          1,212. A number that is simply correct beats a sentence apologising for one that
-          was not. `cfg.shortlist` is still on the config and still tested. */}
 
       <div className={`ov-body${selected ? " has-sel" : ""}`}>
         <div className="feed v-overview" id="feed">

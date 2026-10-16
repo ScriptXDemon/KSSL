@@ -46,23 +46,11 @@ export default function SignalCard({ card, dirWord, badgeClass, selected, fresh,
       <div className="aside">
         {/* a Technology card also carries its kind, so ADOPTABLE can read green (k-adopt) */}
         {dirWord ? <span className={`dirtag ${badgeClass || card.dir}${card.kind ? ` k-${card.kind}` : ""}`}>{dirWord}</span> : null}
-        {/* SEVERITY IS STILL COMPUTED, JUST NOT PRINTED HERE.
-            The HIGH / MEDIUM / LOW badge is off the card at the operator's request. It is
-            a display change and nothing more: backend/app.py still derives `severity`,
-            `severityRank` and `severityLabel` for every card at serve time, the payload
-            still carries them, and the feed is still SEQUENCED by severityRank -- so the
-            order the reader sees is unchanged, and the value stays available to the
-            detail panel, the report and anything downstream.
-
-            The one thing lost is that the sort key is now invisible on the row it moved.
-            That is the operator's call to make; if it should come back, restore this
-            block -- `card.severityLabel` and the greyed "unassessed" state for a card the
-            pipeline could not grade are both still served. */}
         {/* `when` comes from signalDate() so the card and its detail panel cannot
             disagree about the same event. Falls back to the card’s own value.
 
             AND SAYS SO WHEN THERE IS NONE. An undated card sorts to the bottom of its
-            severity band (dateVal("") is 0, and the date key is descending) -- printing
+            direction band (dateVal("") is 0, and the date key is descending) -- printing
             an empty corner alongside that made it look like a rendering slip rather than
             a fact about the article. */}
         <span className="ago">{when || card.ago || NO_DATE_LABEL}</span>

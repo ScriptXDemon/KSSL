@@ -19,8 +19,6 @@ import { cutGroupsByDirection, marketAttention, technologyAttention, isRivalCard
 import { sortCompaniesByName } from "./roster.js";
 import { rosterIndex, rosterLookup } from "./partners.js";
 import { markOverlaps } from "./overlap.js";
-import { refineThreats } from "./threat.js";
-import { overviewShortlist, shortlistContext, foldDemotedIntoNews } from "./shortlist.js";
 import { logger } from "../utils/logger.js";
 
 /* THE PUBLISHER'S DATED PERMALINK IS AUTHORITATIVE FOR THE DAY.
@@ -126,10 +124,6 @@ export function wireDataset(raw) {
      sortCompaniesByName puts every company list in alphabetical order. */
   const d = markOverlaps(sortCompaniesByName(plainDashes(decodeAmp({ ...raw }))));
 
-  /* Re-classify competitor signals as threat/watch by KSSL segment overlap, geography
-     and alliance -- see threat.js. Runs before any consumer reads `dir`/`severity`. */
-  refineThreats(d);
-
   /* ONE capitalisation for every headline in the app, applied at the single point they
      all enter it. Doing it here rather than at the render sites is the whole point: the
      SAME headline is held in five places -- the card, its detail panel, the innovation
@@ -146,12 +140,6 @@ export function wireDataset(raw) {
         // The per-pillar rewrite (gen_signal_text) is already a headline; title-case it
         // the same way so an enriched card and a not-yet-enriched one read alike.
         if (c.uiTitle) out.uiTitle = titleCaseHeadline(c.uiTitle);
-        // THREAT ROUTING stays STRICT, by operator choice (quality over volume): a card is
-        // a `threat` only when the write-time gain-gate proved a tracked rival's concrete
-        // GAIN (a win/delivery) in a core KSSL line. A rival's mere ANNOUNCEMENT at
-        // direct overlap + high severity is real but noisier, so it stays on `watch`
-        // rather than crowd the threat board. (Earlier a direct+high elevation was tried
-        // and removed at the operator's request -- keep the board small and high-signal.)
         // Recover the exact day from the article's own dated URL when the card's `ago`
         // carries only a month -- see urlDate above.
         const ud = urlDate(c.url);
@@ -258,16 +246,8 @@ export function wireDataset(raw) {
        and on the live-shape dump every technology card is dir=watch, so "Priority --
        Capability Gaps" was the caption over five watch cards. See
        cutGroupsByDirection in lib/overview.js and test_feed_groups.mjs case 8. */
-    /* THE OVERVIEW IS A SHORTLIST. The lane arrays (d.competitiveCards and the rest) are
-       untouched and still hold everything -- global search, the report and the news join
-       all read them. What is narrowed is what the OVERVIEW FEED shows, which is what the
-       word overview was supposed to mean: 1,077 competitive signals is eleven pages, and
-       an eleven-page overview is a feed with a different heading on it.
-
-       A lane that was never scored for relevance comes back unchanged and says so
-       (`shortlist.unscored`) -- the market lane carries severity on 9 of 548 rows, so
-       scoring it would cut it to three cards and present that as a considered selection.
-       See lib/shortlist. */
+    /* The overview shows the stored cards of each lane in the stored sequence (ruling R5): no shortlist, no
+       demotion, nothing re-graded. */
     /* A tender card whose closing date has passed is out of date: it is dropped from the lane, so search, the news
        join and the counts do not offer it. The pipeline still lists the tender itself on its Closed tab. A card
        with "closes n/d" is a tender the pipeline has marked closed. */
@@ -277,23 +257,16 @@ export function wireDataset(raw) {
       const m = String(c.meta).match(/closes (\d{1,2} \w{3} \d{4})/);
       return !!m && Date.parse(m[1]) >= today0;
     });
-    const slCtx = shortlistContext(d);
-    const slComp = overviewShortlist(d.competitiveCards, slCtx);
-    const slTech = overviewShortlist(d.techCards, slCtx);
-    const slMkt = overviewShortlist(d.marketCards, slCtx);
-    d.overviewShortlist = { competitive: slComp, technology: slTech, market: slMkt };
-
     d.overviewConfig = {
       competitive: {
         ...d.overviewConfig.competitive,
         /* No "Favourable" on the competitive overview (owner request): the filter and the cards
            that carried it are gone. The lane array d.competitiveCards still holds them for search. */
         filters: (d.overviewConfig.competitive.filters || []).filter((f) => f.f !== "fav"),
-        cards: slComp.cards.filter((c) => c.dir !== "fav"),
-        shortlist: slComp,
+        cards: (d.competitiveCards || []).filter((c) => c.dir !== "fav"),
         groups: cutGroupsByDirection(d.overviewConfig.competitive.groups),
       },
-      market: { ...d.overviewConfig.market, cards: slMkt.cards, shortlist: slMkt, title: "Top opportunity" },
+      market: { ...d.overviewConfig.market, cards: d.marketCards || [], title: "Top opportunity" },
       technology: {
         ...d.overviewConfig.technology,
         /* TECHNOLOGY IS KNOWLEDGE, NOT A THREAT BOARD. Competitive owns the threat
@@ -305,7 +278,6 @@ export function wireDataset(raw) {
            gap band) and caps a head with both streams present. d.techCards stays whole for
            global search. */
         cards: technologyAttention(d.techCards, isRivalCard),
-        shortlist: slTech,
         title: "Technology Knowledge",
         cnt: `recent defence-tech: competitor advancements + advances ${clientShort()} can adopt`,
         /* No Gap/Watch/Edge words anywhere. Every card is knowledge. */
@@ -338,15 +310,6 @@ export function wireDataset(raw) {
         ],
       },
     };
-
-    /* "also move that signal into the news section of that competitor section" -- a
-       demoted rival signal lands on that rival's own page rather than disappearing. */
-    const folded = foldDemotedIntoNews(d, {
-      competitive: slComp.demoted,
-      technology: slTech.demoted,
-      market: slMkt.demoted,
-    });
-    if (folded !== d) d.competitorNews = folded.competitorNews;
   } catch (e) {
     logger.warn("wiring:overviewConfig", e);
   }
@@ -904,7 +867,7 @@ function adaptPatents(d) {
        bar chart is guaranteed to render identical bars. What actually separates
        holders here is whether the filing is GRANTED (enforceable now) vs merely
        published, where it is filed, how recent it is, and its assessed threat. */
-    const THREAT_RANK = { high: 3, medium: 2, low: 1 };
+    const THREAT_RANK = { threat: 3, watch: 2, fav: 1 };
     const byName = {};
     recs.forEach((r) => {
       if (!r.assignee) return;
@@ -974,7 +937,8 @@ function adaptPatents(d) {
         activeAssignees: holders.length,
         koel_position: (meta && meta.position) || "—",
       },
-      crowding: recs.length >= 25 ? "crowded" : recs.length >= 8 ? "emerging" : "open",
+      /* the stored crowding word of this field (serving.patent_field_assessment.crowding), or null */
+      crowding: (meta && meta.crowding) || null,
       summary: (meta && (meta.why || meta.desc)) || "",
       leaders: holders,
       /* NULL, NOT []. No pass computes sparsely-patented areas -- there is no
@@ -984,8 +948,8 @@ function adaptPatents(d) {
          white-space pass exists and the section renders unchanged. */
       whitespace: null,
       koel: {
-        filings: recs.filter((r) => /kssl|kssl|bharat\s*forge/i.test(r.assignee || "")).length,
-        position: (meta && meta.reason) || `No ${clientShort()} filings recorded in this field yet.`,
+        filings: recs.filter((r) => clientRe.test(r.assignee || "")).length,
+        position: (meta && meta.reason) || null,
       },
       records: recs,
     };

@@ -10,14 +10,13 @@ const gone = (f) => ck(`${f} is deleted`, !fs.existsSync(f));
 const lacks = (f, re, what) => { const s = src(f); ck(`${f} has no ${what}`, s !== null && !re.test(s)); };
 
 ["src/lib/competitorProjects.js", "src/lib/newsLenses.js", "src/lib/glance.js", "src/lib/signalCountry.js",
- "src/lib/dedupeCompanies.js", "src/lib/ipc.js"].forEach(gone);
+ "src/lib/dedupeCompanies.js", "src/lib/ipc.js", "src/lib/footprint.js", "src/lib/shortlist.js"].forEach(gone);
 
 lacks("src/lib/projects.js", /export const (PROJECTS_DATA|PROJECT_STAGES|PROJECT_FILTERS|PROJECT_SEQ)/, "project constants");
 lacks("src/lib/roster.js", /export const ROSTER|applyRoster/, "company roster");
 lacks("src/lib/companyNames.js", /COMPANY_NAMES/, "expansion table");
 lacks("src/lib/partnerCategories.js", /export const (PARTNER_CATEGORIES|CATEGORY_GROUPS)/, "category tables");
 lacks("src/lib/partners.js", /export const (OV_KIND|OV_DEF)|const (CONF_TAG|REL_SHORT)|PG_REGION_ALIAS|DEFENSE_FIRM_COUNTRIES/, "overlap prose, tag tables or region guesses");
-lacks("src/lib/footprint.js", /export const (TIERS|UNRESOLVED|LINES|GRADES)/, "client footprint table");
 lacks("src/lib/gapAnalysis.js", /GAP_WHY|gapWhyBlock/, "interpretation prose");
 lacks("src/lib/specs.js", /SPEC_SYNONYMS/, "synonym table");
 lacks("src/lib/patents.js", /const COUNTRY_ALIAS/, "country alias table");

@@ -18,6 +18,7 @@ import { revenueTierOf } from "./revenueFacet.js";
 import { unescapeEntities } from "./html.js";
 import { companyCountries, companyOrigin } from "./countryFacet.js";
 import { compareCards } from "./overview.js";
+import { threatOf } from "./threat.js";
 
 /* These fields are rendered as TEXT, not injected as HTML, so an entity in the record
    ("Defence &amp; Aerospace" on Kongsberg) reaches the screen as the five literal
@@ -386,7 +387,7 @@ export function buildProfile(d, cid) {
     company_size: txt(c.company_size) || null,
     strategic_positioning: txt(c.strategic_positioning) || null,
     global_locations: c.global_locations || [],
-    threat: c.threat || "",
+    threat: threatOf(c),
     threatNote: txt(c.threatNote),
     /* assess and updates are HTML by design and are injected, not printed */
     assess: c.assess || "",

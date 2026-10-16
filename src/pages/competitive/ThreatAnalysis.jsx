@@ -41,7 +41,7 @@ export default function ThreatAnalysis() {
     const news = (data && data.competitorNews) || {};
     return (data && data.competitors ? rosterOf(data) : [])
       .map((r) => {
-        const name = competitorFullName(r.cid, r.name, data.competitors) || r.name || r.cid;
+        const name = competitorFullName(r.cid, r.name, data.competitors) || r.name;
         const moves = (news[r.cid] || []).map((m) => ({ ...m, cid: r.cid, company: name }));
         return { cid: r.cid, name, threat: r.threat, moves };
       });
