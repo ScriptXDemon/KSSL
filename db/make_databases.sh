@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The two KSSL databases (container kssl-pg), built from kssl_schema_from_docx.sql:
-#   kssl_staging  schemas staging + staging_ui (+ staging.fact_source, staging.review_decision): all writes go here
+#   kssl_staging  schemas staging + staging_ui (+ staging.fact_source, staging.review_decision, staging.prompt_run): all writes go here
 #   kssl_serving  schemas serving + ui (+ serving.fact_source), guard triggers: written only by Approve
 #   bash db/make_databases.sh [staging_db] [serving_db]
 # Idempotent and non-destructive: a database that exists is never dropped or recreated; the
@@ -24,6 +24,7 @@ build() {  # build <db> <setup sql>
     "${PSQL[@]}" -d "$1" < "$2"
 }
 build "$STG" db/setup/03_staging_db.sql
+"${PSQL[@]}" -d "$STG" < db/setup/05_prompt_run.sql   # prompt run log (python -m prompts.run)
 build "$SRV" db/setup/04_serving_db.sql
 for d in "$STG" "$SRV"; do
     "${PSQL[@]}" -d "$d" -At -c "SELECT '$d: ' || string_agg(nspname || '=' || n, ' ') FROM (SELECT nspname, count(*) n FROM pg_class c JOIN pg_namespace s ON s.oid = c.relnamespace WHERE relkind = 'r' AND nspname IN ('ui','serving','staging','staging_ui') GROUP BY nspname ORDER BY nspname) t"

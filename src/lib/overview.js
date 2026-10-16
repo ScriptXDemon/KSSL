@@ -121,13 +121,10 @@ export function buildFeed(cfg, seqMode, data) {
   } else {
     cards.sort(cmp);
   }
-  /* The number shown on a card is its stored sequence_no; a card that carries none (the
-     tender cards another area promotes) is numbered by its position. A copy: the dataset
-     card is not renumbered. */
-  cards = cards.map((c, n) => ({
-    ...c,
-    rank: String(c.seq != null ? c.seq : n + 1).padStart(2, "0"),
-  }));
+  /* The number shown on a card is its position in the sorted feed. The stored sequence_no
+     only orders the feed (the loader writes a stable, date-based value, not a display
+     number). A copy: the dataset card is not renumbered. */
+  cards = cards.map((c, n) => ({ ...c, rank: String(n + 1).padStart(2, "0") }));
 
   /* Only the "priority" branch needs group defs; without them, fall back to the single
      "All signals" bucket the other modes use, so buildFeed(cfg, "priority") on a cfg
