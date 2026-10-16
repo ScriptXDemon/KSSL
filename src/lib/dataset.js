@@ -138,7 +138,7 @@ export function wireDataset(raw) {
       d[lane] = (d[lane] || []).map((c) => {
         /* a stance is threat or watch: any other stored value (a legacy one) means no stance, never a relabel */
         const out = { ...c, title: titleCaseHeadline(c.title), dir: stanceOf(c.dir) };
-        /* the competitive overview shows only threat and watch cards (the Cummins rule that dropped its
+        /* the competitive overview shows only threat and watch cards (the reference UI's rule that dropped its
            third stance from that feed, stated neutrally): a card with a stored stance that is neither is
            marked here and left out of that lane; it still reads, stance-less, everywhere else */
         if (c.dir != null && String(c.dir).trim() !== "" && !out.dir) out.noStance = true;

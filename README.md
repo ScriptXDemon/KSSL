@@ -55,7 +55,7 @@ Static checks (each exits 0 when clean):
 
     node check_contract.mjs fixtures/kssl_dataset.json   # the dataset carries every global of docs/ui_port/MAPPING.md A with its container type
     node check_data.mjs fixtures/kssl_dataset.json       # market and profile self-checks over the wired dataset
-    node check_no_genset.mjs                             # no genset-specific code or words in src/
+    node check_no_genset.mjs                             # no genset-specific code or words, and no reference-client name, in src/ index.html public/
     npm run build && node check_no_fabrication.mjs       # no browser-invented values in dist/ (run AFTER the build)
     node check_no_undefined_names.mjs                    # no reference to an undefined name
     node check_no_control_bytes.mjs                      # no stray control bytes (a "\b" eaten into 0x08)
