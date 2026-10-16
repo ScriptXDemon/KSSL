@@ -13,6 +13,7 @@ import { companyCountries, facetOptionsByName } from "../../lib/countryFacet";
    memory, cleared on a pillar change. See lib/viewState. */
 import * as viewState from "../../lib/viewState";
 import { isVisible } from "../../lib/visibility";
+import { ReviewList } from "../../components/review/Review";
 
 /* `sector` is escaped at write time ("Defence &amp; Aerospace") and is formatted consistently here. */
 const sectorText = (co) => formatSectorName(co && co.sector);
@@ -546,6 +547,11 @@ export default function Partnerships() {
               {activeQ ? <>no competitor matches “{activeQ}”</> : "no competitor matches this filter"}
             </div>
           ) : null}
+          {/* review copy only: the client's own partners (they mark the overlapping partners) */}
+          <ReviewList
+            title="Client partners"
+            items={(data.KSSL_PARTNERS || []).map((x) => ({ src: x._src, label: [x.label, x.ptype].filter(Boolean).join(" · ") }))}
+          />
         </div>
       </div>
 
@@ -765,6 +771,35 @@ export default function Partnerships() {
               </button>
             </div>
             <div className="pg-drawer-head" style={{ paddingRight: "110px", paddingBottom: "16px" }} dangerouslySetInnerHTML={{ __html: drawerHeadText() }} />
+            {/* review copy only: the drawer draws its records as HTML, so the same records are listed here */}
+            {gc && mode === "field" ? (
+              <ReviewList
+                title="Field-level patterns"
+                items={[
+                  ...((data.FIELDSYN && data.FIELDSYN.patterns) || []).map((x) => ({ src: x._src, label: x.field || x.pattern })),
+                  ...(data.FIELDSYN && data.FIELDSYN.bottomSrc ? [{ src: data.FIELDSYN.bottomSrc, label: data.FIELDSYN.bottom }] : []),
+                ]}
+              />
+            ) : null}
+            {gc && mode !== "field" ? (
+              <>
+                <ReviewList
+                  title={`${gc.name} partners`}
+                  items={(gc.partners || [])
+                    .filter((x) => !tie || x.id === tie)
+                    .map((x) => ({ src: x._src, label: [x.label, x.ptype].filter(Boolean).join(" · ") }))}
+                />
+                {!tie && data.COMPSYN && data.COMPSYN[gcid] ? (
+                  <ReviewList
+                    title={`${gc.name} intelligence`}
+                    items={[
+                      { src: data.COMPSYN[gcid]._src, label: (data.COMPSYN[gcid].strat && data.COMPSYN[gcid].strat.thesis) || gc.name },
+                      ...(data.COMPSYN[gcid].vulns || []).map((v) => ({ src: v._src, label: v.title })),
+                    ]}
+                  />
+                ) : null}
+              </>
+            ) : null}
             <HtmlBlock
               className="pg-drawer-body"
               handlers={{

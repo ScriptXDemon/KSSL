@@ -149,7 +149,8 @@ def build_synthesis(database):
         traceids[cid] = [[text(t.get("relationship_id")) for t in traces.get(text(v.get("vulnerability_id")), [])
                           if t.get("relationship_id")] for v in rows]
     field_rows = ordered(table(database, "serving", "competitive_field_synthesis"), "display_order")
-    bottom = next((r.get("bottom_line") for r in field_rows if r.get("row_kind") == "bottom_line" and r.get("bottom_line")), None)
+    bottom_row = next((r for r in field_rows if r.get("row_kind") == "bottom_line" and r.get("bottom_line")), None)
+    bottom = bottom_row.get("bottom_line") if bottom_row else None
     fieldsyn = {
         "patterns": [{
             "field": r.get("field_title"), "pattern": r.get("pattern"), "implication": r.get("implication"),
@@ -157,6 +158,7 @@ def build_synthesis(database):
             "_src": src("competitive_field_synthesis", "synthesis_id", r),
         } for r in field_rows if r.get("row_kind") == "pattern"],
         "bottom": bottom,
+        "bottomSrc": src("competitive_field_synthesis", "synthesis_id", bottom_row) if bottom_row else None,
     }
     return compsyn, traceids, fieldsyn
 

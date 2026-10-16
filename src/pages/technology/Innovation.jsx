@@ -9,6 +9,7 @@ import { techReportHtml } from "../../lib/reports";
 import { gapCorrelateStrip } from "../../lib/gapModel";
 import { srcChips, attr } from "../../lib/html";
 import { MAT_LAB, NOT_ASSESSED, has, maturityLabel, positionPill, filterInnovations } from "../../lib/innovation";
+import { Review } from "../../components/review/Review";
 
 /* Not every pipeline row carries an assessed position. `gap`, `horizon`, `whatsNew`
    and `compNote` are analyst fields, and the served record leaves them null when
@@ -315,6 +316,7 @@ export default function Innovation() {
                     </Fragment>
                   ))}
               </div>
+              <Review src={item._src} />
             </div>
           ))}
         </div>
@@ -356,6 +358,7 @@ export default function Innovation() {
                         was actually assessed */}
                     <span className="eyebrow">Innovation Detail</span>
                     <div className="ct">{iv.t}</div>
+                    <Review src={iv._src} />
                     <div className="sub">
                       {[
                         MAT_LAB[iv.mat] || iv.mat,

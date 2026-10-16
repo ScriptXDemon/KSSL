@@ -16,6 +16,7 @@ import Thumb from "../../components/thumb/Thumb.jsx";
    later, on a dashboard whose job is "what is new". Same key/value shape, held in
    memory, cleared on a pillar change. See lib/viewState. */
 import * as viewState from "../../lib/viewState";
+import { REVIEW, ReviewList } from "../../components/review/Review";
 
 /* Two dropdowns resolve to one of three lists — countries for a rival, rivals in a
    country, or the products for a pair — and every product opens a detail column.
@@ -267,6 +268,20 @@ export default function Geo() {
   const compName = comp
     ? (data.geoComps.find((x) => x.id === comp) || {}).name
     : "All";
+
+  /* The footprint cards are the presence rows (company x country); the lists below are drawn as
+     markup strings, so the review copy lists the same records with their controls. The overlay
+     lists the rows behind what it shows, the map lists all of them. */
+  const presenceItems = (rows) =>
+    (rows || []).map((p) => ({ src: p._src, label: [p.comp, p.country, p.activity, p.status].filter(Boolean).join(" · ") }));
+  const allPresences = data.geoPresence || [];
+  const shownPresences = pair
+    ? allPresences.filter((p) => p.cid === pair.cid && p.country === pair.country)
+    : resolved.kind === "countries"
+      ? allPresences.filter((p) => p.cid === resolved.cid)
+      : resolved.kind === "competitors"
+        ? allPresences.filter((p) => p.country === resolved.country)
+        : [];
 
   /* ---- the middle list, as markup (rows are dense and data-carrying) ----
      `pair` wins over `resolved`: drilling from a country row into its products sets
@@ -685,6 +700,11 @@ export default function Geo() {
             selectedCountry={country || (pair ? pair.country : null)}
           />
         </div>
+        {REVIEW ? (
+          <div style={{ position: "absolute", left: 12, bottom: 56, width: 380, maxHeight: "42%", overflowY: "auto", zIndex: 5 }}>
+            <ReviewList items={presenceItems(allPresences)} title="Footprint records" />
+          </div>
+        ) : null}
       </div>
 
       {showDetail && (country || pair || comp) ? (
@@ -846,6 +866,7 @@ export default function Geo() {
                   html={relList()}
                   id="geo-rel-list"
                 />
+                <ReviewList items={presenceItems(shownPresences)} title="Footprint records" />
               </div>
 
               {prod && (

@@ -651,6 +651,7 @@ function adaptPatents(d) {
   function norm(r) {
     return {
       id: r.no || r.id || "",
+      _src: r._src,
       title: r.title || "",
       assignee: r.assignee || "",
       // the dataset uses granted/published; the badge CSS knows granted/filed/pending
@@ -890,6 +891,8 @@ function adaptPatents(d) {
       },
       /* the stored crowding word of this field (serving.patent_field_assessment.crowding), or null */
       crowding: (meta && meta.crowding) || null,
+      /* the field assessment's card key, so the review copy can approve the crowding word and position note */
+      assessmentSrc: (meta && meta._src) || null,
       summary: (meta && (meta.why || meta.desc)) || "",
       leaders: holders,
       /* NULL, NOT []. No pass computes sparsely-patented areas -- there is no

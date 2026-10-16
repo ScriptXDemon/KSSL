@@ -16,6 +16,7 @@ import {
    later, on a dashboard whose job is "what is new". Same key/value shape, held in
    memory, cleared on a pillar change. See lib/viewState. */
 import * as viewState from "../../lib/viewState";
+import { ReviewList } from "../../components/review/Review";
 
 /* Both patent lenses live in the Competitive pillar. The field lens used to sit
    under Technology; it is the same patent set read a different way, and a rival
@@ -299,6 +300,11 @@ export default function Patents() {
             id="patc-body"
             onMount={applyCatFilter}
           />
+          {/* review copy only: the filings above are drawn as HTML, so the same records are listed here */}
+          <ReviewList
+            title="Patent filings"
+            items={compRecs.filter((r) => !catFilter || r.techArea === catFilter).map((r) => ({ src: r._src, label: r.title_en || r.title || r.id }))}
+          />
         </div>
         </>
         )}
@@ -353,6 +359,15 @@ export default function Patents() {
           <HtmlBlock
             html={techRes ? patTechBody(data, area, techRes) : patLoadingHtml(area)}
             id="patt-body"
+          />
+          <ReviewList
+            title="Patent filings and field assessment"
+            items={[
+              ...(((data.PATENTS || {}).byTechnology || {})[area]?.assessmentSrc
+                ? [{ src: data.PATENTS.byTechnology[area].assessmentSrc, label: area }]
+                : []),
+              ...(techRes ? techRes.results || [] : []).map((r) => ({ src: r._src, label: r.title_en || r.title || r.id })),
+            ]}
           />
         </div>
       </div>

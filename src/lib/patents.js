@@ -85,6 +85,7 @@ export async function searchPatents(d, params) {
 function normSample(r) {
   return {
     id: r.id,
+    _src: r._src,
     title: r.title,
     /* The English rendering, where the translation step has produced one. The source
        title is NOT replaced -- both travel, and the card shows the original underneath.
