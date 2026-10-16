@@ -1,5 +1,6 @@
 import { clientShort } from "./client.js";
 import { globalRequirements } from "./globalRequirements.js";
+import { momentsOf } from "./moments.js";
 /* Overview feed: the sequence logic, the group split, and the per-pillar metric
    strip. Pure — it returns data, and the React components render it. */
 import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
@@ -698,7 +699,7 @@ export function navCounts(d, gapModel) {
     counts.profile = Object.keys(d.competitors).filter(
       (k) => k !== ((d.client && d.client.id)),
     ).length;
-    counts["threat-analysis"] = Object.entries(d.competitorNews || {}).filter(([k]) => k !== ((d.client && d.client.id))).reduce((n, [, v]) => n + (v ? v.length : 0), 0);  // competitor moves on record (competitorNews)
+    counts["threat-analysis"] = Object.entries(d.competitorNews || {}).filter(([k]) => k !== ((d.client && d.client.id))).reduce((n, [, v]) => n + momentsOf(v).length, 0);  // competitor moments on record: the competitorNews rows that carry a level
     counts.projects = (d.projects || []).length;
     if (isVisible("finances")) counts.finances = 0;
 

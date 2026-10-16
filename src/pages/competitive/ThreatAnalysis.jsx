@@ -4,6 +4,7 @@ import { useData } from "../../state/DataProvider";
 import { clientShort } from "../../lib/client.js";
 import { stanceOf, uiList } from "../../lib/uiText";
 import { rosterOf } from "../../lib/profile";
+import { momentsOf } from "../../lib/moments";
 import { competitorFullName } from "../../lib/companyNames";
 import { formatDate } from "../../utils/formatDate";
 import Thumb from "../../components/thumb/Thumb.jsx";
@@ -62,7 +63,7 @@ export default function ThreatAnalysis() {
     return (data && data.competitors ? rosterOf(data) : [])
       .map((r) => {
         const name = competitorFullName(r.cid, r.name, data.competitors) || r.name;
-        const moves = (news[r.cid] || []).map((m) => ({ ...m, cid: r.cid, company: name }));
+        const moves = momentsOf(news[r.cid]).map((m) => ({ ...m, cid: r.cid, company: name }));
         return { cid: r.cid, name, threat: r.threat, moves };
       });
   }, [data]);
