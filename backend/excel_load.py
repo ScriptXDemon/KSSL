@@ -3,6 +3,7 @@
     python -m backend.excel_load company --file "<competitor company list.xlsx>" [--db local|vps] [--dry-run] [--reports DIR]
     python -m backend.excel_load leadership --file "<Company Directors Details - Re-verified.xlsx>" [--db local|vps] [--dry-run]
                                             [--compare "<leadership profile.xlsx>"] [--reports DIR]
+    python -m backend.excel_load products --file "<Product Specs.xlsx>" [--db local|vps] [--dry-run] [--reports DIR]
     python -m backend.excel_load --selftest                       (no database, no files)
 
 leadership: one competitor per company (inserted if missing, an existing row is never changed), one competitive_leader
@@ -23,6 +24,14 @@ bullet is loaded when its field's FINAL status is Verified / Verified (pass 2), 
 Everything held back goes to <reports>/leadership_held_back.csv with the reason and, where the workbook has one,
 the suggested correction; counts per company go to <reports>/leadership_summary.txt.  The workbook is client data
 and the repository is public: the default reports folder db/excel_reports/ is gitignored; never commit it.
+
+products: sheet 'All Products' (the per-company tabs only repeat it, 'Unverified' is not loaded) -> competitive_product (one row
+per competitor + product), competitive_product_specification (one row per line of 'Technical Specifications') and the matching
+staging.fact_source rows.  Companies map to existing competitors through PRODUCT_COMPANY_MAP (an unmapped company stops the load;
+competitors are never created).  Description / Collaboration / Production & Licensing Notes have no column and are not loaded.
+Idempotent in ONE transaction: for the competitors in the sheet, the products this loader created earlier (product_id =
+uuid5 of competitor + name) are deleted with their specs + fact_source and re-inserted; a product that existed before with the same
+normalised name keeps its id (its specs are replaced); other products are never touched.
 
 DSN: prompts.batch.resolve_dsn (--db vps needs the tunnel, routines/tunnel.sh).  The target is printed without the password.
 """
@@ -911,6 +920,369 @@ def cmd_company(args) -> int:
     return 0
 
 
+# ---- product specifications (sheet 'All Products') -------------------------------------------------------------
+
+SHEET_PRODUCTS = "All Products"
+PRODUCT_COLS = ["Company", "Category", "Product", "Description", "Technical Specifications", "Collaboration / Partners",
+                "Production & Licensing Notes", "Source(s)", "Source Type", "Confidence", "Notes", "Verification", "Verification detail"]
+# spec-sheet company name -> display_name of the competitor (every other name must equal a display_name, case-insensitively)
+PRODUCT_COMPANY_MAP = {
+    "Larsen & Toubro": "Larsen & Toubro",
+    "Hanwha Aerospace": "Hanwha Aerospace",
+    "Adani Defence": "Adani Defence & Aerospace",
+    "Saab": "SAAB",
+    "SIG SAUER": "SIG Sauer",
+    "Kalashnikov": "Kalashnikov Concern",
+    "Israel Aerospace Inds (IAI)": "Israel Aerospace Industries (IAI)",
+    "Bharat Dynamics": "Bharat Dynamics Ltd (BDL)",
+    "Huta Stalowa Wola": "Huta Stalowa Wola (HSW)",
+    "Munitions India (MIL)": "Munitions India Ltd (MIL)",
+    "PLR Systems": "PLR Systems (IWI+Adani)",
+    "Rafael": "Rafael Advanced Defense Systems",
+    "Nexter (KNDS France)": "Nexter (KNDS France)",
+    "KNDS (KMW+Nexter)": "KNDS Germany",          # the KMW+Nexter group tab goes to KNDS Germany; the same product may also sit under Nexter
+}
+PRODUCT_LIMITS = {"product_name": 250, "category": 100, "spec_label": 150}      # varchar limits of competitive_product(_specification)
+NOT_DISCLOSED = {"not disclosed", "not stated in sources"}      # a spec whose value is one of these (or empty) is not loaded
+NEAR_UNDISCLOSED = ("not disclosed", "not published", "not stated", "not specified", "not available", "n/a", "unknown", "none published")
+NO_DATA_NOTE = re.compile(r"^(technical\s+)?(specifications?|specs?|details?|data|parameters?)\s+(are\s+|is\s+)?(not|un)\s*(published|disclosed|available|stated|released)\b", re.I)
+UNIT_RE = re.compile(r"^(-?\d[\d,]*(?:\.\d+)?)\s+([A-Za-zµμ°%][A-Za-z0-9µμ°%/.²³^*·-]{0,19})$")      # '<number> <one-token unit>', unit <= 20 chars
+UNIT_NOT = {"x", "to", "and", "or", "per", "of", "with", "at", "by", "from", "on"}
+QUOTE_DETAIL_MAX = 300
+# {(competitor display_name, name of an existing product row): spec-sheet product name} - to keep a hand-made product (its id, matchups) when the
+# sheet names the same product differently; empty = only the same normalised name keeps an id
+PRODUCT_KEEP_ALIASES: dict[tuple[str, str], str] = {
+    ("Larsen & Toubro", "K9 Vajra-T"): "K9 Vajra-T 155 mm/52 cal Tracked Self-Propelled Howitzer",
+    ("Hanwha Aerospace", "K9 Thunder"): "K9 / K9A1 Thunder",
+}
+
+
+def product_id_for(competitor_id, name: str) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_URL, "kssl-product|" + str(competitor_id) + "|" + name)
+
+
+def spec_id_for(product_id, label: str, position: int) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_URL, f"kssl-product-spec|{product_id}|{label}|{position}")
+
+
+def norm_product(name: str) -> str:
+    """casefold, every dash variant becomes a space, spaces collapsed: 'K9 Vajra-T' == 'k9  vajra t'."""
+    s = re.sub(r"[-‐-―−]", " ", str(name or "").casefold())
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def split_unit(value: str) -> tuple[str, str | None]:
+    """(value, unit): the unit only when the value is exactly '<number> <unit>' ('17.6 km' -> ('17.6', 'km')); else the whole value, no unit."""
+    m = UNIT_RE.match(value)
+    if m and m.group(2).casefold() not in UNIT_NOT:
+        return m.group(1), m.group(2)
+    return value, None
+
+
+def parse_spec_lines(cell) -> list[dict]:
+    """Technical Specifications -> [{pos, label, value, unit, skip}] (pos = 1-based number of the non-blank line).
+    'Label: value' splits at the FIRST colon; a line without a colon is label 'Note' with the line as value.  skip is None, 'empty',
+    'not_disclosed' or 'label_too_long'."""
+    out = []
+    pos = 0
+    for line in str(cell or "").replace("\r", "\n").split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        pos += 1
+        if ":" in line:
+            label, value = (x.strip() for x in line.split(":", 1))
+        else:
+            label, value = "Note", line
+        skip = None
+        if not value or not label:
+            skip = "empty"
+        elif value.rstrip(". ").casefold() in NOT_DISCLOSED:
+            skip = "not_disclosed"
+        elif value.casefold().startswith(NEAR_UNDISCLOSED) or (label == "Note" and NO_DATA_NOTE.match(value)):
+            skip = "not_disclosed"          # 'Not published', 'n/a', 'Specifications not published.': no value to show
+        elif len(label) > PRODUCT_LIMITS["spec_label"]:
+            skip = "label_too_long"
+        unit = None
+        if skip is None:
+            value, unit = split_unit(value)
+        out.append({"pos": pos, "label": label, "value": value, "unit": unit, "skip": skip})
+    return out
+
+
+def resolve_product_company(name: str, by_display: dict[str, dict]) -> dict | None:
+    """The competitor ({id, display_name, country}) a spec-sheet company maps to, None when it maps to nothing."""
+    disp = PRODUCT_COMPANY_MAP.get(name)
+    if disp is not None:
+        return by_display.get(disp)
+    return {k.casefold(): v for k, v in by_display.items()}.get(name.casefold())
+
+
+def product_rows(sheet_rows: list[dict]) -> list[dict]:
+    missing = [h for h in PRODUCT_COLS if sheet_rows and h not in sheet_rows[0]]
+    if missing:
+        raise ValueError(f"sheet {SHEET_PRODUCTS!r} is missing columns: {missing}")
+    out = []
+    for r in sheet_rows:
+        d = {h: clean_cell(r.get(h)) for h in PRODUCT_COLS}
+        if d["Company"] and d["Product"]:
+            out.append(d)
+    return out
+
+
+def build_products_plan(rows: list[dict], competitors: dict[str, dict], existing: list[dict]) -> dict:
+    """competitors: display_name -> {id, display_name, country}.  existing: rows of competitive_product
+    ({product_id, competitor_id, product_name}).  A product that already exists for the competitor under the same normalised name keeps
+    its id (mode 'kept' = not created by this loader, 'reloaded' = created by it earlier); else the id is uuid5 (mode 'new')."""
+    unmapped = sorted({r["Company"] for r in rows if resolve_product_company(r["Company"], competitors) is None})
+    if unmapped:
+        raise ValueError(f"spec-sheet companies that map to no competitor (nothing loaded): {unmapped}")
+    by_comp = defaultdict(list)
+    for e in existing:
+        by_comp[str(e["competitor_id"])].append(e)
+    groups: dict[tuple, dict] = {}
+    order, warnings, merged = [], [], []
+    for r in rows:
+        comp = resolve_product_company(r["Company"], competitors)
+        cid = str(comp["id"])
+        key = (cid, norm_product(r["Product"]))
+        urls = list(dict.fromkeys(u.strip() for u in re.split(r"[\r\n]+", str(r["Source(s)"] or "")) if u.strip()))      # one URL per line (a URL may hold spaces)
+        bad = [u for u in urls if not u.lower().startswith(("http://", "https://"))]
+        if bad:
+            warnings.append(f"{r['Company']} / {r['Product']}: non-http source token(s) {bad[:2]}")
+        quote = f"Verification: {r['Verification']}; Confidence: {r['Confidence']}"
+        if r["Verification detail"]:
+            quote += " — " + r["Verification detail"][:QUOTE_DETAIL_MAX]
+        g = groups.get(key)
+        if g is None:
+            g = groups[key] = {"company": r["Company"], "comp": comp, "cid": cid, "name": r["Product"], "category": r["Category"],
+                               "rows": [], "specs": [], "urls": [], "quote": quote}
+            order.append(key)
+        else:
+            merged.append((r["Company"], g["name"], r["Product"]))
+            if r["Category"] != g["category"]:
+                warnings.append(f"{r['Company']} / {g['name']}: merged duplicate has category {r['Category']!r}, kept {g['category']!r}")
+        g["rows"].append(r)
+        for u in urls:
+            if u not in g["urls"]:
+                g["urls"].append(u)
+        g["specs"].append({"urls": urls, "quote": quote, "lines": parse_spec_lines(r["Technical Specifications"])})
+    products = []
+    for key in order:
+        g = groups[key]
+        cid = g["cid"]
+        dn = g["comp"]["display_name"]
+        match = sorted((e for e in by_comp.get(cid, []) if norm_product(PRODUCT_KEEP_ALIASES.get((dn, e["product_name"]), e["product_name"])) == key[1]),
+                       key=lambda e: str(e["product_id"]))
+        if match:
+            e = match[0]
+            pid = str(e["product_id"])
+            mode = "reloaded" if pid == str(product_id_for(cid, e["product_name"])) else "kept"
+        else:
+            pid, mode = str(product_id_for(cid, g["name"])), "new"
+        g["product_id"], g["mode"] = pid, mode
+        specs, skipped, seen, n = [], [], set(), 0
+        for blk in g["specs"]:
+            for ln in blk["lines"]:
+                n += 1
+                reason = ln["skip"]
+                if reason is None and len(g["rows"]) > 1:        # merged rows: an identical label + value is loaded once
+                    if (ln["label"], ln["value"], ln["unit"]) in seen:
+                        reason = "duplicate_after_merge"
+                    seen.add((ln["label"], ln["value"], ln["unit"]))
+                if reason:
+                    skipped.append({"pos": n, "label": ln["label"], "value": ln["value"], "reason": reason})
+                    continue
+                specs.append({"spec_id": str(spec_id_for(pid, ln["label"], n)), "product_id": pid, "spec_label": ln["label"],
+                              "spec_value": ln["value"], "unit": ln["unit"], "source_url": blk["urls"][0] if blk["urls"] else None,
+                              "source_count": len(blk["urls"]), "urls": blk["urls"], "quote": blk["quote"], "pos": n})
+        g["spec_rows"], g["skipped"] = specs, skipped
+        products.append(g)
+    counts = defaultdict(int)
+    for g in products:
+        counts[(g["cid"], g["category"])] += 1
+    for g in products:
+        g["category_count"] = counts[(g["cid"], g["category"])]
+        for col, val in (("product_name", g["name"]), ("category", g["category"])):
+            if len(val) > PRODUCT_LIMITS[col]:
+                raise ValueError(f"{g['company']} / {g['name']}: {col} longer than {PRODUCT_LIMITS[col]}")
+    return {"products": products, "merged": merged, "warnings": warnings}
+
+
+def apply_products_plan(conn, plan: dict, dry_run: bool) -> dict:
+    """Replace the products of the competitors in the plan (see the module docstring); returns the counters."""
+    from psycopg2.extras import execute_values
+    from backend.sources import classify
+    cur = conn.cursor()
+    prods = plan["products"]
+    cids = sorted({g["cid"] for g in prods})
+    cur.execute("SELECT product_id::text AS pid, competitor_id::text AS cid, product_name FROM staging.competitive_product WHERE competitor_id = ANY(%s::uuid[])", (cids,))
+    old = cur.fetchall()
+    new_ids = {g["product_id"] for g in prods}
+    managed = [o["pid"] for o in old if o["pid"] == str(product_id_for(o["cid"], o["product_name"]))]    # created by this loader
+    stale = [p for p in managed if p not in new_ids]
+    touched = sorted(set(managed) | {g["product_id"] for g in prods if g["mode"] == "kept"})
+    res = {"stale_products": len(stale), "replaced_products": len(managed) - len(stale)}
+    cur.execute("SELECT count(*) AS n FROM staging.competitive_matchup WHERE competitor_product_id = ANY(%s::uuid[])", (stale,))
+    res["stale_matchups"] = cur.fetchone()["n"]
+    cur.execute("SELECT spec_id::text AS sid FROM staging.competitive_product_specification WHERE product_id = ANY(%s::uuid[])", (touched,))
+    old_specs = [r["sid"] for r in cur.fetchall()]
+    cur.execute("DELETE FROM staging.fact_source WHERE (table_name = 'competitive_product' AND column_name = 'product_name' AND row_id = ANY(%s)) "
+                "OR (table_name = 'competitive_product_specification' AND column_name = 'spec_value' AND row_id = ANY(%s))", (touched, old_specs))
+    res["deleted_facts"] = cur.rowcount
+    cur.execute("DELETE FROM staging.competitive_product_specification WHERE product_id = ANY(%s::uuid[])", (touched,))
+    res["deleted_specs"] = cur.rowcount
+    cur.execute("DELETE FROM staging.competitive_product WHERE product_id = ANY(%s::uuid[])", (managed,))
+    rows = []
+    for g in prods:
+        country = g["comp"].get("country")
+        if g["mode"] == "kept":
+            cur.execute("UPDATE staging.competitive_product SET product_name = %s, category = %s, category_filter = %s, category_count = %s, "
+                        "country = %s, is_collapsed = false WHERE product_id = %s", (g["name"], g["category"], g["category"], g["category_count"], country, g["product_id"]))
+            if cur.rowcount != 1:
+                raise RuntimeError(f"kept product {g['name']!r} not found exactly once: rolled back")
+        else:
+            rows.append((g["product_id"], g["cid"], g["name"], g["category"], g["category"], g["category_count"], country))
+    execute_values(cur, "INSERT INTO staging.competitive_product (product_id, competitor_id, product_name, category, category_filter, "
+                        "category_count, country, is_collapsed) VALUES %s", rows, template="(%s, %s, %s, %s, %s, %s, %s, false)")
+    spec_rows = [(s["spec_id"], s["product_id"], s["spec_label"], s["spec_value"], s["unit"], s["source_url"], s["source_count"])
+                 for g in prods for s in g["spec_rows"]]
+    execute_values(cur, "INSERT INTO staging.competitive_product_specification (spec_id, product_id, spec_label, spec_value, unit, source_url, source_count) VALUES %s",
+                   spec_rows, page_size=2000)
+    tier_cache, tiers, facts = {}, defaultdict(int), []
+
+    def tier_of(url, company):
+        k = (url, company)
+        if k not in tier_cache:
+            tier_cache[k] = classify(url, company_domains(url, name_variants(company))) or "unlisted"
+        return tier_cache[k]
+
+    for g in prods:
+        for u in g["urls"]:
+            t = tier_of(u, g["company"])
+            tiers[t] += 1
+            facts.append(("competitive_product", g["product_id"], "product_name", u, t, g["quote"]))
+        for s in g["spec_rows"]:
+            for u in s["urls"]:
+                t = tier_of(u, g["company"])
+                tiers[t] += 1
+                facts.append(("competitive_product_specification", s["spec_id"], "spec_value", u, t, s["quote"]))
+    execute_values(cur, "INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, publisher, quote, retrieved_at) VALUES %s",
+                   facts, template="(%s, %s, %s, %s, %s, NULL, %s, now())", page_size=5000)
+    res.update(products=len(prods), specs=len(spec_rows), facts=len(facts), tiers=dict(tiers), facts_product=sum(len(g["urls"]) for g in prods))
+    if dry_run:
+        conn.rollback()
+    else:
+        conn.commit()
+    return res
+
+
+def write_product_reports(plan: dict, res: dict, sheet_comp: dict, out_dir: Path, dry_run: bool, extra: dict) -> list[Path]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    prods = plan["products"]
+    by = defaultdict(list)
+    for g in prods:
+        by[g["comp"]["display_name"]].append(g)
+    reasons = ["empty", "not_disclosed", "label_too_long", "duplicate_after_merge"]
+    lines = [f"Products load summary ({'DRY RUN' if dry_run else 'loaded'})", "",
+             f"{'competitor':38} {'products':>8} {'new':>5} {'kept':>5} {'reload':>6} {'specs':>7} " + " ".join(f"{r[:12]:>12}" for r in reasons) + "  categories", "-" * 190]
+    tot = defaultdict(int)
+    for disp in sorted(by):
+        gs = by[disp]
+        sk, modes, cats = defaultdict(int), defaultdict(int), defaultdict(int)
+        for g in gs:
+            modes[g["mode"]] += 1
+            cats[g["category"]] += 1
+            for s in g["skipped"]:
+                sk[s["reason"]] += 1
+        nspec = sum(len(g["spec_rows"]) for g in gs)
+        lines.append(f"{disp[:38]:38} {len(gs):>8} {modes['new']:>5} {modes['kept']:>5} {modes['reloaded']:>6} {nspec:>7} "
+                     + " ".join(f"{sk[r]:>12}" for r in reasons) + "  " + "; ".join(f"{c} {n}" for c, n in sorted(cats.items())))
+        for k, v in (("products", len(gs)), ("new", modes["new"]), ("kept", modes["kept"]), ("reloaded", modes["reloaded"]), ("specs", nspec)):
+            tot[k] += v
+        for r in reasons:
+            tot[r] += sk[r]
+    lines += ["-" * 190, f"{'TOTAL':38} {tot['products']:>8} {tot['new']:>5} {tot['kept']:>5} {tot['reloaded']:>6} {tot['specs']:>7} " + " ".join(f"{tot[r]:>12}" for r in reasons), ""]
+    lines += [f"competitors with products: {len(by)}; without products: " + (", ".join(extra["without_products"]) or "none"),
+              f"units split off (value exactly '<number> <unit>'): {sum(1 for g in prods for s in g['spec_rows'] if s['unit'])} of {tot['specs']} loaded specs",
+              f"loaded specs whose value starts with a near-'not disclosed' wording ('not published', 'not stated', 'n/a'...; NOT skipped): {extra['near_undisclosed']}",
+              f"merged duplicate product rows (same company + normalised name): {len(plan['merged'])}"]
+    lines += [f"  {c}: {a!r} + {b!r}" for c, a, b in plan["merged"][:50]]
+    lines += ["", "columns NOT loaded (no column in the schema), non-empty cells: " + ", ".join(f"{k} {v}" for k, v in extra["unloaded"].items()),
+              f"fact_source: {res['facts']} rows ({res['facts_product']} product_name, {res['facts'] - res['facts_product']} spec_value); tiers {res['tiers']}",
+              f"replaced earlier loader rows: {res['replaced_products']} products, {res['deleted_specs']} specs, {res['deleted_facts']} fact_source; "
+              f"stale products deleted {res['stale_products']} (matchups pointing at them: {res['stale_matchups']})"]
+    if plan["warnings"]:
+        lines += ["", f"warnings ({len(plan['warnings'])}):"] + ["  " + w for w in plan["warnings"][:100]]
+    spath = out_dir / "products_summary.txt"
+    spath.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    cpath = out_dir / "products_skipped.csv"
+    with cpath.open("w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f)
+        w.writerow(["company", "product", "line_no", "spec_label", "spec_value", "reason"])
+        for g in prods:
+            for s in g["skipped"]:
+                w.writerow([g["company"], g["name"], s["pos"], s["label"], s["value"], s["reason"]])
+    npath = out_dir / "products_name_map.txt"
+    nl = ["spec-sheet company -> competitor display_name (competitor_id)", ""]
+    for name in sorted(sheet_comp):
+        c = sheet_comp[name]
+        nl.append(f"{name}  ->  {c['display_name']}  ({c['id']})" + ("   [explicit]" if name in PRODUCT_COMPANY_MAP else ""))
+    nl += ["", "competitors with no products in the sheet: " + (", ".join(extra["without_products"]) or "none"), "",
+           f"KNDS (KMW+Nexter) -> KNDS Germany: {extra['knds_total']} products, of which {extra['knds_overlap']} have a product of the same normalised name under Nexter (KNDS France) (both kept)"]
+    npath.write_text("\n".join(nl) + "\n", encoding="utf-8")
+    return [spath, cpath, npath]
+
+
+def cmd_products(args) -> int:
+    from prompts import batch
+    sheets = read_sheets(Path(args.file), wanted=(SHEET_PRODUCTS,))
+    if SHEET_PRODUCTS not in sheets:
+        raise SystemExit(f"sheet {SHEET_PRODUCTS!r} not found")
+    rows = product_rows(sheets[SHEET_PRODUCTS])
+    conn = batch.connect_db(args.db)
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT competitor_id::text AS id, display_name, origin_country AS country FROM staging.competitive_competitor")
+        comps = {r["display_name"]: {"id": r["id"], "display_name": r["display_name"], "country": r["country"]} for r in cur.fetchall()}
+        cur.execute("SELECT product_id::text AS product_id, competitor_id::text AS competitor_id, product_name FROM staging.competitive_product")
+        plan = build_products_plan(rows, comps, cur.fetchall())
+        names = sorted({r["Company"] for r in rows})
+        sheet_comp = {n: resolve_product_company(n, comps) for n in names}
+        print("name map (spec sheet -> competitor):")
+        for n in names:
+            print(f"  {n}  ->  {sheet_comp[n]['display_name']}")
+        used = {c["id"] for c in sheet_comp.values()}
+        without = sorted(d for d, c in comps.items() if c["id"] not in used)
+        by_comp = defaultdict(set)
+        for g in plan["products"]:
+            by_comp[g["comp"]["display_name"]].add(norm_product(g["name"]))
+        knds = by_comp.get("KNDS Germany", set())
+        unloaded = {h: sum(1 for r in rows if r[h]) for h in ("Description", "Collaboration / Partners", "Production & Licensing Notes")}
+        near = sum(1 for g in plan["products"] for s in g["spec_rows"] if s["spec_value"].casefold().startswith(NEAR_UNDISCLOSED))
+        extra = {"without_products": without, "knds_total": len(knds), "knds_overlap": len(knds & by_comp.get("Nexter (KNDS France)", set())),
+                 "unloaded": unloaded, "near_undisclosed": near}
+        res = apply_products_plan(conn, plan, args.dry_run)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    paths = write_product_reports(plan, res, sheet_comp, Path(args.reports), args.dry_run, extra)
+    skipped, modes = defaultdict(int), defaultdict(int)
+    for g in plan["products"]:
+        modes[g["mode"]] += 1
+        for s in g["skipped"]:
+            skipped[s["reason"]] += 1
+    print(("DRY RUN (rolled back)" if args.dry_run else "LOADED") + f": {res['products']} products {dict(modes)}, {res['specs']} specs, skipped {dict(skipped)}")
+    print(f"  fact_source {res['facts']}  tiers {res['tiers']}  replaced {res['replaced_products']} products / {res['deleted_specs']} specs, stale deleted {res['stale_products']}")
+    print(f"  competitors without products: {without}")
+    print(f"  KNDS Germany products {len(knds)}, also under Nexter (KNDS France): {extra['knds_overlap']}")
+    print(f"  not loaded (no column): {unloaded}; merged duplicate rows {len(plan['merged'])}; warnings {len(plan['warnings'])}")
+    print("  reports: " + "\n           ".join(str(p) for p in paths))
+    return 0
+
+
 # ---- selftest -------------------------------------------------------------------------------------------------
 
 def _selftest() -> None:
@@ -1023,6 +1395,54 @@ def _selftest() -> None:
     xr = crosscheck(xi, [{"full_name": "Ann Example", "role_title": "Chair"}, {"full_name": "Eve Fake", "role_title": "CTO"}])
     assert sorted((r["difference"], r["name"]) for r in xr) == [("in Excel, not in leaders", "Bob Builder"), ("in Excel, not in leaders", "Cy Dee"),
                                                                 ("in leaders, not in Excel", "Eve Fake"), ("title differs", "Dr Ann Example")], xr
+    # products: spec lines, unit rule, not-disclosed skip, name normalisation, company map (fictional values)
+    assert split_unit("17.6 km") == ("17.6", "km") and split_unit("1,200 rounds/min") == ("1,200", "rounds/min") and split_unit("-40 °C") == ("-40", "°C")
+    assert split_unit("5 %") == ("5", "%") and split_unit("2.5 g/cc") == ("2.5", "g/cc")
+    for whole in ("~2,500 m", "over 360", "2 x 255 mm", "12 km; Range: 500 km", "9x19mm", "40 km (normal charge)", "12", "-54°C to +71°C", "3 to 5"):
+        assert split_unit(whole) == (whole, None), whole
+    pl = parse_spec_lines("Range: 17.6 km\nMuzzle velocity (normal charge): 800 m/s\n\nFuel: diesel: type 2\nNot disclosed\n"
+                          "Crew: Not disclosed\nMass: not stated in sources.\nEmpty:\nA free text line\n" + "L" * 151 + ": 1 kg")
+    assert [(x["label"], x["value"], x["unit"], x["skip"]) for x in pl] == [
+        ("Range", "17.6", "km", None), ("Muzzle velocity (normal charge)", "800", "m/s", None), ("Fuel", "diesel: type 2", None, None),
+        ("Note", "Not disclosed", None, "not_disclosed"), ("Crew", "Not disclosed", None, "not_disclosed"), ("Mass", "not stated in sources.", None, "not_disclosed"),
+        ("Empty", "", None, "empty"), ("Note", "A free text line", None, None), ("L" * 151, "1 kg", None, "label_too_long")], pl
+    assert [x["pos"] for x in pl] == list(range(1, 10))
+    assert norm_product("K9  Vajra-T") == norm_product("k9 vajra t") == norm_product("K9 Vajra–T") and norm_product("A-1") != norm_product("A1")
+    cpx = uuid.uuid4()
+    assert product_id_for(cpx, "X") == product_id_for(str(cpx), "X") != product_id_for(cpx, "Y")
+    assert spec_id_for("p", "L", 1) != spec_id_for("p", "L", 2) and spec_id_for("p", "L", 1) == spec_id_for("p", "L", 1)
+    comps = {"Acme Corp": {"id": "aaaaaaaa-0000-0000-0000-000000000000", "display_name": "Acme Corp", "country": "Exampleland"},
+             "SAAB": {"id": "bbbbbbbb-0000-0000-0000-000000000000", "display_name": "SAAB", "country": "Sweden"},
+             "KNDS Germany": {"id": "cccccccc-0000-0000-0000-000000000000", "display_name": "KNDS Germany", "country": "Germany"}}
+    assert resolve_product_company("Saab", comps)["display_name"] == "SAAB" and resolve_product_company("acme corp", comps)["id"] == comps["Acme Corp"]["id"]
+    assert resolve_product_company("KNDS (KMW+Nexter)", comps)["display_name"] == "KNDS Germany" and resolve_product_company("Nobody Ltd", comps) is None
+
+    def prow(company, product, specs, cat="Artillery", src="http://a.example/1\nhttp://a.example/2"):
+        return {**{h: None for h in PRODUCT_COLS}, "Company": company, "Category": cat, "Product": product, "Technical Specifications": specs,
+                "Source(s)": src, "Confidence": "high", "Verification": "Verified", "Verification detail": "d" * 400}
+    exist = [{"product_id": "11111111-1111-1111-1111-111111111111", "competitor_id": comps["Acme Corp"]["id"], "product_name": "Zed-1 Gun"}]
+    pr = build_products_plan([prow("Acme Corp", "Zed 1 gun", "Range: 10 km\nCrew: 4"), prow("Acme Corp", "Other", "Not disclosed"),
+                              prow("Acme Corp", "Zed-1  Gun", "Range: 10 km\nWeight: 5 t", cat="Mortars"),
+                              prow("Saab", "Zed-1 Gun", "Mass: 5 kg", src="http://b.example/9")], comps, exist)
+    a, o, s_ = pr["products"]
+    assert [p["name"] for p in pr["products"]] == ["Zed 1 gun", "Other", "Zed-1 Gun"]
+    assert a["product_id"] == "11111111-1111-1111-1111-111111111111" and a["mode"] == "kept"
+    assert o["mode"] == "new" and o["product_id"] == str(product_id_for(comps["Acme Corp"]["id"], "Other")) and o["spec_rows"] == [] and o["skipped"][0]["reason"] == "not_disclosed"
+    assert s_["comp"]["display_name"] == "SAAB" and s_["product_id"] != a["product_id"] and s_["mode"] == "new"          # same name, other competitor
+    assert [(x["spec_label"], x["spec_value"], x["unit"]) for x in a["spec_rows"]] == [("Range", "10", "km"), ("Crew", "4", None), ("Weight", "5", "t")]
+    assert [x["reason"] for x in a["skipped"]] == ["duplicate_after_merge"] and len(pr["merged"]) == 1 and len(pr["warnings"]) == 1       # category differs
+    assert a["spec_rows"][0]["source_count"] == 2 and a["spec_rows"][0]["source_url"] == "http://a.example/1" and a["urls"] == ["http://a.example/1", "http://a.example/2"]
+    assert a["category"] == "Artillery" and a["category_count"] == 2 and a["spec_rows"][0]["quote"] == "Verification: Verified; Confidence: high — " + "d" * 300
+    assert len({x["spec_id"] for x in a["spec_rows"]}) == 3
+    assert build_products_plan([prow("Saab", "P", "A: 1", src="http://c.example/a b.pdf\n http://c.example/a b.pdf \nhttp://c.example/z")], comps, [])["products"][0]["urls"] == \
+        ["http://c.example/a b.pdf", "http://c.example/z"]
+    try:
+        build_products_plan([prow("Nobody Ltd", "P", "A: 1")], comps, [])
+        raise AssertionError("an unmapped company must stop the load")
+    except ValueError as e:
+        assert "Nobody Ltd" in str(e)
+    assert build_products_plan([prow("Saab", "P", "A: 1")], comps, [])["products"][0]["spec_rows"][0]["spec_id"] == \
+        build_products_plan([prow("Saab", "P", "A: 1")], comps, [])["products"][0]["spec_rows"][0]["spec_id"]
     print("excel_load selftest ok")
 
 
@@ -1041,6 +1461,11 @@ def main(argv=None) -> int:
     cp_.add_argument("--db", choices=["local", "vps"], default="local")
     cp_.add_argument("--dry-run", action="store_true")
     cp_.add_argument("--reports", default=str(DEFAULT_REPORTS), help="reports folder (default db/excel_reports/, gitignored)")
+    pp = sub.add_parser("products", help="competitor products + specifications (sheet All Products) -> competitive_product / _specification + fact_source")
+    pp.add_argument("--file", required=True)
+    pp.add_argument("--db", choices=["local", "vps"], default="local")
+    pp.add_argument("--dry-run", action="store_true")
+    pp.add_argument("--reports", default=str(DEFAULT_REPORTS), help="reports folder (default db/excel_reports/, gitignored)")
     args = ap.parse_args(argv)
     if args.selftest:
         _selftest()
@@ -1049,6 +1474,8 @@ def main(argv=None) -> int:
         return cmd_leadership(args)
     if args.cmd == "company":
         return cmd_company(args)
+    if args.cmd == "products":
+        return cmd_products(args)
     ap.print_help()
     return 2
 
