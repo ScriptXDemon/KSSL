@@ -191,7 +191,7 @@ function MetaRow({ label, children, top }) {
     </div>
   );
 }
-const VALUE_STYLE = { color: "var(--d-txt)", fontWeight: "600" };
+const VALUE_STYLE = { color: "var(--d-txt)", fontWeight: "600", minWidth: 0, overflowWrap: "anywhere", lineHeight: 1.5 };
 
 function Sec({ title, actions, children }) {
   return (
@@ -354,11 +354,10 @@ export default function Profile() {
     const details = [
       p.legal && p.legal !== p.name ? ["Legal name", p.legal] : null,
       p.short && p.short !== p.name ? ["Short name", p.short] : null,
-      ["Starting year", p.starting_year ? String(p.starting_year) : DASH],
+      ["Starting year", p.starting_year_label || DASH],
       ["Headquarters", p.hq || DASH],
-      ["Global locations", p.locations.length ? p.locations.map((l) => l.name).join(", ") : p.global_locations || DASH],
-      ["Company size", p.company_size || DASH],
-      ["Annual revenue / sales", p.revenue || DASH],
+      ["Company size", p.company_size_label || DASH],
+      ["Annual revenue / sales", p.revenue_label || DASH],
       ["Industry / sector", p.sector || DASH],
     ].filter(Boolean);
     return {
@@ -383,11 +382,10 @@ export default function Profile() {
         details: {
           legalName: p.legal || null,
           shortName: p.short || null,
-          startingYear: p.starting_year || null,
+          startingYear: p.starting_year_label || null,
           hq: p.hq || null,
-          globalLocations: p.locations.map((l) => l.name),
-          companySize: p.company_size,
-          revenue: p.revenue || null,
+          companySize: p.company_size_label || null,
+          revenue: p.revenue_label || null,
           revenueTier: (data.competitors[p.cid] || {}).revenue_tier || null,
           sector: p.sector || null,
         },
@@ -542,28 +540,11 @@ export default function Profile() {
                 {p.short && p.short !== p.name ? (
                   <MetaRow label="Short Name"><span style={VALUE_STYLE}>{p.short}</span></MetaRow>
                 ) : null}
-                <MetaRow label="Starting Year"><span style={VALUE_STYLE}>{p.starting_year ? String(p.starting_year) : DASH}</span></MetaRow>
-                <MetaRow label="Headquarters"><span style={VALUE_STYLE}>{p.hq || DASH}</span></MetaRow>
-                <MetaRow label="Global Locations" top>
-                  <span className="cp-loc-wrap">
-                    {p.locations.length ? (
-                      p.locations.map((l) => (
-                        <span
-                          className="cp-loc-chip"
-                          key={l.id || l.name}
-                          title={[l.type, l.country].filter(Boolean).join(" · ") || undefined}
-                        >
-                          {l.name}
-                        </span>
-                      ))
-                    ) : (
-                      <span style={VALUE_STYLE}>{p.global_locations || DASH}</span>
-                    )}
-                  </span>
-                </MetaRow>
-                <MetaRow label="Company Size"><span style={VALUE_STYLE}>{p.company_size || DASH}</span></MetaRow>
-                <MetaRow label="Annual Revenue / Sales"><span style={VALUE_STYLE}>{p.revenue || DASH}</span></MetaRow>
-                <div style={{ ...ROW_STYLE, borderBottom: "none" }}>
+                <MetaRow label="Starting Year" top><span style={VALUE_STYLE}>{p.starting_year_label || DASH}</span></MetaRow>
+                <MetaRow label="Headquarters" top><span style={VALUE_STYLE}>{p.hq || DASH}</span></MetaRow>
+                <MetaRow label="Company Size" top><span style={VALUE_STYLE}>{p.company_size_label || DASH}</span></MetaRow>
+                <MetaRow label="Annual Revenue / Sales" top><span style={VALUE_STYLE}>{p.revenue_label || DASH}</span></MetaRow>
+                <div style={{ ...ROW_STYLE, borderBottom: "none", alignItems: "start" }}>
                   <span style={LABEL_STYLE}>Industry / Sector</span>
                   <span style={VALUE_STYLE}>{p.sector || DASH}</span>
                 </div>

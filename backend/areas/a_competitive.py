@@ -104,6 +104,7 @@ def build_competitors(database):
             "sector": text(row.get("industry_sector")),
             "hq": text(row.get("headquarters")),
             "starting_year": row.get("starting_year"),
+            "starting_year_text": text(row.get("starting_year_text")),
             "global_locations": text(row.get("global_locations")),
             "locations": [
                 {"id": text(l.get("location_id")), "name": text(l.get("location_name")),
@@ -113,7 +114,10 @@ def build_competitors(database):
                 for l in locations.get(cid, [])
             ],
             "company_size": row.get("employee_count"),
+            "company_size_text": text(row.get("employee_count_text")),
             "revenue": row.get("annual_revenue"),
+            "revenue_text": text(row.get("revenue_text")),
+            "financial_year": text(row.get("financial_year")),
             "revenue_currency": text(row.get("revenue_currency")),
             "revenue_tier": text(row.get("revenue_tier")),
             "leaders": leaders.get(cid, []),

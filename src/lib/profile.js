@@ -308,6 +308,15 @@ export function buildProfile(d, cid) {
     starting_year: c.starting_year || null,
     company_size: c.company_size != null && c.company_size !== "" ? Number(c.company_size).toLocaleString("en-US") : null,
     revenue: formatRevenue(c.revenue, c.revenue_currency),
+    /* The client's text, shown as written (qualifiers like "More than 7,000 employees" kept); the number columns
+       above stay for filters / tiers and are only the fallback when a row has no text. */
+    starting_year_label: txt(c.starting_year_text) || (c.starting_year ? String(c.starting_year) : ""),
+    company_size_label:
+      txt(c.company_size_text) ||
+      (c.company_size != null && c.company_size !== "" ? Number(c.company_size).toLocaleString("en-US") : ""),
+    revenue_label: txt(c.revenue_text)
+      ? txt(c.revenue_text) + (txt(c.financial_year) ? " (" + txt(c.financial_year) + ")" : "")
+      : formatRevenue(c.revenue, c.revenue_currency),
     global_locations: txt(c.global_locations),
     locations: Array.isArray(c.locations) ? c.locations : [],
     threat: c.threat || "",
