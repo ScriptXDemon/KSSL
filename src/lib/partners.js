@@ -777,14 +777,6 @@ const PG_IMG_ONERROR =
     };
   }
 
-  // kind → node shape glyph
-  function kindClass(kind) {
-    if (/foreign/i.test(kind)) return "foreign";
-    if (/govt|drdo/i.test(kind)) return "govt";
-    if (/customer/i.test(kind)) return "customer";
-    return "domestic";
-  }
-
   function graphSvg(c) {
     if (!c) return "";
     const centerName = esc(c.name || c.label || "—");
@@ -855,22 +847,19 @@ const PG_IMG_ONERROR =
 
     displayParts.forEach((p) => {
       const isShared = p.koel || p.shared || (p.rows && p.rows.some((r) => r.koel || r.shared));
-      const kindStr = String(p.kind || p.ptype || "").toLowerCase();
-      const labelStr = String(p.label || "").toLowerCase();
 
       if (isShared) {
         clusters.coral.push({ ...p, cluster: "coral", isOverlap: true });
-      } else if (/foreign|oem|global|international|us|israel|brazil|france|russia|airbus|embraer/i.test(kindStr + " " + labelStr)) {
-        clusters.amber.push({ ...p, cluster: "amber", isOverlap: false });
-      } else if (/tech|system|radar|missile|avionics|electronic|sonobuoy|joint venture|jv|mou|elbit|sparton|edge/i.test(kindStr + " " + labelStr)) {
-        clusters.purple.push({ ...p, cluster: "purple", isOverlap: false });
-      } else if (/govt|drdo|navy|armed|defence|defense|autonomy|drone|uav|aeronautics|general/i.test(kindStr + " " + labelStr)) {
-        clusters.teal.push({ ...p, cluster: "teal", isOverlap: false });
       } else {
-        // Distribute to the least-populated cluster
-        const keys = ["amber", "purple", "coral", "teal"];
-        const smallest = keys.reduce((minK, k) => clusters[k].length < clusters[minK].length ? k : minK, "amber");
-        clusters[smallest].push({ ...p, cluster: smallest, isOverlap: false });
+        /* the cluster follows the tie's group in the legend (ui.partner_category.group_key), by the order
+           the groups are listed in; a type the legend does not list goes to the least-populated cluster.
+           No keyword, country or company name is read from the label. */
+        const gi = cats.groups.findIndex((g) => g.key === categoryOf(p.rel).group);
+        const own = ["amber", "purple", "teal"];
+        const pick = gi >= 0
+          ? own[gi % own.length]
+          : own.reduce((minK, k) => (clusters[k].length < clusters[minK].length ? k : minK), "amber");
+        clusters[pick].push({ ...p, cluster: pick, isOverlap: false });
       }
     });
 

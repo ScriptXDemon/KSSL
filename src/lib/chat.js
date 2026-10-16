@@ -12,13 +12,6 @@ import { edgeVerdict } from "./edge.js";
 import { stripTags } from "./html.js";
 import { formatLabel } from "./profile.js";
 
-const MAT_LAB = {
-  lab: "Lab / research",
-  dev: "In development",
-  prod: "In production",
-  fielded: "Fielded",
-};
-
 const fmtList = (arr) => arr.filter(Boolean).map((x) => `• ${x}`).join("<br>");
 const clean = stripTags;
 
@@ -102,7 +95,7 @@ export function scopedAnswer(d, ctx, question) {
       return `${clean(iv.whatsNew)} ${clean(iv.body)}`;
     if (has("what is", "what it", "describe", "explain", "background")) return clean(iv.body);
     if (has("mature", "stage", "status", "fielded", "ready"))
-      return `${iv.t} - maturity: ${(MAT_LAB[iv.mat] || iv.mat).toLowerCase()}, horizon ${iv.horizon}.`;
+      return `${iv.t} - maturity: ${String(iv.matLabel || iv.mat || "—").toLowerCase()}, horizon ${iv.horizon}.`;
     if (has("source", "sourced")) return `Sources: ${clean(iv.sources)}`;
     return `<b>${iv.t}</b>. Ask why it matters, ${clientName}'s position, or what's new. ${clean(iv.impact).slice(0, 180)}…`;
   }

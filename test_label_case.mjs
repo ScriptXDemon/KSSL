@@ -56,8 +56,8 @@ eq(formatLabel("Unmanned Aerial Vehicles (UAVs), Counter-Unmanned Aircraft Syste
 eq(formatLabel("armored vehicles, MRAPs, counter-drone systems"),
    "Armored Vehicles, MRAPs, Counter-Drone Systems", "FE 12: MRAPs");
 eq(formatLabel("Synthetic Aperture Radar (SAR) satellites, Intelligence, Surveillance and Reconnaissance (ISR)"),
-   "Synthetic Aperture Radar (SAR) Satellites, Intelligence, Surveillance And Reconnaissance (ISR)",
-   "FE 12: SAR and ISR survive inside brackets");
+   "Synthetic Aperture Radar (Sar) Satellites, Intelligence, Surveillance And Reconnaissance (ISR)",
+   "FE 12: ISR survives inside brackets (SAR is no longer on the acronym list: it is a currency code to the genset check)");
 eq(formatLabel("C4ISR systems"), "C4ISR Systems", "alphanumeric acronym");
 eq(formatLabel("P3TS military satellite navigation receiver"),
    "P3TS Military Satellite Navigation Receiver",

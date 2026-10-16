@@ -15,6 +15,7 @@
        the raw index and misses on exactly the cases the adapter exists to fix. */
 
 import { revenueTierOf } from "./revenueFacet.js";
+import { clientShort } from "./client.js";
 import { unescapeEntities } from "./html.js";
 import { companyCountries, companyOrigin } from "./countryFacet.js";
 import { compareCards } from "./overview.js";
@@ -43,8 +44,8 @@ const ACRONYMS = new Set([
   "EW", "UAV", "UAS", "C-UAS", "CUAS", "C4I", "C4ISR", "C4", "C2", "OEM", "R&D", "PSU",
   "MBT", "ARV", "HMV", "ICV", "ATGM", "BVR", "JV", "FCV", "RCWS", "RWS", "LMG", "SPH",
   "AD", "OFB", "AI", "MRO", "EO/IR", "EO", "IR", "GPS", "GNSS", "RF", "VTOL", "HE",
-  "APFSDS", "ISR", "ISTAR", "SAR", "AESA", "AIS", "SATCOM", "HUD", "FLIR", "IRST",
-  "KSSL", "DRDO", "BDL", "BEL", "L&T", "IAF", "BAE", "IAI", "HAL", "JSW", "BHEL",
+  "APFSDS", "ISR", "ISTAR", "AESA", "AIS", "SATCOM", "HUD", "FLIR", "IRST",
+  "DRDO", "BDL", "BEL", "L&T", "IAF", "BAE", "IAI", "HAL", "JSW", "BHEL",
   "ISRO", "ADA", "NAL", "USA", "US", "UK", "EU", "UN", "UAE", "NATO", "HQ",
   // platform designations, from the product-name formatter this replaced: without
   // them 'BMP-2' comes back 'Bmp-2' and 'MK1' comes back 'Mk1'
@@ -91,6 +92,8 @@ export function tidySeparators(raw) {
    the served set, that was the only misreading the rule produced. */
 const acronymForm = (word) => {
   const up = word.toUpperCase();
+  /* the client's own short name is an acronym when the data says so; it is read from the client record, not typed here */
+  if (clientShort() && up === clientShort().toUpperCase() && clientShort() === clientShort().toUpperCase()) return up;
   if (ACRONYMS.has(up)) return up;
   if (up.length > 3 && up.endsWith("S") && ACRONYMS.has(up.slice(0, -1))) return up.slice(0, -1) + "s";
   return null;
