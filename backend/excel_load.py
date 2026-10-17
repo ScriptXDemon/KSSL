@@ -50,6 +50,8 @@ this loader created earlier that are no longer in the sheet) are deleted and re-
     Performance = range, rate (of fire), velocity, elevation, traverse, time, accuracy, firing, burst; Physical = calibre, barrel, length, width, height, crew,
     dimension(s), diameter; everything else Other.  display_order = line position.
   - a wiki URL stops the load.
+  - a source on a blocked blog domain (backend.sources.BLOCKED["blog"]: ajaishukla.com, idrw.org) is never loaded, in any of the four commands: the
+    URL is dropped; a spec / line / value whose only source is blocked is skipped with reason 'blocked_source' (reports).
 
 DSN: prompts.batch.resolve_dsn (--db vps needs the tunnel, routines/tunnel.sh).  The target is printed without the password.
 """
@@ -159,6 +161,15 @@ def containment(claim: str, bullet: str) -> float:
 
 def urls_of(cell) -> list[str]:
     return [u for u in re.split(r"\s+", str(cell or "").strip()) if u]
+
+
+def split_blocked(urls) -> tuple[list[str], list[str]]:
+    """(kept, blocked): the one source filter of all four commands. Blocked = wiki / blog domains (backend.sources.is_blocked)."""
+    from backend.sources import is_blocked
+    kept, blocked = [], []
+    for u in urls:
+        (blocked if is_blocked(u) else kept).append(u)
+    return kept, blocked
 
 
 def to_int(v) -> int:
@@ -316,11 +327,14 @@ def uncovered_years(bullet: str, claims: list[Claim]) -> list[str]:
     return sorted(set(year.findall(bullet)) - have)
 
 
-def pick_sources(claims: list[Claim]) -> list[tuple[str, str | None]]:
-    """distinct (url, quote) of the supporting claims, verbatim-checked first, at most MAX_FACT_URLS."""
+def pick_sources(claims: list[Claim], blocked: bool = False) -> list[tuple[str, str | None]]:
+    """distinct (url, quote) of the supporting claims, verbatim-checked first, at most MAX_FACT_URLS.  Sources on blocked domains
+    are dropped before the cap (blocked=True returns only those: what the claims cite that must not be loaded)."""
     seen, out = set(), []
     rows = [e for c in claims for e in c.evidence]
     for url, quote, _qc in _ev_sort(rows):
+        if bool(split_blocked([url])[1]) != blocked:
+            continue
         if url not in seen:
             seen.add(url)
             out.append((url, quote))
@@ -391,7 +405,8 @@ def build_plan(sheets: dict, existing: dict[str, str] | None = None) -> Plan:
             raise ValueError(f"duplicate person {person!r} in {company!r}")
         seen_leader.add(lid)
         urls = urls_of(r.get("Source URL"))
-        first_url = urls[0] if urls else None
+        good_urls = split_blocked(urls)[0]
+        first_url = good_urls[0] if good_urls else None
         _count(plan, company, "people")
 
         # --- role
@@ -399,15 +414,21 @@ def build_plan(sheets: dict, existing: dict[str, str] | None = None) -> Plan:
         pstat = s["FINAL Position"]
         role_title = role_url = None
         if pstat in OK_STATUS and position:
-            role_title = position[:200]
-            src = pick_sources([Claim("", True, "Supported", pos_claims.get(row, []))])
-            if not src and first_url:
+            pclaim = [Claim("", True, "Supported", pos_claims.get(row, []))]
+            src, cited_blocked = pick_sources(pclaim), pick_sources(pclaim, blocked=True)
+            if not src and not cited_blocked and first_url:
                 src = [(first_url, None)]
-            role_url = src[0][0] if src else None
-            for url, quote in src:
-                plan.facts.append({"table_name": "competitive_leader", "row_id": lid, "column_name": "role_title", "source_url": url,
-                                   "quote": quote, "company": company})
-            _count(plan, company, "roles_loaded")
+            if not src and (cited_blocked or urls):          # every source of this value is on a blocked domain
+                _count(plan, company, "roles_held")
+                held(company, person, "Current Position", position, "blocked_source: every source of this value is on a blocked domain",
+                     source=(cited_blocked[0][0] if cited_blocked else urls[0]))
+            else:
+                role_title = position[:200]
+                role_url = src[0][0] if src else None
+                for url, quote in src:
+                    plan.facts.append({"table_name": "competitive_leader", "row_id": lid, "column_name": "role_title", "source_url": url,
+                                       "quote": quote, "company": company})
+                _count(plan, company, "roles_loaded")
         else:
             _count(plan, company, "roles_held")
             held(company, person, "Current Position", position, f"FINAL Position status: {pstat}" + (f" ({s['Position Note']})" if s.get("Position Note") else ""),
@@ -445,14 +466,20 @@ def build_plan(sheets: dict, existing: dict[str, str] | None = None) -> Plan:
                     ok, why = False, f"field {fstat}; no matching supported claim"
                 if ok and len(b) > HEADLINE_MAX:
                     ok, why = False, f"longer than {HEADLINE_MAX} characters ({len(b)}): competitive_leader_record.headline is varchar({HEADLINE_MAX})"
-                srcs = pick_sources(sup[pos - 1])
-                if not srcs and first_url:
+                srcs, cited_blocked = pick_sources(sup[pos - 1]), pick_sources(sup[pos - 1], blocked=True)
+                if not srcs and not cited_blocked and first_url:
                     srcs = [(first_url, None)]
                 if not ok:
                     _count(plan, company, f"{rtype}_held")
                     if not why.startswith("longer"):
                         why = f"field {fstat}: {why}" if not why.startswith("field") else why
                     held(company, person, col, b, why, suggested, srcs[0][0] if srcs else "")
+                    continue
+                if not srcs and (cited_blocked or urls):          # every source of this line is on a blocked domain
+                    plan.warnings.append(f"row {row} {person} {rtype} #{pos}: only blocked sources (skipped)")
+                    _count(plan, company, f"{rtype}_held")
+                    held(company, person, col, b, "blocked_source: every source of this line is on a blocked domain", "",
+                         cited_blocked[0][0] if cited_blocked else urls[0])
                     continue
                 if not srcs:
                     plan.warnings.append(f"row {row} {person} {rtype} #{pos}: no source URL at all (skipped)")
@@ -762,10 +789,14 @@ def build_company_plan(rows: list[dict], existing: dict[str, str]) -> dict:
                   "starting_year_text": d["start"], "starting_year": d["start"], "employee_count_text": d["size"],
                   "employee_count": d["size"], "revenue_text": rev_quote, "annual_revenue": rev_quote, "revenue_currency": rev_quote,
                   "financial_year": d["fy"]}
-        urls = list(dict.fromkeys(urls_of(d["sources"])))
+        raw_urls = list(dict.fromkeys(urls_of(d["sources"])))
+        urls = split_blocked(raw_urls)[0]
+        blocked_only = bool(raw_urls) and not urls
+        if blocked_only:       # every source is on a blocked domain: the values rest on nothing loadable, so none is written (NULL)
+            vals.update({col: None for col in COMPANY_FACT_COLS})
         facts = [{"column_name": col, "source_url": u, "quote": quotes[col]}
                  for col in COMPANY_FACT_COLS if vals[col] is not None and quotes[col] for u in urls]
-        items.append({"company": d["company"], "comp": comp, "vals": vals, "facts": facts, "urls": urls, "src": d,
+        items.append({"company": d["company"], "comp": comp, "vals": vals, "facts": facts, "urls": urls, "src": d, "blocked_source": blocked_only,
                       "why": {"starting_year": ywhy, "employee_count": ewhy, "annual_revenue": rwhy}})
     return {"items": items, "widen": widen}
 
@@ -906,6 +937,8 @@ def write_company_reports(plan: dict, res: dict, out_dir: Path, dry_run: bool) -
     lines += ["", f"competitors: {n} ({n - len(new)} existing in competitive_competitor, {res['inserted']} inserted)",
               "companies not found in competitive_competitor (inserted): " + (", ".join(new) if new else "none"),
               f"fact_source: {res['facts']} rows written ({res['deleted_facts']} earlier rows of these columns replaced); tiers {res['tiers']}",
+              "blocked_source (every source on a blocked blog domain; all fact columns left NULL): "
+              + (", ".join(i["company"] for i in items if i.get("blocked_source")) or "none"),
               f"leadership cross-check: {len(res['cross'])} differences -> {cpath.name}"]
     spath.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return cpath, spath
@@ -1059,12 +1092,14 @@ def build_products_plan(rows: list[dict], competitors: dict[str, dict], existing
     for e in existing:
         by_comp[str(e["competitor_id"])].append(e)
     groups: dict[tuple, dict] = {}
-    order, warnings, merged = [], [], []
+    order, warnings, merged, blocked_products = [], [], [], []
     for r in rows:
         comp = resolve_product_company(r["Company"], competitors)
         cid = str(comp["id"])
         key = (cid, norm_product(r["Product"]))
-        urls = list(dict.fromkeys(u.strip() for u in re.split(r"[\r\n]+", str(r["Source(s)"] or "")) if u.strip()))      # one URL per line (a URL may hold spaces)
+        raw_urls = list(dict.fromkeys(u.strip() for u in re.split(r"[\r\n]+", str(r["Source(s)"] or "")) if u.strip()))      # one URL per line (a URL may hold spaces)
+        urls = split_blocked(raw_urls)[0]
+        blocked_only = bool(raw_urls) and not urls          # every source of this row is on a blocked domain
         bad = [u for u in urls if not u.lower().startswith(("http://", "https://"))]
         if bad:
             warnings.append(f"{r['Company']} / {r['Product']}: non-http source token(s) {bad[:2]}")
@@ -1074,7 +1109,7 @@ def build_products_plan(rows: list[dict], competitors: dict[str, dict], existing
         g = groups.get(key)
         if g is None:
             g = groups[key] = {"company": r["Company"], "comp": comp, "cid": cid, "name": r["Product"], "category": r["Category"],
-                               "rows": [], "specs": [], "urls": [], "quote": quote}
+                               "rows": [], "specs": [], "urls": [], "raw_urls": [], "quote": quote}
             order.append(key)
         else:
             merged.append((r["Company"], g["name"], r["Product"]))
@@ -1084,10 +1119,14 @@ def build_products_plan(rows: list[dict], competitors: dict[str, dict], existing
         for u in urls:
             if u not in g["urls"]:
                 g["urls"].append(u)
-        g["specs"].append({"urls": urls, "quote": quote, "lines": parse_spec_lines(r["Technical Specifications"])})
+        g["raw_urls"] += raw_urls
+        g["specs"].append({"urls": urls, "quote": quote, "blocked_only": blocked_only, "lines": parse_spec_lines(r["Technical Specifications"])})
     products = []
     for key in order:
         g = groups[key]
+        if g["raw_urls"] and not g["urls"]:          # the product rests only on blocked sources: not loaded
+            blocked_products.append((g["company"], g["name"]))
+            continue
         cid = g["cid"]
         dn = g["comp"]["display_name"]
         match = sorted((e for e in by_comp.get(cid, []) if norm_product(PRODUCT_KEEP_ALIASES.get((dn, e["product_name"]), e["product_name"])) == key[1]),
@@ -1104,6 +1143,8 @@ def build_products_plan(rows: list[dict], competitors: dict[str, dict], existing
             for ln in blk["lines"]:
                 n += 1
                 reason = ln["skip"]
+                if reason is None and blk["blocked_only"]:
+                    reason = "blocked_source"
                 if reason is None and len(g["rows"]) > 1:        # merged rows: an identical label + value is loaded once
                     if (ln["label"], ln["value"], ln["unit"]) in seen:
                         reason = "duplicate_after_merge"
@@ -1124,7 +1165,7 @@ def build_products_plan(rows: list[dict], competitors: dict[str, dict], existing
         for col, val in (("product_name", g["name"]), ("category", g["category"])):
             if len(val) > PRODUCT_LIMITS[col]:
                 raise ValueError(f"{g['company']} / {g['name']}: {col} longer than {PRODUCT_LIMITS[col]}")
-    return {"products": products, "merged": merged, "warnings": warnings}
+    return {"products": products, "merged": merged, "warnings": warnings, "blocked_products": blocked_products}
 
 
 def apply_products_plan(conn, plan: dict, dry_run: bool) -> dict:
@@ -1201,7 +1242,7 @@ def write_product_reports(plan: dict, res: dict, sheet_comp: dict, out_dir: Path
     by = defaultdict(list)
     for g in prods:
         by[g["comp"]["display_name"]].append(g)
-    reasons = ["empty", "not_disclosed", "label_too_long", "duplicate_after_merge"]
+    reasons = ["empty", "not_disclosed", "label_too_long", "duplicate_after_merge", "blocked_source"]
     lines = [f"Products load summary ({'DRY RUN' if dry_run else 'loaded'})", "",
              f"{'competitor':38} {'products':>8} {'new':>5} {'kept':>5} {'reload':>6} {'specs':>7} " + " ".join(f"{r[:12]:>12}" for r in reasons) + "  categories", "-" * 190]
     tot = defaultdict(int)
@@ -1224,7 +1265,9 @@ def write_product_reports(plan: dict, res: dict, sheet_comp: dict, out_dir: Path
     lines += [f"competitors with products: {len(by)}; without products: " + (", ".join(extra["without_products"]) or "none"),
               f"units split off (value exactly '<number> <unit>'): {sum(1 for g in prods for s in g['spec_rows'] if s['unit'])} of {tot['specs']} loaded specs",
               f"loaded specs whose value starts with a near-'not disclosed' wording ('not published', 'not stated', 'n/a'...; NOT skipped): {extra['near_undisclosed']}",
-              f"merged duplicate product rows (same company + normalised name): {len(plan['merged'])}"]
+              f"merged duplicate product rows (same company + normalised name): {len(plan['merged'])}",
+              f"products not loaded because every source is on a blocked blog domain (blocked_source): {len(plan['blocked_products'])}"]
+    lines += [f"  {c}: {n!r}" for c, n in plan["blocked_products"][:50]]
     lines += [f"  {c}: {a!r} + {b!r}" for c, a, b in plan["merged"][:50]]
     lines += ["", "columns NOT loaded (no column in the schema), non-empty cells: " + ", ".join(f"{k} {v}" for k, v in extra["unloaded"].items()),
               f"fact_source: {res['facts']} rows ({res['facts_product']} product_name, {res['facts'] - res['facts_product']} spec_value); tiers {res['tiers']}",
@@ -1296,7 +1339,8 @@ def cmd_products(args) -> int:
     print(f"  fact_source {res['facts']}  tiers {res['tiers']}  replaced {res['replaced_products']} products / {res['deleted_specs']} specs, stale deleted {res['stale_products']}")
     print(f"  competitors without products: {without}")
     print(f"  KNDS Germany products {len(knds)}, also under Nexter (KNDS France): {extra['knds_overlap']}")
-    print(f"  not loaded (no column): {unloaded}; merged duplicate rows {len(plan['merged'])}; warnings {len(plan['warnings'])}")
+    print(f"  not loaded (no column): {unloaded}; merged duplicate rows {len(plan['merged'])}; warnings {len(plan['warnings'])}; "
+          f"products with only blocked sources (not loaded) {len(plan['blocked_products'])}")
     print("  reports: " + "\n           ".join(str(p) for p in paths))
     return 0
 
@@ -1404,15 +1448,22 @@ def build_client_plan(rows: list[dict], client: dict, existing: list[dict]) -> d
         if bad:
             raise ValueError(f"{r['Product']}: non-http source token(s) {bad[:2]}")
         types = [t.strip() for t in re.split(r"[\r\n]+", str(r["Source Type"] or "")) if t.strip()]
+        types_all = [types[i] if i < len(types) else (types[0] if len(types) == 1 else None) for i in range(len(urls))]
+        n_raw = len(urls)                                    # [S#] footnotes count the lines of the original Source(s) cell
+        kept = set(split_blocked(urls)[0])
+        kept_idx = [i for i, u in enumerate(urls, 1) if u in kept]
+        urls, types = [urls[i - 1] for i in kept_idx], [types_all[i - 1] for i in kept_idx]
         if key in groups:
             raise ValueError(f"duplicate product name in the sheet: {r['Product']!r}")
         quote = f"Verification: {r['Verification']}; Confidence: {r['Confidence']}"
         if r["Verification detail"]:
             quote += " — " + r["Verification detail"][:QUOTE_DETAIL_MAX]
-        groups[key] = {"name": r["Product"], "category": r["Category"], "row": r, "urls": urls, "quote": quote,
-                       "types": [types[i] if i < len(types) else (types[0] if len(types) == 1 else None) for i in range(len(urls))]}
+        groups[key] = {"name": r["Product"], "category": r["Category"], "row": r, "urls": urls, "quote": quote, "types": types,
+                       "n_raw": n_raw, "kept_idx": kept_idx}
         order.append(key)
-        if not urls:
+        if n_raw and not urls:
+            warnings.append(f"{r['Product']}: every source is on a blocked domain (specs skipped as blocked_source, product loaded without sources)")
+        elif not urls:
             warnings.append(f"{r['Product']}: no source URL (specs get no source)")
     # keep ids of existing products: exact normalised name (or alias) first, then whole-word prefix; each existing id once
     taken, assign = set(), {}
@@ -1443,18 +1494,21 @@ def build_client_plan(rows: list[dict], client: dict, existing: list[dict]) -> d
         pid = g["product_id"]
         g["sources"] = [{"source_id": client_id_for("source", pid, u), "url": u, "source_type": source_type_of(t), "label": None}
                         for u, t in zip(g["urls"], g["types"])]
+        by_idx = dict(zip(g["kept_idx"], g["sources"]))          # 1-based line of the original Source(s) cell -> kept source
         for s in g["sources"]:
             s["label"] = (publisher_of(s["url"]) + (" - " + s["source_type"].replace("_", " ") if s["source_type"] else ""))[:CLIENT_LIMITS["source_label"]]
         specs, skipped = [], []
         for ln in parse_client_specs(g["row"]["Technical Specifications"]):
             reason = ln["skip"]
-            bad_src = [i for i in ln["src"] if not 1 <= i <= len(g["sources"])]
+            bad_src = [i for i in ln["src"] if not 1 <= i <= g["n_raw"]]
             if bad_src:
-                raise ValueError(f"{g['name']}: line {ln['pos']} cites [S{bad_src[0]}] but Source(s) has {len(g['sources'])} URLs")
+                raise ValueError(f"{g['name']}: line {ln['pos']} cites [S{bad_src[0]}] but Source(s) has {g['n_raw']} URLs")
+            used = [by_idx[i] for i in ln["src"] if i in by_idx] or ([] if ln["src"] else g["sources"][:1])
+            if reason is None and not used and g["n_raw"]:       # every source of this line is on a blocked domain
+                reason = "blocked_source"
             if reason:
                 skipped.append({"pos": ln["pos"], "label": ln["label"], "value": ln["value"], "reason": reason})
                 continue
-            used = [g["sources"][i - 1] for i in ln["src"]] or g["sources"][:1]
             specs.append({"specification_id": client_id_for("spec", pid, ln["label"], ln["pos"]), "client_product_id": pid,
                           "spec_name": ln["label"], "value_text": ln["value"], "value_numeric": numeric_of(ln["value"], ln["unit"]),
                           "unit": ln["unit"], "spec_group": ln["group"], "display_order": ln["pos"],
@@ -1793,6 +1847,52 @@ def _selftest() -> None:
             raise AssertionError("must stop")
         except ValueError:
             pass
+    # blocked blog domains (backend.sources.BLOCKED["blog"]): URLs dropped; a value / line / spec whose only source is blocked is skipped as blocked_source
+    assert split_blocked(["http://idrw.org/a", "https://www.ajaishukla.com/b", "https://m.idrw.org/c", "http://ok.example/d", "http://notidrw.org/e"]) == \
+        (["http://ok.example/d", "http://notidrw.org/e"], ["http://idrw.org/a", "https://www.ajaishukla.com/b", "https://m.idrw.org/c"])
+    import copy
+    from backend.sources import is_blocked
+    bs = copy.deepcopy(sheets)
+    bs[SHEET_SUM][0]["FINAL Experience"] = "Verified"
+    bs[SHEET_DIR][0]["Source URL"] = "http://idrw.org/1"
+    bs[SHEET_CE] = [dict(x, **{"Source URL": "http://ajaishukla.com/p" if x["Field"] == "Current Position" else "http://idrw.org/e"}) for x in bs[SHEET_CE][:2]]
+    bp = build_plan(bs, {"Larsen & Toubro": "11111111-1111-1111-1111-111111111111"})
+    assert bp.leaders[0]["role_title"] is None and bp.leaders[0]["role_source_url"] is None and bp.records == [] and bp.facts == [], (bp.records, bp.facts)
+    assert sorted(h["reason"].split(":")[0] for h in bp.held if h["field"] != "Education Background") == ["blocked_source"] * 3 and bp.stats["Larsen & Toubro (L&T)"]["roles_held"] == 1
+    bs[SHEET_DIR][0]["Source URL"] = "http://idrw.org/1\nhttp://s.example/2"
+    bs[SHEET_CE][1]["Source URL"] = "http://s.example/e"
+    bp = build_plan(bs, {"Larsen & Toubro": "11111111-1111-1111-1111-111111111111"})
+    assert bp.leaders[0]["role_title"] is None                                # its only cited source is blocked: no fallback to the row's other URL
+    assert [r["source_url"] for r in bp.records] == ["http://s.example/e", "http://s.example/2"] and [f["source_url"] for f in bp.facts] == ["http://s.example/e", "http://s.example/2"]
+    bs[SHEET_CE][0]["Source URL"] = None
+    bp = build_plan(bs, {"Larsen & Toubro": "11111111-1111-1111-1111-111111111111"})
+    assert bp.leaders[0]["role_source_url"] == "http://s.example/2"          # no cited source at all: the row's first non-blocked URL
+    assert not any(is_blocked(f["source_url"]) for f in bp.facts)
+    cb = build_company_plan(company_rows([{**{h: None for h in COMPANY_COLS}, "Company": "Acme Corp", "Company Size": "250 employees", "Headquarters": "Nowhere",
+                                           "Sources": "http://idrw.org/x https://www.ajaishukla.com/y"},
+                                          {**{h: None for h in COMPANY_COLS}, "Company": "Zed Ltd", "Company Size": "250 employees",
+                                           "Sources": "http://idrw.org/x http://b.example/z"}]), {})
+    assert cb["items"][0]["vals"]["employee_count"] is None and cb["items"][0]["vals"]["headquarters"] is None and cb["items"][0]["facts"] == [] and cb["items"][0]["blocked_source"]
+    assert cb["items"][1]["vals"]["employee_count"] == 250 and {f["source_url"] for f in cb["items"][1]["facts"]} == {"http://b.example/z"} and not cb["items"][1]["blocked_source"]
+    pb = build_products_plan([prow("Acme Corp", "Only Blog", "A: 1", src="http://idrw.org/1"), prow("Acme Corp", "Mixed", "A: 1", src="http://idrw.org/1\nhttp://a.example/2"),
+                              prow("Acme Corp", "Mixed 2", "A: 1", src="http://ajaishukla.com/1"), prow("Acme Corp", "Mixed 2", "B: 2", src="http://a.example/3")], comps, [])
+    assert pb["blocked_products"] == [("Acme Corp", "Only Blog")] and [g["name"] for g in pb["products"]] == ["Mixed", "Mixed 2"]
+    m1, m2 = pb["products"]
+    assert m1["urls"] == ["http://a.example/2"] and m1["spec_rows"][0]["source_url"] == "http://a.example/2" and m1["spec_rows"][0]["source_count"] == 1
+    assert [(x["spec_label"], x["source_url"]) for x in m2["spec_rows"]] == [("B", "http://a.example/3")] and [x["reason"] for x in m2["skipped"]] == ["blocked_source"]
+    kb = build_client_plan([krow("Zed Gun", "Calibre: 99 mm [S1]\nRange: 12 km [S2]\nWeight: 7 t", src="http://idrw.org/1\nhttp://b.example/2"),
+                            krow("Blog Only", "Calibre: 9 mm\nRange: 1 km [S1]", src="https://www.ajaishukla.com/2016/x.html", types="defence-press")],
+                           {"client_id": 7, "name": "Acme"}, [])
+    zb, bo = kb["products"]
+    assert [x["spec_name"] for x in zb["spec_rows"]] == ["Range", "Weight"] and [x["reason"] for x in zb["skipped"]] == ["blocked_source"]
+    assert [s["url"] for s in zb["sources"]] == ["http://b.example/2"] and zb["spec_rows"][0]["source_id"] == client_id_for("source", zb["product_id"], "http://b.example/2")
+    assert zb["spec_rows"][1]["source_urls"] == ["http://b.example/2"] and zb["urls"] == ["http://b.example/2"]       # no footnote: the first kept source
+    assert bo["spec_rows"] == [] and bo["sources"] == [] and [x["reason"] for x in bo["skipped"]] == ["blocked_source"] * 2 and len(kb["warnings"]) == 1
+    try:
+        build_client_plan([krow("P", "A: 1 [S3]", src="http://idrw.org/1\nhttp://b.example/2")], {"client_id": 7, "name": "Acme"}, [])
+        raise AssertionError("a footnote beyond the original Source(s) lines must still stop the load")
+    except ValueError:
+        pass
     print("excel_load selftest ok")
 
 

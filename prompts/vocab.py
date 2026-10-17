@@ -170,6 +170,12 @@ def h_host(m, row, L, col):
     return host_of(url) if url else None
 
 
+def h_article_image(m, row, L, col):
+    """competitive_signal.thumbnail_url: the subject's image_url, else the image stored for the same article url, else the
+    article page's og:image (backend/news.py parse_page). Null when none is found; never an error."""
+    return L.article_image()
+
+
 def h_from_ui(m, row, L, col):
     table, c = m.group(1), m.group(2)
     ui = row.ctx.get("ui")
@@ -437,6 +443,7 @@ TOKENS = [
     (r"subject\.(\w+)", h_subject),
     (r"transient\.(\w+)", h_transient),
     (r"host_of_(?:source_)?url", h_host),
+    (r"article_image_url", h_article_image),
     (r"from_ui\.(\w+)\.(\w+)", h_from_ui),
     (r"from_ref_(\w+)", h_from_ref_name),
     (r"derive\.(\w+)", h_derive),
