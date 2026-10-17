@@ -57,3 +57,19 @@ Data gaps that leave parts of the reference layout empty (DB/prompt side, **not 
    has `category`, so the row shows the category. A stored product class / key-rating column would fill it.
 6. Presence words are the stored activity (Local production / Licensed production / Export / Sales and service /
    Sourcing); the reference's "builds here / exports in / partner" are not mapped.
+
+## 2026-10-17 · Market > Global Requirements: OPPORTUNITY tag, WATCH pill, Key points
+
+Frontend: every stored requirement card (`req-<requirement_id>`) carries the lane kind `requirement` (`src/lib/dataset.js`),
+so its row shows the yellow "OPPORTUNITY" tag (`marketLane().tagWord`, `.dirtag.k-requirement`) and its detail panel the
+"WATCH" pill (`marketLane().panelStance`); the panel's "Key points" shows the stored strategic assessment when the
+record has no article statements (`src/components/detailPanel/DetailPanel.jsx`).
+
+DB impact: **no table change required.** Key points read `serving.market_global_requirement.strategic_assessment`
+(already shipped as the detail's `why`). Notes, **not implemented**:
+1. The WATCH pill and the OPPORTUNITY tag are the lane's words (every global requirement is a perceived opportunity on
+   watch, as in the reference); `market_global_requirement` has **no stance column**. If requirements ever need their
+   own stance (threat / watch per row), add one (e.g. `market_global_requirement.direction` with the threat|watch check)
+   and have `requirement_assessment`/the prompt fill it; the panel would then read it instead of the lane word.
+2. The reference's key points are 1-4 bullets; the stored assessment is one paragraph, shown as one bullet. A stored
+   bullet list (e.g. a `market_global_requirement_point` child table, or an array column) would give separate bullets.

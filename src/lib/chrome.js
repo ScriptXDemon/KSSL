@@ -89,8 +89,10 @@ export function marketLane() {
       { h: "Latest Tenders", kinds: ["tender"] },
       { h: "Perceived Opportunities", kinds: ["opportunity"] },
     ],
-    /* a tender is marked by its `kind`, not by a stance */
-    tagWord: { tender: "TENDER", opportunity: "OPPORTUNITY" },
+    /* a tender is marked by its `kind`, not by a stance; a global requirement reads as an opportunity on its row
+       (the reference wording) and its detail panel carries the watch pill (panelStance) */
+    tagWord: { tender: "TENDER", opportunity: "OPPORTUNITY", requirement: "OPPORTUNITY" },
+    panelStance: { requirement: "watch" },
     dirWord: {},
   };
 }

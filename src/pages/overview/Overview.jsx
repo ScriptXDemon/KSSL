@@ -1,3 +1,4 @@
+import { STANCE_WORD } from "../../lib/chrome";
 import { clientShort } from "../../lib/client.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import SignalCard from "../../components/signalCard/SignalCard";
@@ -467,6 +468,8 @@ export default function Overview({
                 if (!cfg.tagWord) return undefined;
                 const card = (cfg.cards || []).find((c) => c.id === selected);
                 if (!card || !card.kind) return undefined;
+                const st = cfg.panelStance && cfg.panelStance[card.kind];
+                if (st) return { word: STANCE_WORD[st], cls: st };
                 return { word: labelFor(card), cls: card.kind === "adopt" ? "adopt" : null };
               })()}
             />

@@ -257,6 +257,11 @@ export function wireDataset(raw) {
        join and the counts do not offer it. The pipeline still lists the tender itself on its Closed tab. A card
        with "closes n/d" is a tender the pipeline has marked closed. */
     const today0 = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
+    /* A stored global requirement's card (id req-<requirement_id>, lib/globalRequirements) is marked by its kind, so
+       its row carries the lane's requirement tag (marketLane tagWord) -- a lane, not a stance on the row. */
+    (d.marketCards || []).forEach((c) => {
+      if (c && !c.kind && /^req-/.test(String(c.id))) c.kind = "requirement";
+    });
     d.marketCards = (d.marketCards || []).filter((c) => {
       if (!/^Tender\b/.test(String(c.meta || ""))) return true;
       const m = String(c.meta).match(/closes (\d{1,2} \w{3} \d{4})/);

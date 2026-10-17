@@ -90,7 +90,10 @@ export default function DetailPanel({ detail, onClose, badge }) {
       : (detail.facts || []).filter(
           (f) => !DROPPED_FACTS.has(String(f[0]).trim().toLowerCase()),
         );
-  const bullets = articleBullets(detail.lens);
+  /* the article's own statements; a record with none (a stored global requirement) shows its stored read for the
+     client (`why`, the strategic assessment) instead, as the reference's key points do */
+  const lensBullets = articleBullets(detail.lens);
+  const bullets = lensBullets.length ? lensBullets : detail.why ? [String(detail.why)] : [];
   /* signal v2 (detail.v2): every key point, with its label */
   const v2 = !!detail.v2;
   const keyPoints = v2 ? (detail.lens || []).filter((p) => p && p[1]) : [];

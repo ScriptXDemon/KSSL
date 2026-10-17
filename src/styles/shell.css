@@ -144,7 +144,7 @@
   .dirtag.watch{color:var(--watch-badge);border:1px solid rgba(224,160,32,.55)}
   /* Technology: an ADOPTABLE advance reads in the green accent, whatever its dir */
   .dirtag.k-tender{color:var(--ok-badge);border:1px solid rgba(63,168,106,.55)}
-  .dirtag.k-opportunity{color:var(--watch-badge);border:1px solid rgba(224,160,32,.55)}
+  .dirtag.k-opportunity,.dirtag.k-requirement{color:var(--watch-badge);border:1px solid rgba(224,160,32,.55)}
   .dirtag.k-adopt{color:var(--ok-badge);border:1px solid rgba(63,168,106,.55)}
   .sevtag{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
   .sevtag.high{color:var(--threat-badge)}

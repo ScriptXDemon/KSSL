@@ -67,7 +67,10 @@ for (const [name, make] of [["fixture", clone], ["empty ui tables", noUi]]) {
   assert.deepEqual(metricsFor(mk, "market", d).filter((x) => !x.blank).map((x) => x.l), ["Latest tenders", "Strong fits", "Tender value", "Perceived opportunities"]);
   assert.equal(mk.title, "Top opportunity");
   assert.deepEqual(mk.filters.map((f) => f.l), ["All", "Latest Tenders", "Perceived Opportunities"]);
-  assert.deepEqual(mk.tagWord, { tender: "TENDER", opportunity: "OPPORTUNITY" });
+  assert.deepEqual(mk.tagWord, { tender: "TENDER", opportunity: "OPPORTUNITY", requirement: "OPPORTUNITY" });
+  assert.deepEqual(mk.panelStance, { requirement: "watch" });
+  // a stored global requirement card is marked by the requirement kind (its row tag), never given a stance
+  assert.ok(d.marketCards.filter((c) => /^req-/.test(c.id)).every((c) => c.kind === "requirement" && !c.dir));
   assert.deepEqual(mk.dirWord, {}, "no stance word on the market lane: the badge follows the card kind");
   assert.deepEqual(marketMetrics(d.tenders).map((x) => x.l), ["Active tenders", "Markets", "Source portals", "Value disclosed"]);
   ok(`${name}: competitive / technology / market lanes carry the front-end tiles, pills, groups and badge words`);
