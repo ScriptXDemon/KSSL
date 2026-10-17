@@ -27,3 +27,6 @@ db/excel_reports/
 # git worktrees + subagent workspaces
 .worktrees/
 .superpowers/
+
+# staging -> VPS sync log (db/sync_staging_to_vps.sh, scheduled hourly)
+db/sync_staging.log
