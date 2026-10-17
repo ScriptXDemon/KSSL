@@ -219,10 +219,60 @@ def evidence_parts(rows):
     return facts, points, srcs
 
 
+GLANCE = (("glance_who", "Who"), ("glance_move", "Move"), ("glance_where", "Where"),
+          ("glance_impact", "Impact on KSSL"), ("glance_third_party", "Third party"), ("glance_when", "When"))
+IMPACT_DIMS = ("orders_revenue", "market_standing", "supply_chain", "technology_gap", "partnerships", "policy_export")
+
+
+def signal_v2(database, row, det, labels, steps_by, stories, news_by, products):
+    """v2 drawer parts (glance, risk, story timeline, product news); {} for a v1 row with no scores."""
+    if row.get("probability") is None:
+        return {}
+    lab = lambda col, code, t="competitive_signal": labels.get((t, col, text(code))) or code  # noqa: E731
+    story_id = text(row.get("story_id"))
+    story = stories.get(story_id) or {}
+    return {
+        "glance": [[name, det.get(col)] for col, name in GLANCE if det and det.get(col)],
+        "risk": {
+            "probability": row.get("probability"), "probabilityLabel": lab("probability", row.get("probability")),
+            "impact": row.get("impact"), "impactLabel": lab("impact", row.get("impact")),
+            "dimension": lab("impact_dimension", row.get("impact_dimension")),
+            "dimension2": lab("impact_dimension_2", row.get("impact_dimension_2")) if row.get("impact_dimension_2") else None,
+            "rows": [[lab("impact_dimension", d), row.get("impact_" + d)] for d in IMPACT_DIMS if row.get("impact_" + d) is not None],
+            "timeToEffect": lab("time_to_effect", row.get("time_to_effect")),
+            "subtypeMatch": lab("subtype_match", row.get("subtype_match")),
+            "inMarket": lab("in_client_market", row.get("in_client_market")),
+            "direction": lab("direction", row.get("direction")),
+            "rule": row.get("rule_version"),
+        },
+        "story": {
+            "title": story.get("title"),
+            "label": lab("label_after", story.get("current_label"), "story_step"),
+            "steps": [{"date": s.get("step_date"), "type": lab("step_type", s.get("step_type"), "story_step"),
+                       "line": s.get("one_line"), "changed": s.get("changed"), "url": s.get("source_url"),
+                       "label": lab("label_after", s.get("label_after"), "story_step") if s.get("label_after") else None,
+                       "current": bool(det) and s.get("source_url") == det.get("source_url")}
+                      for s in ordered(steps_by.get(story_id, []), "step_no")],
+        } if story else None,
+        "productNews": [{"product": (products.get(text(n.get("product_id"))) or {}).get("product_name"),
+                         "productId": text(n.get("product_id")) or None,
+                         "type": lab("news_type", n.get("news_type"), "competitive_product_news"),
+                         "date": n.get("event_date") or n.get("published_date"),
+                         "variant": n.get("product_variant"), "relevance": n.get("kssl_relevance")}
+                        for n in news_by.get(story_id, [])],
+    }
+
+
 def build_signals(database, competitors, details):
     """competitive_signal -> competitive feed cards + drawers."""
     evidence = by_key(table(database, "serving", "competitive_signal_evidence"), "signal_id")
     detail_rows = {text(r.get("signal_id")): r for r in table(database, "serving", "competitive_signal_detail")}
+    labels = {(r.get("table_name"), r.get("column_name"), text(r.get("code"))): r.get("label")
+              for r in table(database, "ui", "code_label")}
+    stories = {text(r.get("story_id")): r for r in table(database, "serving", "story")}
+    steps_by = by_key(table(database, "serving", "story_step"), "story_id")
+    news_by = by_key(table(database, "serving", "competitive_product_news"), "story_id")
+    products = {text(r.get("product_id")): r for r in table(database, "serving", "competitive_product")}
     cards = []
     for row in ordered(table(database, "serving", "competitive_signal"), "sequence_no"):
         sid = text(row.get("signal_id"))
@@ -274,6 +324,7 @@ def build_signals(database, competitors, details):
             "eyebrow": det.get("impact_eyebrow"),
             "suggest": [det.get("ask_box_query")] if det.get("ask_box_query") else [],
             "_src": src("competitive_signal", "signal_id", sid),
+            **signal_v2(database, row, det, labels, steps_by, stories, news_by, products),
         }
     return cards
 

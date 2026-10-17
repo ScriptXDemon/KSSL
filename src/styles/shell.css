@@ -296,6 +296,23 @@
   .cd-bullets{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
   .cd-bullets li{position:relative;padding-left:14px;font-size:13px;line-height:1.62;color:var(--l-txt-2)}
   .cd-bullets li::before{content:"";position:absolute;left:3px;top:.62em;width:4px;height:4px;border-radius:50%;background:var(--l-txt-3)}
+  /* signal v2: risk grid + story timeline */
+  .rm-wrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .rm{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:4px}
+  .rm-y{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--l-txt-3);text-align:center}
+  .rm-x{grid-column:2;font-size:10px;color:var(--l-txt-3);text-align:center}
+  .rm-g{display:grid;grid-template-columns:repeat(5,16px);grid-auto-rows:16px;gap:2px}
+  .rm-c{border-radius:2px;background:var(--l-bg-2, rgba(127,127,127,.15))}
+  .rm-c.hot{background:rgba(220,60,60,.18)}
+  .rm-c.on{background:var(--l-txt-2);outline:2px solid #e0a020}
+  .rm-dims{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:11.5px;color:var(--l-txt-3)}
+  .rm-dims b{color:var(--l-txt-2)}
+  .cd-timeline{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;border-left:2px solid var(--l-line-2);padding-left:12px}
+  .cd-timeline li{font-size:12.5px;line-height:1.5;color:var(--l-txt-2)}
+  .cd-timeline li.cur{font-weight:600}
+  .cd-timeline .tl-d{font-family:var(--mono);font-size:11px;color:var(--l-txt-3);margin-right:8px}
+  .cd-timeline .tl-t{font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-right:8px;color:var(--l-txt-3)}
+  .cd-timeline .tl-c{color:var(--l-txt-3);font-weight:400}
   /* The row is now a COLUMN of two lines: the label/value pair, then the field's gloss
      across the full width. The gloss cannot live inside the 110px key column -- it would
      stack five words deep and shove the value away from the label it belongs to. */
