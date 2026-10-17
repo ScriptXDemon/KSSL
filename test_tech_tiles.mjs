@@ -31,19 +31,6 @@ const adopt = (id, over) => card(id, { competitor: "", ...over });
 
 const baseRaw = (techCards) => ({
   overviewConfig: { competitive: {}, market: {}, technology: { cnt: "tech", metrics: [] } },
-  /* the lane's words are database rows (lanes.js) */
-  database: {
-    ui: { filter_option: [
-      { filter_group: "technology-feed", option_code: "competitor-advances", option_label: "Competitor Advancements", badge_label: null, display_order: 1 },
-      { filter_group: "technology-feed", option_code: "adoptable", option_label: "Adoptable Advances", badge_label: "Adoptable", display_order: 2 },
-    ], technology_ui_view: [{ view_key: "overview", page_heading: "Technology Overview" }] },
-    serving: { technology_metric: [
-      { metric_key: "innovations_tracked", metric_label: "Innovations tracked", display_order: 1 },
-      { metric_key: "competitor_advances", metric_label: "Competitor advances", display_order: 2 },
-      { metric_key: "adoptable", metric_label: "Adoptable technologies", display_order: 3 },
-      { metric_key: "aurora_behind", metric_label: "Aurora behind", display_order: 4 },
-    ] },
-  },
   techCats: [], techAreaMeta: {}, innovations: { artillery: [{ id: 1 }, { id: 2 }], ammunition: [{ id: 3 }] }, matchups: {}, details: {}, competitorNews: {},
   patents: {}, competitors: {}, tenders: [], marketCards: [], competitiveCards: [],
   techCards,
@@ -85,16 +72,18 @@ if (isRivalCard(adopt("a")) !== false) fail("a card with no competitor must clas
   if (/\bGap\b|\bWatch\b|Capability threat/i.test(labels)) fail(`a gap/watch label survives in the tech config: ${labels}`);
 
   const m = metricsFor(cfg, "technology", d);
-  // tiles are found by KEY; only the three bound keys draw (aurora_behind is another table row, not a tile here)
+  // tiles are found by KEY; three tiles draw, the rest of the five slots are empty
   const v = (k) => (m.find((x) => x.key === k) || {}).v;
   if (m.filter((x) => !x.blank).length !== 3) fail("the strip draws the three bound tiles");
   const rivalN = cfg.cards.filter((c) => tags(c).includes("rival")).length;
   const adoptN = cfg.cards.filter((c) => tags(c).includes("adopt")).length;
   if (v("competitor_advances") !== String(rivalN)) fail(`Competitor advances reads ${v("competitor_advances")}, tags hold ${rivalN}`);
   if (v("adoptable") !== String(adoptN)) fail(`Adoptable advances reads ${v("adoptable")}, tags hold ${adoptN}`);
-  if (v("innovations_tracked") !== "3") fail(`Innovations tracked reads ${v("innovations_tracked")}, 3 innovations are served`);
-  // the stored tile label is the tile's word
-  if (m.find((x) => x.key === "adoptable").l !== "Adoptable technologies") fail("the tile word is the stored label");
+  // Domains tracked counts the domains that hold innovations (artillery and ammunition here)
+  if (v("domains_tracked") !== "2") fail(`Domains tracked reads ${v("domains_tracked")}, 2 domains hold innovations`);
+  // the tile words are the front end's own
+  if (m.filter((x) => !x.blank).map((x) => x.l).join("|") !== "Competitor advances|Adoptable advances|Domains tracked") fail("the tile words are the front-end words");
+  if (cfg.title !== "Technology Knowledge") fail(`the lane heading is ${cfg.title}`);
 }
 
 if (bad) { console.log(`test_tech_tiles: ${bad} failure(s)`); process.exit(1); }

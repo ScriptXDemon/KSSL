@@ -7,8 +7,7 @@ import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
 import { cockpit } from "./tenderIntel.js";
 import { isVisible, viewVisible } from "./visibility.js";
 import { navTitle } from "./route.js";
-import { uiRows } from "./uiText.js";
-import { COMPETITIVE_TITLE } from "./lanes.js";
+import { COMPETITIVE_TITLE } from "./chrome.js";
 
 export const SEQ_LABEL = {
   recency: "Most Recent First",
@@ -20,7 +19,7 @@ export const SEQ_SUB = {
 };
 
 /* WHAT THE DROPDOWN OFFERS, not what the engine can do. `category` is off the menu at the operator's
-   request; its comparator below is untouched, but readFeedSeq() accepts only the menu options (and `oldest`), so a
+   request; its comparator below is untouched, but readFeedSeq() accepts only the menu options, so a
    saved session carrying category falls back to priority. Re-listing it here (and in SEQ_MODES) is the whole of putting it back. */
 export const SEQ_OPTIONS = [
   ["priority", "Priority (threats first)"],
@@ -149,8 +148,6 @@ export function buildFeed(cfg, seqMode, data) {
      never the order inside a tie. */
   if (seqMode === "recency") {
     cards.sort((a, b) => when(b) - when(a) || cmp(a, b));
-  } else if (seqMode === "oldest") {
-    cards.sort((a, b) => when(a) - when(b) || cmp(a, b));
   } else if (seqMode === "category") {
     cards.sort((a, b) => String(a.meta).localeCompare(String(b.meta)) || cmp(a, b));
   } else {
@@ -308,28 +305,8 @@ export const emptyNote = (args) => emptyFeedNote(args);
    and since the remembered page is keyed by the sequence, the page that survived was
    page 1 of a sequence they had not chosen. Only a mode this build offers is
    restored; storage access is wrapped for the same reason as the page's. */
-/* The sequence menu of a pillar whose menu is stored: the Technology overview reads ui.technology_ui_view
-   (sequence_label, sequence_options [{code, label}], search_placeholder, row view_key 'overview'). Each stored code
-   is a sort the browser implements (newest = recency, oldest, threat = priority); a code with no sort is not
-   offered. Competitive and Market keep the chrome menu (MAPPING E2); null = use it. */
-const SEQ_OF_CODE = { newest: "recency", oldest: "oldest", threat: "priority" };
-export function seqConfigFor(pillar, data) {
-  if (pillar !== "technology") return null;
-  const row = uiRows(data, "ui.technology_ui_view").find((r) => r && r.view_key === "overview");
-  if (!row) return null;
-  const options = (Array.isArray(row.sequence_options) ? row.sequence_options : [])
-    .filter((o) => o && SEQ_OF_CODE[o.code] && String(o.label || "").trim())
-    .map((o) => [SEQ_OF_CODE[o.code], String(o.label).trim()]);
-  return {
-    options,
-    label: String(row.sequence_label || "").trim(),
-    placeholder: String(row.search_placeholder || "").trim(),
-    first: options.length ? options[0][0] : "",
-  };
-}
-
 export const FEED_SEQ_KEY = "kssl_feed_seq";
-const SEQ_MODES = new Set([...SEQ_OPTIONS.map(([v]) => v), "oldest"]);
+const SEQ_MODES = new Set(SEQ_OPTIONS.map(([v]) => v));
 
 export function readFeedSeq(store, pillar) {
   try {
@@ -474,7 +451,7 @@ export function technologyAttention(cards, isRival = isRivalCard, head = TECH_AT
 export function metricsFor(cfg, pillar, d) {
   /* EVERY TILE STARTS AT "NOT MEASURED".
 
-     The binding at the bottom of this function is by KEY (metric_key, lanes.js), never by the tile's
+     The binding at the bottom of this function is by KEY (the tile key, chrome.js), never by the tile's
      label text -- the label is a database word that may be edited -- and a key no
      branch computes used to keep whatever `v` the config shipped -- the sample
      constants baked into overviewConfig ("13", "73,895", "6") -- which CountUp then
@@ -572,6 +549,7 @@ export function metricsFor(cfg, pillar, d) {
          the watch stream. tilePredicate reads those. */
     } else if (pillar === "technology") {
       const innovations = (d && d.innovations) || {};
+      const domains = Object.keys(innovations).filter((k) => (innovations[k] || []).length);
       // Technology is knowledge, not a threat board: the two streams are competitor
       // advancements (a tracked rival's tech move) and adoptable advances (everyone
       // else's). Counted from the tags the promoter (technologyAttention) stamps.
@@ -579,13 +557,19 @@ export function metricsFor(cfg, pillar, d) {
       byKey = {
         competitor_advances: tagCount("rival"),
         adoptable: tagCount("adopt"),
-        // innovations tracked: every innovation row served, over all domains
-        innovations_tracked: Object.values(innovations).reduce((n, rows) => n + (rows || []).length, 0),
+        domains_tracked: domains.length,
       };
       const rSub = tagCount("rival") ? null : "no competitor advancement is served";
       if (rSub) { subByKey.competitor_advances = rSub; WARN_SUBS.add(rSub); }
       const aSub = tagCount("adopt") ? null : "no adoptable advance is served";
       if (aSub) { subByKey.adoptable = aSub; WARN_SUBS.add(aSub); }
+      const nameOf = (id) => {
+        const c = ((d && d.techCats) || []).find((x) => x.id === id);
+        return c ? c.name : id;
+      };
+      subByKey.domains_tracked = domains.length
+        ? domains.map(nameOf).join("·")
+        : "no domains served yet";
     }
     metrics.forEach((m) => {
       if (m.blank) { m.v = ""; return; } // an empty slot of the strip: nothing to measure
@@ -804,33 +788,33 @@ export function viewMetaFor(d) {
       filters: true,
     },
     profile: {
-      title: navTitle(d, "competitive", "profile"),
+      title: navTitle("competitive", "profile"),
       cnt: `${partnerCount} companies tracked`,
       filters: false,
     },
     "threat-analysis": {
-      title: navTitle(d, "competitive", "threat-analysis"),
+      title: navTitle("competitive", "threat-analysis"),
       cnt: `${momentCount} competitor moves on record · newest first`,
       filters: false,
     },
     products: {
-      title: navTitle(d, "competitive", "products"),
+      title: navTitle("competitive", "products"),
       /* British spelling and singular "catalogue", as every other heading (FE 18) */
       cnt: "Competitor and client products",
       filters: false,
     },
     positioning: {
-      title: navTitle(d, "competitive", "positioning"),
+      title: navTitle("competitive", "positioning"),
       cnt: `${Object.keys(d.matchups || {}).length} product matchups`,
       filters: true,
     },
     partnerships: {
-      title: navTitle(d, "competitive", "partnerships"),
+      title: navTitle("competitive", "partnerships"),
       cnt: `${partnerCount} competitors · ${allianceCount} alliances mapped`,
       filters: false,
     },
     projects: {
-      title: navTitle(d, "competitive", "projects"),
+      title: navTitle("competitive", "projects"),
       cnt: `${(d.projects || []).length} competitor projects on record`,
       filters: false,
     },
@@ -840,7 +824,7 @@ export function viewMetaFor(d) {
       filters: false,
     },
     geo: {
-      title: navTitle(d, "competitive", "geo"),
+      title: navTitle("competitive", "geo"),
       cnt: `${geoCompCount} competitors · ${geoCountries.size} markets · competitor activity by country`,
       filters: false,
     },
@@ -849,17 +833,17 @@ export function viewMetaFor(d) {
        four tender views, so the page labelled "Tender Pipeline" on the rail rendered
        under the heading "Market Report". */
     "m-report": {
-      title: navTitle(d, "market", "m-report"),
+      title: navTitle("market", "m-report"),
       cnt: "Demand shape, spec and requirement",
       filters: false,
     },
     tender: {
-      title: navTitle(d, "market", "tender"),
+      title: navTitle("market", "tender"),
       cnt: "Open tenders",
       filters: false,
     },
     "global-requirement": {
-      title: navTitle(d, "market", "global-requirement"),
+      title: navTitle("market", "global-requirement"),
       cnt: "Global requirements",
       filters: false,
     },
@@ -874,12 +858,12 @@ export function viewMetaFor(d) {
       filters: false,
     },
     innovation: {
-      title: navTitle(d, "technology", "innovation"),
+      title: navTitle("technology", "innovation"),
       cnt: "Technology developments",
       filters: false,
     },
     "patents-comp": {
-      title: navTitle(d, "competitive", "patents-comp"),
+      title: navTitle("competitive", "patents-comp"),
       cnt: "Patent filings",
       filters: false,
     },

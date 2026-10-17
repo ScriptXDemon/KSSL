@@ -10,7 +10,7 @@
  * about them being separate, and about the window never dropping rows silently.
  */
 import {
-  NEWS_MAX, newsWindows, newsWindowDefault,
+  NEWS_MAX, NEWS_WINDOWS, NEWS_WINDOW_DEFAULT,
   windowDays, windowLabel, withinWindow, capNews,
 } from "./src/lib/news.js";
 
@@ -68,23 +68,15 @@ ck("a cap does not imply a window", capNews(many).every((a) => a.date === "2026-
 ck("a window does not imply a cap",
    withinWindow(many, 30, NOW).length === 40);
 
-/* ---- the options the UI offers: the rows of the time-window table, nothing else ------------------ */
-import { readFileSync } from "node:fs";
-const fx = JSON.parse(readFileSync("fixtures/kssl_dataset.json", "utf-8"));
-const wins = newsWindows(fx);
-const stored = fx.database.ui.competitive_competitor_moment_time_window;
-ck("the windows offered are exactly the stored rows, in stored order",
-   JSON.stringify(wins.map((w) => [w.key, w.label, w.days])) ===
-   JSON.stringify(stored.slice().sort((a, b) => a.display_order - b.display_order).map((r) => [r.time_window_code, r.time_window_label, r.day_count])));
-ck("the default window is the stored is_default row", newsWindowDefault(fx) === stored.find((r) => r.is_default).time_window_code);
-ck("every option resolves to days", wins.length > 0 && wins.every((w) => Number.isFinite(w.days) && w.days > 0));
+/* ---- the options the UI offers -------------------------------------------------- */
+ck("the default window is one of the offered options",
+   NEWS_WINDOWS.some((w) => w.key === NEWS_WINDOW_DEFAULT));
+ck("every option resolves to days or to 'all time'",
+   NEWS_WINDOWS.every((w) => w.days === null || (Number.isFinite(w.days) && w.days > 0)));
 ck("windowDays and windowLabel agree with the table",
-   windowDays(wins[0].key, wins) === wins[0].days && windowLabel(wins[0].key, wins) === wins[0].label);
-ck("an unknown key means no window rather than a crash", windowDays("nonsense", wins) === null);
-ck("a changed label in the table is the label offered",
-   newsWindows({ database: { ui: { competitive_competitor_moment_time_window: [{ time_window_code: "x", time_window_label: "Past fortnight", day_count: 14, display_order: 1 }] } } })[0].label === "Past fortnight");
-ck("no rows, no windows, and the default is every date",
-   newsWindows({}).length === 0 && newsWindowDefault({}) === "all");
+   windowDays("30d") === 30 && windowLabel("30d") === "Last 30 days");
+ck("an unknown key means no window rather than a crash",
+   windowDays("nonsense") === null);
 
 /* Guards: these run against live data where a field can be missing. */
 ck("null input is an empty list, not a throw", withinWindow(null, 30, NOW).length === 0);

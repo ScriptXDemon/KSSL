@@ -53,11 +53,6 @@ test("typeGraphSvg integration: renders categoryDisc with symbols in Categories 
     COMPSYN: {},
     TRACEIDS: {},
     sourceRegistry: {},
-    database: { ui: { partner_category: [
-      { category_key: "tech", group_key: "g", group_label: "G", category_label: "Technology", short_label: "Tech", definition: "", overlap_kind: "", display_order: 1 },
-      { category_key: "supply", group_key: "g", group_label: "G", category_label: "Supply / customer", short_label: "Supply", definition: "", overlap_kind: "", display_order: 2 },
-      { category_key: "jv", group_key: "g", group_label: "G", category_label: "Joint venture", short_label: "JV", definition: "", overlap_kind: "", display_order: 3 },
-    ] } },
   };
 
   const partners = createPartners(mockData);
@@ -71,13 +66,13 @@ test("typeGraphSvg integration: renders categoryDisc with symbols in Categories 
   // 1. Stage "spread" renders category branch nodes with vector symbols
   const spreadSvg = partners.typeGraphSvg(ksslCo, { stage: "spread", mode: "cat" });
   assert.ok(spreadSvg.includes('class="pg-cat-symbol"'), "Rendered spread SVG should include pg-cat-symbol");
-  assert.ok(spreadSvg.includes("Technology"), "Rendered spread SVG should contain Technology category");
+  assert.ok(spreadSvg.includes("Technology / licence"), "Rendered spread SVG should contain the technology category");
   assert.ok(spreadSvg.includes("Supply / customer"), "Rendered spread SVG should contain Supply / customer category");
   assert.ok(spreadSvg.includes("Joint venture"), "Rendered spread SVG should contain Joint venture category");
   assert.ok(spreadSvg.includes('class="lbl-ptr-title center-title"'), "Rendered spread SVG should include center-title");
 
   // 2. Stage "focus" on "tech" renders the tech partners as leaf nodes
-  const focusSvg = partners.typeGraphSvg(ksslCo, { stage: "focus", mode: "cat", type: "tech" });
+  const focusSvg = partners.typeGraphSvg(ksslCo, { stage: "focus", mode: "cat", type: "technology-partner" });
   assert.ok(focusSvg.includes('class="pg-cat-symbol"'), "Rendered focus SVG should include pg-cat-symbol");
   assert.ok(focusSvg.includes("Alpha Cyber"), "Rendered focus SVG should contain partner Alpha Cyber under tech");
   assert.ok(focusSvg.includes("pt-leaf"), "Rendered focus SVG should include pt-leaf nodes");

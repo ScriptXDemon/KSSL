@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs";
 import { projectFeed, projectMetrics, day } from "./projects.js";
+import { PROJECT_FILTERS } from "./chrome.js";
 
 const d = JSON.parse(fs.readFileSync(new URL("../../fixtures/kssl_dataset.json", import.meta.url), "utf8"));
 const P = d.projects;
-const cfg = d.projectsConfig;
+const cfg = { ...d.projectsConfig, filters: PROJECT_FILTERS };
 
 test("the project constants are gone from the code", () => {
   assert.ok(!fs.existsSync(new URL("./competitorProjects.js", import.meta.url)), "competitorProjects.js is deleted");

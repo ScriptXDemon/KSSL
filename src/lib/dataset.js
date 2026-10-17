@@ -17,8 +17,7 @@ import { cutGroupsByDirection, marketAttention, technologyAttention, isRivalCard
 import { sortCompaniesByName } from "./roster.js";
 import { rosterIndex, rosterLookup } from "./partners.js";
 import { markOverlaps } from "./overlap.js";
-import { competitiveLane, technologyLane, marketLane } from "./lanes.js";
-import { stanceOf } from "./uiText.js";
+import { competitiveLane, technologyLane, marketLane, stanceOf } from "./chrome.js";
 import { logger } from "../utils/logger.js";
 
 /* THE PUBLISHER'S DATED PERMALINK IS AUTHORITATIVE FOR THE DAY.
@@ -265,19 +264,19 @@ export function wireDataset(raw) {
     d.overviewConfig = {
       competitive: {
         ...d.overviewConfig.competitive,
-        ...competitiveLane(d),
+        ...competitiveLane(),
         cards: (d.competitiveCards || []).filter((c) => !c.noStance),
         groups: cutGroupsByDirection(d.overviewConfig.competitive.groups),
       },
-      market: { ...d.overviewConfig.market, ...marketLane(d), cards: d.marketCards || [] },
+      market: { ...d.overviewConfig.market, ...marketLane(), cards: d.marketCards || [] },
       technology: {
         ...d.overviewConfig.technology,
         /* TECHNOLOGY IS KNOWLEDGE, NOT A THREAT BOARD: two streams (a tracked rival's tech move, and defence tech
            from anyone else), each cut by the tag technologyAttention stamps. The words (pills, groups, badges,
-           tiles) are ui.filter_option 'technology-feed' and serving.technology_metric rows (lanes.js). The
+           tiles) are front-end chrome (chrome.js technologyLane). The
            All / Competitor / Adoptable buttons are off on this pillar (owner request); `filters` stays for the
            tiles and the count line. */
-        ...technologyLane(d),
+        ...technologyLane(),
         cards: technologyAttention(d.techCards, isRivalCard),
         cnt: "technology articles",
         hideFilterButtons: true,
@@ -511,12 +510,12 @@ export function wireDataset(raw) {
           market: {
             ...d.overviewConfig.market,
             cards: marketFeed,
-            ...marketLane(d),
+            ...marketLane(),
             cnt: marketFeed.length
               ? "latest tenders and perceived opportunities"
               : d.overviewConfig.market.cnt,
-            /* The pills, group headings, tiles and the TENDER / OPPORTUNITY badge words are database rows
-               (lanes.js). A tender is marked by its `kind`, not by a stance. The All / Latest Tenders /
+            /* The pills, group headings, tiles and the TENDER / OPPORTUNITY badge words are front-end chrome
+               (chrome.js marketLane). A tender is marked by its `kind`, not by a stance. The All / Latest Tenders /
                Perceived Opportunities buttons are OFF on this pillar (owner request); `filters` stays for the
                tiles and the count line. */
             hideFilterButtons: true,

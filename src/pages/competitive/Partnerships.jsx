@@ -14,6 +14,7 @@ import { companyCountries, facetOptionsByName } from "../../lib/countryFacet";
 import * as viewState from "../../lib/viewState";
 import { isVisible } from "../../lib/visibility";
 import { ReviewList } from "../../components/review/Review";
+import { buildCategories } from "../../lib/partnerCategories";
 
 /* `sector` is escaped at write time ("Defence &amp; Aerospace") and is formatted consistently here. */
 const sectorText = (co) => formatSectorName(co && co.sector);
@@ -177,7 +178,6 @@ export default function Partnerships() {
      partners, and the open tie in full. Memoised on selCo (the served record), not on
      `c`, which is re-spread every render. */
   const report = useMemo(() => {
-    const rel = data.REL_LABEL || {};
     if (!selCo) {
       /* nothing selected: the roster the rail lists, each with its mapped-partner count */
       const clientId = (data.client && data.client.id);
@@ -212,10 +212,10 @@ export default function Partnerships() {
               h: `Tie: ${selCo.name} and ${tp.label}`,
               rows: [
                 ["Kind", nd(tp.kind)],
-                // ptype FIRST. REL_LABEL is five legacy keys in serving.ui_config, so
+                // ptype FIRST. The legend word (chrome.js) is the fallback, so
                 // the ten types the pipeline now writes fell through to `nd(tp.rel)`
                 // and this report printed the raw key -- "manufacturing", "rnd".
-                ["Relationship", nd(tp.ptype) !== "—" ? tp.ptype : (rel[tp.rel] || nd(tp.rel))],
+                ["Relationship", nd(tp.ptype) !== "—" ? tp.ptype : (buildCategories().categoryOf(tp.rel).label || nd(tp.rel))],
                 ["Status", tp.status === "ended"
                   ? `ended${tp.ended ? ` (${tp.ended})` : ""}`
                   : nd(tp.status)],
@@ -233,7 +233,7 @@ export default function Partnerships() {
           h: "Mapped partners",
           rows: partners.map((x) => [
             x.label || x.name || x.id,
-            [x.kind, x.ptype || rel[x.rel] || x.rel, x.country,
+            [x.kind, x.ptype || buildCategories().categoryOf(x.rel).label || x.rel, x.country,
              x.status === "ended" ? "ENDED" : null].filter(Boolean).join(" · "),
           ]),
         },

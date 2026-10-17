@@ -8,7 +8,6 @@ import GeoMap, { servedGeoCountries } from "../../components/geoMap/GeoMap";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { geoLookupCompetitors } from "../../lib/geo";
 import { useData } from "../../state/DataProvider";
-import { uiText } from "../../lib/uiText";
 import { srcChips, attr, escAll, cssWord } from "../../lib/html";
 import Thumb from "../../components/thumb/Thumb.jsx";
 /* A SELECTION IS REMEMBERED WHILE YOU STAY IN THIS PILLAR, not for ever. This page
@@ -266,14 +265,9 @@ export default function Geo() {
     return list;
   }, [data, menuQuery, comp, geo]);
 
-  /* the two dropdown labels and their "all" options are the stored words of ui.competitive_geo_filter */
-  const compLabel = uiText(data, "ui.competitive_geo_filter", { filter_type: "company", selected_value: "all" }, "filter_label");
-  const compAll = uiText(data, "ui.competitive_geo_filter", { filter_type: "company", selected_value: "all" }, "option_label");
-  const countryLabel = uiText(data, "ui.competitive_geo_filter", { filter_type: "country", selected_value: "all" }, "filter_label");
-  const countryAll = uiText(data, "ui.competitive_geo_filter", { filter_type: "country", selected_value: "all" }, "option_label");
   const compName = comp
     ? (data.geoComps.find((x) => x.id === comp) || {}).name
-    : compAll;
+    : "All";
 
   /* The footprint cards are the presence rows (company x country); the lists below are drawn as
      markup strings, so the review copy lists the same records with their controls. The overlay
@@ -546,7 +540,7 @@ export default function Geo() {
             role="button"
             tabIndex={0}
           >
-            <span className="ddlbl">{compLabel}</span>
+            <span className="ddlbl">Competitor</span>
             <span className={`ddval${comp ? "" : " placeholder"}`}>
               {compName}
             </span>
@@ -613,9 +607,9 @@ export default function Geo() {
             role="button"
             tabIndex={0}
           >
-            <span className="ddlbl">{countryLabel}</span>
+            <span className="ddlbl">Country</span>
             <span className={`ddval${country ? "" : " placeholder"}`}>
-              {country || countryAll}
+              {country || "All"}
             </span>
             <span className="caret">▾</span>
             <span

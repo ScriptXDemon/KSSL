@@ -103,7 +103,7 @@ export default function Layout() {
       onProjects
         ? projectMetrics(data.projects)
         : onMarketReport
-          ? marketMetrics(data.tenders, data)
+          ? marketMetrics(data.tenders)
           : metricsFor(cfg, overviewPillar, data),
     [cfg, overviewPillar, data, onMarketReport, onProjects],
   );
@@ -232,7 +232,7 @@ export default function Layout() {
                 onSelectionChange={setHasSelection}
                 onSeq={setSeqMode}
                 cardFilter={isGlobalCard}
-                title={navTitle(data, "market", "global-requirement")}
+                title={navTitle("market", "global-requirement")}
                 part="feed"
                 pillarKey="market"
                 seqMode={seqMode}

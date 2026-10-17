@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { globalRequirements } from "../../lib/globalRequirements";
-import { uiText } from "../../lib/uiText";
 import { navTitle } from "../../lib/route";
 
 /* Global Requirements: the worldwide demand, capacity and supply signals (lib/globalRequirements), shown in the
@@ -11,17 +10,15 @@ import { navTitle } from "../../lib/route";
 export default function GlobalRequirement({ feed }) {
   const { data } = useData();
   const rows = useMemo(() => globalRequirements(data), [data]);
-  // the heading and the empty text are the stored words (ui.market_view, ui.market_global_requirement_view)
-  const empty = uiText(data, "ui.market_global_requirement_view", {}, "empty_state_text");
   const report = useMemo(() => ({
-    title: navTitle(data, "market", "global-requirement"),
-    subtitle: rows.length ? `${rows.length} worldwide signals` : empty,
+    title: navTitle("market", "global-requirement"),
+    subtitle: rows.length ? `${rows.length} worldwide signals` : "No requirements on record",
     sections: rows.map((r) => ({ heading: r.title, body: r.why })),
     payload: { requirements: rows },
-  }), [rows, data, empty]);
+  }), [rows]);
   useHeaderReport(report);
 
   if (!rows.length)
-    return <div style={{ flex: 1, padding: "48px 24px", color: "var(--d-txt-3)", fontFamily: "var(--mono)", fontSize: "12px", textAlign: "center" }}>{empty}</div>;
+    return <div style={{ flex: 1, padding: "48px 24px", color: "var(--d-txt-3)", fontFamily: "var(--mono)", fontSize: "12px", textAlign: "center" }}>No global requirements data on record.</div>;
   return feed || null;
 }

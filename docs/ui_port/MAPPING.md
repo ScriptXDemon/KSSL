@@ -939,6 +939,12 @@ Totals: allowlisted 7, client-field 149, dataset-field 422, remove-genset 172 (a
 
 ## E. Labels and UI config
 
+> **Chrome restore (binding).** Section E below mapped every label to a `ui.*` column and the front end once read them. That
+> is reversed: those labels are front-end code (`src/lib/route.js`, `src/lib/chrome.js`) exactly as the Cummins UI defines
+> them, and the front end reads no chrome `ui` table. Only the serving tables are data. The E5 helper `uiText.js` and
+> `lanes.js` are deleted. The mapping rows below stay as a record of which `ui` column is the nearest equivalent.
+
+
 Ruling R2: every on-screen label or config the Cummins UI hardcodes, mapped to an existing `ui.*` table and column where one exists (the backend then ships it and the UI reads it). Client or domain words (client name, products, categories, countries, units) always come from the data. Neutral chrome with no `ui.*` table stays in code and is listed as `chrome`. Every `ui-table` entry names one `schema.table.column` and, where the table has several rows, the row key (`where col = value`). The UI reads it from `data.database` with `uiText()` (see the top of this file); no new global. A label either comes from a real text column or is neutral `chrome`; there is no literal fallback for a missing DB value.
 
 ### E1. Shell, navigation, pillars

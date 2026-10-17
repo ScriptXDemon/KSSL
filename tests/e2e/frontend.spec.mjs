@@ -87,16 +87,10 @@ test("FE-005 no view renders an unhandled crash", async ({ page }) => {
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
-test("FE-006 the competitive metric strip shows the stored tile labels", async ({ page }) => {
+test("FE-006 the competitive metric strip shows the front-end tile labels", async ({ page }) => {
   await boot(page, "#p=competitive&v=overview");
-  const j = await (await page.request.get("/api/dataset")).json();
-  const want = j.database.ui.competitive_metric
-    .filter((r) => ["threats", "watch", "companies_tracked"].includes(r.metric_key))
-    .sort((a, b) => a.display_order - b.display_order)
-    .map((r) => r.metric_label.toLowerCase());
-  expect(want.length, "the seed stores the three competitive tiles").toBe(3);
   const shown = (await page.locator(".metrics .metric:not(.metric-blank) .ml").allInnerTexts()).map((t) => t.trim().toLowerCase());
-  expect(shown, "the strip is exactly the stored tiles, in stored order").toEqual(want);
+  expect(shown, "the strip is the three reference tiles, in order").toEqual(["competitive threats", "watch signals", "companies tracked"]);
   // each tile carries a count, not a dash
   const values = await page.locator(".metrics .metric:not(.metric-blank) .mv").allInnerTexts();
   for (const v of values) expect(v.trim()).toMatch(/^\d+/);
@@ -167,27 +161,26 @@ test("FE-021 the feed count line agrees with the cards shown", async ({ page }) 
   expect(Math.max(...nums)).toBeGreaterThanOrEqual(shown); // count line agrees with cards shown
 });
 
-test("FE-022 the direction pills are the stored stance labels and narrow the feed", async ({ page }) => {
+test("FE-022 the direction pills are All / Threat / Watch and narrow the feed by the stored stance", async ({ page }) => {
   await boot(page, "#p=competitive&v=overview");
-  const j = await (await page.request.get("/api/dataset")).json();
-  const stance = j.database.ui.filter_option.filter((o) => o.filter_group === "stance").sort((a, b) => a.display_order - b.display_order);
-  expect(stance.map((o) => o.option_code), "the only stances are threat and watch").toEqual(["threat", "watch"]);
   const pills = page.locator(".dir-filters .fbtn");
-  await expect(pills).toHaveCount(1 + stance.length); // the reset pill and one per stored stance
+  await expect(pills).toHaveCount(3); // the reset pill, Threat and Watch: no other stance exists
   const texts = (await pills.allInnerTexts()).map((t) => t.replace(/\s*\d+\s*$/, "").trim().toLowerCase());
-  expect(texts).toEqual(["all", ...stance.map((o) => o.option_label.toLowerCase())]);
+  expect(texts).toEqual(["all", "threat", "watch"]);
   const total = await page.locator(".alert").count();
   expect(total).toBeGreaterThan(0);
-  await pills.nth(1).click(); // Threat
-  await page.waitForTimeout(400);
-  const rows = page.locator(".alert");
-  const n = await rows.count();
-  expect(n).toBeGreaterThan(0);
-  expect(n).toBeLessThan(total);
-  for (const d of await rows.evaluateAll((els) => els.map((e) => e.getAttribute("data-dir")))) expect(d).toBe("threat");
-  // a card badge uses the stored badge word
-  const badge = (await page.locator(".alert .dirtag").first().innerText()).trim().toLowerCase();
-  expect(badge).toBe(stance[0].badge_label.toLowerCase());
+  for (const [i, dir] of [[1, "threat"], [2, "watch"]]) {
+    await pills.nth(i).click();
+    await page.waitForTimeout(400);
+    const rows = page.locator(".alert");
+    const n = await rows.count();
+    expect(n, `${dir} pill`).toBeGreaterThan(0);
+    expect(n, `${dir} pill`).toBeLessThan(total);
+    for (const d of await rows.evaluateAll((els) => els.map((e) => e.getAttribute("data-dir")))) expect(d).toBe(dir);
+    // a card badge is the stance word
+    const badge = (await page.locator(".alert .dirtag").first().innerText()).trim().toLowerCase();
+    expect(badge).toBe(dir);
+  }
 });
 
 test("FE-023 an empty filter is explicitly marked empty", async ({ page }) => {
@@ -412,33 +405,36 @@ test("e2e: empty dataset renders every route without a crash", async ({ page }) 
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
-// -------------------------------------------------- stored words on the later pages
-test("stored words: pillar names, tender filters and sort note, cockpit titles, positioning tabs, eyebrow, patent rail", async ({ page }) => {
+// -------------------------------------------------- front-end words on the later pages
+test("front-end words: pillar names, rail, tender filters and sort note, cockpit titles, positioning tabs, eyebrow, patent rail", async ({ page }) => {
   const j = await (await page.request.get("/api/dataset")).json();
-  const ui = j.database.ui;
   const lc = (t) => t.trim().toLowerCase();
-  // pillar names
+  // the top bar: the three pillars, in order
   await boot(page, "#p=market&v=tender");
-  const pills = (await page.locator(".topnav .pill").allInnerTexts()).map(lc);
-  expect(pills).toContain(lc(ui.market_pillar[0].display_name));
-  expect(pills).toContain(lc(j.database.ui.technology_pillar[0].pillar_name));
+  expect((await page.locator(".topnav .pill").allInnerTexts()).map(lc)).toEqual(["competitive", "market", "technology"]);
+  // each pillar's rail: its items in order, with the reference words
+  const RAILS = {
+    competitive: ["Overview", "Competitor Profile", "Competitor Moment", "Products", "Product Evaluation", "Partnership", "Projects", "Geo Footprint", "Patent"],
+    market: ["Top opportunity", "Tenders", "Global Requirements", "Market Intelligence"],
+    technology: ["Overview", "Innovations"],
+  };
+  for (const [p, want] of Object.entries(RAILS)) {
+    await boot(page, `#p=${p}&v=${p === "competitive" ? "overview" : p === "market" ? "m-overview" : "t-overview"}`);
+    expect((await page.locator(".rail .svc .nm").allInnerTexts()).map(lc), `${p} rail`).toEqual(want.map(lc));
+  }
   // tenders: filter labels and sort note
-  const tv = ui.market_tenders_view.find((r) => r.view_code === "tenders");
-  const labels = (await page.locator(".tp-fbar .ddlbl").allInnerTexts()).map(lc);
-  expect(labels).toEqual([lc(tv.country_filter_label), lc(tv.category_filter_label)]);
-  expect(lc(await page.locator(".tp-fbar .sortnote").innerText())).toBe(lc(tv.sort_label));
+  await boot(page, "#p=market&v=tender");
+  expect((await page.locator(".tp-fbar .ddlbl").allInnerTexts()).map(lc)).toEqual(["country", "category"]);
+  expect(lc(await page.locator(".tp-fbar .sortnote").innerText())).toBe("sorted by deadline");
   // top opportunity: the three section titles
   await boot(page, "#p=market&v=m-overview");
-  const top = ui.market_top_opportunity_view[0];
   const eyebrows = (await page.locator(".ti-simple .ovc-h .eyebrow").allInnerTexts()).map(lc);
-  expect(eyebrows).toEqual([top.top_tenders_section_label, top.projects_section_label, top.next_moves_section_label].map(lc));
-  // product evaluation: the stored enabled tabs, in order, once a matchup is open
+  expect(eyebrows).toEqual(["top tenders", "projects to win before they tender", "next moves"]);
+  // product evaluation: the two tabs, once a matchup is open
   await boot(page, "#p=competitive&v=positioning");
   await page.locator(".mu-item").first().click();
-  const tabs = ui.competitive_positioning_tab.filter((r) => r.is_enabled && ["analytics", "spec_comparison"].includes(r.tab_code))
-    .sort((a, b) => a.display_order - b.display_order).map((r) => lc(r.tab_label));
-  expect((await page.locator(".mu-tabs .mu-tab").allInnerTexts()).map(lc)).toEqual(tabs);
-  // a signal's impact eyebrow is its stored impact_eyebrow
+  expect((await page.locator(".mu-tabs .mu-tab").allInnerTexts()).map(lc)).toEqual(["analytics", "spec comparison"]);
+  // a signal's impact eyebrow is its stored impact_eyebrow (serving data)
   await boot(page, "#p=competitive&v=overview");
   await page.locator(".alert").first().click();
   const id = await page.locator(".alert").first().getAttribute("data-id");

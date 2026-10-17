@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { bucketTenders } from "../../lib/overview";
-import { uiList, uiText } from "../../lib/uiText";
+import { MARKET_SECTIONS as SECTIONS } from "../../lib/chrome";
 import { formatDate } from "../../utils/formatDate";
 import MarketOutlook from "../../components/marketOutlook/MarketOutlook";
 import { outlook } from "../../lib/marketOutlook";
@@ -42,22 +42,13 @@ const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
 const TABLE_PAGE = 25;
 const NO_DATE = "No date published";
 
-/* The tabs are the rows of ui.market_intelligence_tab (tab_id, tab_label, tab_order). The section a tab opens is
-   chosen by its stored tab_id; a tab with no row, or no label, is not drawn. */
-const SECTION_OF_TAB = { outlook: "outlook", active: "active", "by-category": "category", awarded: "awarded", closed: "closed" };
-const sectionsOf = (data) =>
-  uiList(data, "ui.market_intelligence_tab", {}, "tab_order")
-    .filter((r) => SECTION_OF_TAB[r.tab_id] && String(r.tab_label || "").trim())
-    .map((r) => ({ id: SECTION_OF_TAB[r.tab_id], label: String(r.tab_label).trim() }));
-
 const SECTION_KEY = "kssl_market_section";
-const savedSection = (sections) => {
-  const first = sections.length ? sections[0].id : "";
+const savedSection = () => {
   try {
     const s = localStorage.getItem(SECTION_KEY);
-    return sections.some((x) => x.id === s) ? s : first;
+    return SECTIONS.some((x) => x.id === s) ? s : "outlook";
   } catch (e) {
-    return first;
+    return "outlook";
   }
 };
 
@@ -187,16 +178,14 @@ function ColumnChart({ rows, total, examples }) {
 
 /* A chart card: heading, note, and whatever chart the question deserves. */
 function Chart({ title, note, empty, show, children }) {
-  const { data } = useData();
-  // a card with no note of its own says the page's stored empty text (ui.market_view, market-intelligence)
-  const pageEmpty = uiText(data, "ui.market_view", { view_id: "market-intelligence" }, "empty_state_text");
+
   return (
     <section aria-label={title} className="ovc">
       <div className="ovc-h">
         <span className="eyebrow">{title}</span>
         {note ? <span className="ovc-note">{note}</span> : null}
       </div>
-      {show ? children : <div className="ovc-empty">{empty || pageEmpty}</div>}
+      {show ? children : <div className="ovc-empty">{empty || "nothing on record in this corpus"}</div>}
     </section>
   );
 }
@@ -204,11 +193,7 @@ function Chart({ title, note, empty, show, children }) {
 export default function MarketOverview() {
   const { data } = useData();
   const { setScope, takePending, jumpTo } = useAppState();
-  const SECTIONS = useMemo(() => sectionsOf(data), [data]);
-  // the filter labels are the stored words of ui.market_tenders_view; the page's empty text is ui.market_view
-  const tvCountryLabel = uiText(data, "ui.market_tenders_view", { view_code: "tenders" }, "country_filter_label");
-  const tvCategoryLabel = uiText(data, "ui.market_tenders_view", { view_code: "tenders" }, "category_filter_label");
-  const [section, setSectionRaw] = useState(() => savedSection(sectionsOf(data)));
+  const [section, setSectionRaw] = useState(savedSection);
   const [rows, setRows] = useState(TABLE_PAGE);
   const [country, setCountry] = useState("all");
   const [cat, setCat] = useState(null);
@@ -478,7 +463,7 @@ export default function MarketOverview() {
       <div className="tp-fbar">
         <span className="eyebrow">Filter</span>
         <label className="ovf-sel">
-          <span className="ddlbl">{tvCountryLabel}</span>
+          <span className="ddlbl">Country</span>
           <select
             aria-label="Filter by country"
             onChange={(e) => setCountry(e.target.value)}
@@ -513,7 +498,7 @@ export default function MarketOverview() {
               style={{ background: CATEGORY_COLOR(sliceLabel(cat)) }}
             />
           ) : null}
-          <span className="ddlbl">{tvCategoryLabel}</span>
+          <span className="ddlbl">Category</span>
           <select
             aria-label="Filter by category"
             onChange={(e) => setCat(e.target.value === "all" ? null : e.target.value)}
@@ -644,7 +629,7 @@ export default function MarketOverview() {
                 context line is cut as redundant noise: the table below is self-evidently
                 the rows, the count sits on the tab, and the rows are visibly links. */}
             <div className="ovc-h">
-              <span className="eyebrow">{(SECTIONS.find((s) => s.id === section) || {}).label || ""}</span>
+              <span className="eyebrow">{SECTIONS.find((s) => s.id === section).label}</span>
             </div>
             {section === "awarded" && !list.length && awardsList.length
               ? null

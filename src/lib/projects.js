@@ -1,10 +1,10 @@
 /* Projects feed: what each competitor is working on or pursuing. Pure -- the page renders what this returns.
-   The rows are data.projects (serving.competitive_project and its child tables); the region filters, the
-   sequence menu and the stage steps are data.projectsConfig (ui.ui_project_*). Nothing here is a record. */
+   The rows are data.projects (serving.competitive_project and its child tables); the region filters and the
+   sequence menu are front-end chrome (chrome.js); the stage steps are data.projectsConfig.stageSteps (the stages the
+   projects carry). Nothing here is a record. */
 import { formatDate } from "../utils/formatDate.js";
 
-/* The stance of a project is its stored `assessment.stance`: threat or watch, nothing else (uiText.stanceOf);
-   its word is the ui.filter_option 'stance' row (uiText.stanceWords). */
+/* The stance of a project is its stored `assessment.stance`: threat or watch, nothing else (chrome.stanceOf). */
 
 export const day = (d) => (d && /^\d{4}/.test(d) ? (/^\d{4}$/.test(d) ? `${d}-01-01` : /^\d{4}-\d{2}$/.test(d) ? `${d}-01` : d) : "");
 
@@ -21,7 +21,7 @@ export const sortableSeq = (options) => (options || []).filter((o) => o && SEQ[o
 const haystack = (p) =>
   [p.name, p.company, p.customer, p.location, p.kind, p.stage, p.stageNote, (p.overview || []).join(" "), (p.specs || []).map((s) => s.v).join(" ")].join(" ").toLowerCase();
 
-/* `cid` null = every competitor. `filters` is projectsConfig.filters. `counts` is what each button would show
+/* `cid` null = every competitor. `filters` is the chrome filter list (chrome.js; their codes are matched against the stored `region`). `counts` is what each button would show
    under the current competitor and search, so no button promises rows it lacks; `perCompetitor` is each
    rival's count under the current region filter and search. */
 export function projectFeed({ projects, filters = [], cid = null, filter = "all", query = "", seq = "recent" } = {}) {

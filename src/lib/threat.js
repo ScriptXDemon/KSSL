@@ -1,4 +1,4 @@
-import { STANCES } from "./uiText.js";
+import { STANCES } from "./chrome.js";
 /* THREAT: a stored judgement, read as it is.
 
    A competitor's threat level is a field of its row (serving.competitive_competitor.threat_level, shipped as

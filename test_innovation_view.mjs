@@ -28,9 +28,9 @@ assert.deepEqual(positionPill("behind"), { text: "GAP", cls: "behind" });
 assert.deepEqual(positionPill("parity"), { text: "WATCH", cls: "parity" });
 assert.deepEqual(positionPill("ahead"), { text: "AHEAD", cls: "ahead" });
 
-/* maturity: the stored word (matLabel), the stored code when no word is stored, and a missing one says so in words */
+/* maturity: the stored word (matLabel) leads, then the code's front-end word, and a missing one says so in words */
 assert.equal(maturityLabel({ mat: "prod", matLabel: "In production" }), "In production");
-assert.equal(maturityLabel({ mat: "prod" }), "prod", "no stored word: the stored code, never a browser-owned word");
+assert.equal(maturityLabel({ mat: "prod" }), "In production", "no stored word: the code's front-end word");
 assert.equal(maturityLabel({ mat: null }), "not stated");
 assert.equal(maturityLabel({}), "not stated");
 assert.equal(maturityLabel(undefined), "not stated");
