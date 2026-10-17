@@ -194,24 +194,15 @@ def build_projects(database, competitors):
             "researchedAsOf": row.get("researched_as_of"),
             "_src": src("competitive_project", "project_id", row),
         })
-    # labels and options come from the ui project tables; the "All" pill is chrome added by the page
-    filters, default_filter = [], None
-    for row in ordered(table(database, "ui", "ui_project_filter"), "display_order"):
-        code = first_nonempty(row, "filter_code", "filter_id")
-        if code is None:
-            continue
-        filters.append({"f": text(code), "l": row.get("filter_label")})
-        if row.get("is_default"):
-            default_filter = text(code)
-    seq, default_seq = [], None
-    for row in ordered(table(database, "ui", "ui_project_sequence_option"), "display_order"):
-        if row.get("sequence_code"):
-            seq.append([text(row.get("sequence_code")), row.get("sequence_label")])
-            if row.get("is_default"):
-                default_seq = text(row.get("sequence_code"))
-    stage_steps = [r.get("stage_name") for r in ordered(table(database, "ui", "ui_project_stage_step"), "stage_order") if r.get("stage_name")]
-    return projects, {"filters": filters, "defaultFilter": default_filter, "seqOptions": seq,
-                      "defaultSeq": default_seq, "stageSteps": stage_steps}
+    # The filter and sequence controls are front-end chrome (src/lib/chrome.js). The stage steps are DATA: the stages
+    # the projects themselves carry (serving.competitive_project_stage), one step per stage_order, in order.
+    steps = {}
+    for row in table(database, "serving", "competitive_project_stage"):
+        order, name = row.get("stage_order"), row.get("stage_name")
+        if order is not None and name and order not in steps:
+            steps[order] = name
+    stage_steps = [steps[k] for k in sorted(steps)]
+    return projects, {"stageSteps": stage_steps}
 
 
 # --------------------------------------------------------------------------- Geo

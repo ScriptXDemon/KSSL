@@ -5,7 +5,7 @@ import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { buildProfile, rosterOf, formatSectorName } from "../../lib/profile";
 import { companyNews, FEED_N, collapseThreads,
-         NEWS_MAX, newsWindows, newsWindowDefault, windowDays, withinWindow, capNews, newsDate } from "../../lib/news";
+         NEWS_MAX, NEWS_WINDOWS, NEWS_WINDOW_DEFAULT, NEWS_LIST_RANGES, windowDays, withinWindow, capNews, newsDate } from "../../lib/news";
 import { facetOptionsByName, tidyHq } from "../../lib/countryFacet";
 import { INDEX, INDEX_NOTE } from "../../lib/articleUrl";
 import Thumb from "../../components/thumb/Thumb.jsx";
@@ -374,8 +374,7 @@ export default function Profile() {
   }, [selectedLeader]);
   /* How far back counts as current. The reader's choice, not a constant -- see
      lib/news.NEWS_WINDOWS. The 15-card cap below is the panel's and is not. */
-  const newsWins = useMemo(() => newsWindows(data), [data]);
-  const [newsWindow, setNewsWindow] = useState(() => newsWindowDefault(data));
+  const [newsWindow, setNewsWindow] = useState(NEWS_WINDOW_DEFAULT);
   /* How many feed cards are open. "View More News" had no handler and the stack
      already listed every article, so the button could not have done anything; the
      stack now opens NEWS_PAGE at a time and the button says how many remain. */
@@ -521,8 +520,8 @@ export default function Profile() {
      before the category filter would show fewer than fifteen of a category that has
      more, for no reason a reader could see. */
   const windowedArticles = useMemo(
-    () => withinWindow(attributed, windowDays(newsWindow, newsWins)),
-    [attributed, newsWindow, newsWins],
+    () => withinWindow(attributed, windowDays(newsWindow)),
+    [attributed, newsWindow],
   );
 
   // Filter articles based on selected Category Pill
@@ -634,7 +633,7 @@ export default function Profile() {
     const catOf = (item) =>
       productCategoryOf(`${item.title} ${item.excerpt || ""}`, data.CAT_ALIASES)
       || productCategoryOf(companyMeta && companyMeta.sector, data.CAT_ALIASES);
-    const days = windowDays(listRange, newsWins);
+    const days = (NEWS_LIST_RANGES.find((r) => r.key === listRange) || {}).days;
     const since = days ? new Date(Date.now() - days * 86400000).toISOString().slice(0, 10) : null;
     const toks = listQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return (companyArticles || []).filter((item) => {
@@ -648,7 +647,7 @@ export default function Profile() {
       }
       return true;
     });
-  }, [companyArticles, companyMeta, data.CAT_ALIASES, listQ, listRange, listFrom, listTo, newsWins]);
+  }, [companyArticles, companyMeta, data.CAT_ALIASES, listQ, listRange, listFrom, listTo]);
 
   return (
     <div className="pos-view v-profile" style={{ gridTemplateColumns: "300px 1fr" }}>
@@ -963,10 +962,9 @@ export default function Profile() {
                       fontFamily: "var(--mono)",
                     }}
                   >
-                    {newsWins.map((w) => (
+                    {NEWS_WINDOWS.map((w) => (
                       <option key={w.key} value={w.key}>{w.label}</option>
                     ))}
-                    <option value="all">All time</option>
                   </select>
                 </label>
               }
@@ -1042,7 +1040,7 @@ export default function Profile() {
                   </div>
                   <select className="cp-news-range" value={listRange} onChange={(e) => setListRange(e.target.value)} aria-label="Filter the news list by date">
                     <option value="all">All dates</option>
-                    {newsWins.map((w) => (
+                    {NEWS_LIST_RANGES.map((w) => (
                       <option key={w.key} value={w.key}>{w.label}</option>
                     ))}
                     <option value="custom">Custom range…</option>

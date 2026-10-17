@@ -122,7 +122,7 @@ if (kind(d.details) === "dict") for (const [k, v] of Object.entries(d.details)) 
 }
 if (kind(d.FIELDSYN) === "dict") want("FIELDSYN.patterns", d.FIELDSYN.patterns, "list");
 if (kind(d.projectsConfig) === "dict")
-  for (const [f, w] of [["filters", "list"], ["seqOptions", "list"], ["stageSteps", "list"]]) want(`projectsConfig.${f}`, d.projectsConfig[f], w);
+  for (const [f, w] of [["stageSteps", "list"]]) want(`projectsConfig.${f}`, d.projectsConfig[f], w);
 
 // Field names (MAPPING.md A, the "field" column): a key must be PRESENT on every item; its value may be null
 // when the column is empty. This guards the restructure of each global, not the data inside it.

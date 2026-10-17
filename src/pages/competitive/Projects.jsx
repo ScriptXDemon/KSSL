@@ -5,7 +5,7 @@ import { useData } from "../../state/DataProvider";
 import { rosterOf } from "../../lib/profile";
 import { competitorFullName } from "../../lib/companyNames";
 import FeedFilters from "../../components/subHead/FeedFilters.jsx";
-import { stanceOf, stanceWords } from "../../lib/uiText";
+import { stanceOf, stanceWords, PROJECT_FILTERS, PROJECT_SEQ, PROJECT_SEQ_DEFAULT } from "../../lib/chrome";
 import { projectFeed, sortableSeq, latestWhen, day } from "../../lib/projects";
 import { srcChips } from "../../lib/html";
 import { formatDate } from "../../utils/formatDate";
@@ -108,16 +108,16 @@ function ProjectPanel({ p, steps, regionLabel, words, onClose }) {
 
 export default function Projects({ onSelectionChange }) {
   const { data } = useData();
-  const words = stanceWords(data);
+  const words = stanceWords();
   const { setScope } = useAppState();
   const [cid, setCid] = useState(ALL);
   const cfg = (data && data.projectsConfig) || {};
   const projects = (data && data.projects) || [];
-  const cfgFilters = cfg.filters || [];
-  const seqOptions = useMemo(() => sortableSeq(cfg.seqOptions), [cfg.seqOptions]);
-  const [filter, setFilter] = useState(cfg.defaultFilter || "all");
+  const cfgFilters = PROJECT_FILTERS;
+  const seqOptions = useMemo(() => sortableSeq(PROJECT_SEQ), []);
+  const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
-  const [seq, setSeq] = useState(seqOptions.some((o) => o[0] === cfg.defaultSeq) ? cfg.defaultSeq : "recent");
+  const [seq, setSeq] = useState(PROJECT_SEQ_DEFAULT);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
 

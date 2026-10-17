@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { clientShort } from "../../lib/client.js";
-import { stanceOf, uiList } from "../../lib/uiText";
+import { stanceOf, STANCE_WORD, MOMENT_PRESETS as PRESETS, momentStance } from "../../lib/chrome";
 import { rosterOf } from "../../lib/profile";
 import { momentsOf } from "../../lib/moments";
 import { competitorFullName } from "../../lib/companyNames";
@@ -18,25 +18,11 @@ import { Review } from "../../components/review/Review.jsx";
    on the left, what happened on the right; a click opens the analysis in the white panel beside the list. Today / Week / Month (or a From-To range) window them, counted
    back from the newest move on record, so the window reads the same however late it is opened. */
 
-/* A moment's stored level (serving.competitive_competitor_moment.grade) is a level_code of
-   ui.competitive_competitor_moment_level, which supplies the word (level_label) and the tag class (tag_class).
-   levelInfo() reads that table; a code the table does not list prints as stored, with no stance class. */
-
-const levelTable = (data) =>
-  Object.fromEntries(
-    ((data && data.database && data.database.ui && data.database.ui.competitive_competitor_moment_level) || [])
-      .filter((r) => r && r.level_code)
-      .map((r) => [r.level_code, r]),
-  );
+/* A moment's stored level (serving.competitive_competitor_moment.grade) is a judgement of the data. It draws a pill
+   only when it reads as a threat or a watch (momentStance); any other stored level draws no pill. */
 const keyOf = (m) => `${m.cid}|${m.url}|${m.title}`;
 const DAY = 86400000;
 const ALL = "__all";
-const ALL_WINDOW = "All"; // chrome: the reset chip, no window
-/* the window chips are the rows of ui.competitive_competitor_moment_time_window: [code, label, days] */
-const windowsOf = (data) =>
-  uiList(data, "ui.competitive_competitor_moment_time_window", {}, "display_order")
-    .filter((r) => r.time_window_code && String(r.time_window_label || "").trim() && Number(r.day_count) > 0)
-    .map((r) => [r.time_window_code, String(r.time_window_label).trim(), Number(r.day_count)]);
 const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
 const dateOf = (s) => {
   const t = Date.parse(s || "");
@@ -48,13 +34,7 @@ export default function ThreatAnalysis() {
   const { data } = useData();
   const [selectedCid, setSelectedCid] = useState(ALL);
   const [search, setSearch] = useState("");
-  const windows = useMemo(() => windowsOf(data), [data]);
-  const PRESETS = useMemo(() => (windows.length ? [...windows, ["all", ALL_WINDOW, null]] : []), [windows]);
-  // the stored default window opens first; none stored means every date
-  const [preset, setPreset] = useState(() => {
-    const row = uiList(data, "ui.competitive_competitor_moment_time_window", { is_default: true }, "display_order")[0];
-    return row && row.time_window_code ? row.time_window_code : "all";
-  });
+  const [preset, setPreset] = useState("all");
   const [custom, setCustom] = useState({ from: "", to: "" });
   const [sel, setSel] = useState(null);
 
@@ -76,7 +56,7 @@ export default function ThreatAnalysis() {
     if (preset === "custom") return custom;
     const days = (PRESETS.find((p) => p[0] === preset) || [])[2];
     return days == null || !newest ? { from: "", to: "" } : { from: iso(newest - days * DAY), to: iso(newest) };
-  }, [preset, custom, newest, PRESETS]);
+  }, [preset, custom, newest]);
   const inRange = (m) => {
     const t = dateOf(m.date);
     const from = range.from ? Date.parse(range.from) : -Infinity;
@@ -102,11 +82,9 @@ export default function ThreatAnalysis() {
     [co, counted],
   );
   const open = sel ? moves.find((m) => keyOf(m) === sel) || null : null;
-  const levels = useMemo(() => levelTable(data), [data]);
-  // only a threat or watch tag is a stance; any other stored tag (e.g. "opportunity") draws no stance colour
-  const levelTag = (l) => stanceOf(levels[l] && levels[l].tag_class);
-  // a level draws a word and a pill only when its stored tag is a stance (threat or watch): the third level is not shown
-  const levelWord = (l) => (levelTag(l) ? levels[l].level_label || "" : "");
+  // only a threat or watch level is a stance; any other stored level draws no word and no stance colour
+  const levelTag = (l) => momentStance(l);
+  const levelWord = (l) => STANCE_WORD[levelTag(l)] || "";
   const threats = moves.filter((m) => levelTag(m.level) === "threat").length;
   const label = co ? co.name : "All competitors";
   const clientName = clientShort();

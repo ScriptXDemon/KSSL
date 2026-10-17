@@ -10,7 +10,6 @@ import { gapCorrelateStrip } from "../../lib/gapModel";
 import { srcChips, attr } from "../../lib/html";
 import { NOT_ASSESSED, has, maturityLabel, maturityWord, positionWord, positionPill, filterInnovations } from "../../lib/innovation";
 import { Review } from "../../components/review/Review";
-import { uiText } from "../../lib/uiText";
 
 /* Not every pipeline row carries an assessed position. `gap`, `horizon`, `whatsNew`
    and `compNote` are analyst fields, and the served record leaves them null when
@@ -27,9 +26,6 @@ export default function Innovation() {
   const { setScope, jumpTo, takePending, searchQuery } = useAppState();
   const clientName = clientShort();
 
-  /* the list heading and the empty text are the stored words of ui.technology_innovation_view */
-  const listHeading = uiText(data, "ui.technology_innovation_view", {}, "list_heading");
-  const emptyText = uiText(data, "ui.technology_innovation_view", {}, "empty_state_text");
   const GAP_HEAD = {
     behind: `Why ${clientName} is behind`,
     parity: `Why ${clientName} is at parity`,
@@ -162,18 +158,18 @@ export default function Innovation() {
       };
     }
     return {
-      title: [catName, listHeading].filter(Boolean).join(" · "),
+      title: `${catName} · Innovations`,
       subtitle: `${list.length} tracked in this domain · none selected`,
       sections: [
         {
-          h: listHeading,
+          h: "Innovations",
           rows: list.map((x) => [x.t, [matOf(x), x.driver, x.horizon].filter(has).join(" · ")]),
         },
       ],
       payload: { domain: catName, innovations: list },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iv, list, catName, clientName, listHeading]);
+  }, [iv, list, catName, clientName]);
   useHeaderReport(headerReport);
 
   const detailBody = () => {
@@ -260,7 +256,7 @@ export default function Innovation() {
                 serving pass did not land. (shell.css hides .srcbadge outright, so this
                 claim was not even on screen -- it was a lie waiting for one CSS line
                 to make it visible.) */}
-            <span className="eyebrow">{listHeading}</span>
+            <span className="eyebrow">{catName} · Innovations</span>
             {filtering ? (
               <span className="lh-note">
                 {`${shown.length} of ${list.length} match "${String(searchQuery).trim()}"`}
@@ -272,7 +268,6 @@ export default function Innovation() {
               {`no innovation in this domain matches "${String(searchQuery).trim()}" - clear the search box or pick another domain`}
             </div>
           ) : null}
-          {!list.length && emptyText ? <div className="empty-note" style={{ padding: "18px 0" }}>{emptyText}</div> : null}
           {shown.map(({ item, index: i }) => (
             <div
               className={`innov${sel === i ? " sel" : ""}`}

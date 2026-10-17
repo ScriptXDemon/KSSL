@@ -20,7 +20,6 @@
 
 import { formatDate } from "../utils/formatDate.js";
 import { sourceKind } from "./articleUrl.js";
-import { uiList } from "./uiText.js";
 
 /* "2026-07-13" -> "13 Jul 2026". The panels print this in their `ago` slot, which
    used to hold "2 hours ago" — a freshness the fabricated rows only claimed. A
@@ -274,30 +273,33 @@ export function partnerNews(data, compId, partnerLabel) {
    whole file was written to end. With no window set, undated articles are kept. */
 export const NEWS_MAX = 15;
 
-/* The windows offered are the rows of ui.competitive_competitor_moment_time_window (code, label, day_count); the
-   "all" key is the reset (no window) and is chrome. */
-export const NEWS_ALL = "all";
+export const NEWS_WINDOWS = [
+  { key: "30d", label: "Last 30 days", days: 30 },
+  { key: "3m", label: "Last 3 months", days: 90 },
+  { key: "6m", label: "Last 6 months", days: 180 },
+  { key: "12m", label: "Last 12 months", days: 365 },
+  { key: "all", label: "All time", days: null },
+];
 
-export function newsWindows(data) {
-  return uiList(data, "ui.competitive_competitor_moment_time_window", {}, "display_order")
-    .filter((r) => r.time_window_code && String(r.time_window_label || "").trim() && Number(r.day_count) > 0)
-    .map((r) => ({ key: r.time_window_code, label: String(r.time_window_label).trim(), days: Number(r.day_count) }));
-}
+export const NEWS_WINDOW_DEFAULT = "12m";
 
-/* the stored default window opens first; none stored means every date */
-export function newsWindowDefault(data) {
-  const row = uiList(data, "ui.competitive_competitor_moment_time_window", { is_default: true }, "display_order")[0];
-  return row && row.time_window_code ? row.time_window_code : NEWS_ALL;
-}
+/* the date-range menu of the Profile news list */
+export const NEWS_LIST_RANGES = [
+  { key: "7d", label: "Last 7 days", days: 7 },
+  { key: "30d", label: "Last 30 days", days: 30 },
+  { key: "3m", label: "Last 3 months", days: 91 },
+  { key: "6m", label: "Last 6 months", days: 182 },
+  { key: "12m", label: "Last 12 months", days: 365 },
+];
 
-export function windowDays(key, windows) {
-  const w = (windows || []).find((x) => x.key === key);
+export function windowDays(key) {
+  const w = NEWS_WINDOWS.find((x) => x.key === key);
   return w ? w.days : null;
 }
 
-export function windowLabel(key, windows) {
-  const w = (windows || []).find((x) => x.key === key);
-  return w ? w.label : "";
+export function windowLabel(key) {
+  const w = NEWS_WINDOWS.find((x) => x.key === key);
+  return w ? w.label : "All time";
 }
 
 /* Articles published within `days` of `now`. days null/0 -> everything, undated kept. */

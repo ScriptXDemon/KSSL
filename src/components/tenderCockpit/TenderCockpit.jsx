@@ -5,7 +5,6 @@ import { cockpit } from "../../lib/tenderIntel.js";
 import "../../styles/market-overview.css";
 import "../../styles/tender-intel.css";
 import { Review } from "../review/Review";
-import { uiText } from "../../lib/uiText";
 
 /* Tender Intelligence, at a glance: the stored tables of data.topOpportunities in the platform's own table style
    (the Market Intelligence .ovt table). Rows, their order, the fit word, the model, the rival and the revenue are
@@ -19,17 +18,7 @@ export default function TenderCockpit({ onOpen }) {
   const { data } = useData();
   const { jumpTo } = useAppState();
   const { tenders: top, projects, moves, notes } = cockpit(data);
-  /* the section titles are the stored words of ui.market_top_opportunity_view; the empty text is the stored
-     ui.market_view row of the top-opportunity page */
-  const sect = {
-    top: uiText(data, "ui.market_top_opportunity_view", { view_code: "top-opportunity" }, "top_tenders_section_label"),
-    projects: uiText(data, "ui.market_top_opportunity_view", { view_code: "top-opportunity" }, "projects_section_label"),
-    moves: uiText(data, "ui.market_top_opportunity_view", { view_code: "top-opportunity" }, "next_moves_section_label"),
-  };
-  if (!top.length && !projects.length && !moves.length) {
-    const empty = uiText(data, "ui.market_view", { view_id: "top-opportunity" }, "empty_state_text");
-    return empty ? <div className="ovc-empty">{empty}</div> : null;
-  }
+  if (!top.length && !projects.length && !moves.length) return null;
 
   const client = clientShort();
   const tenderOf = (id) => (data.tenders || []).find((t) => String(t.id) === String(id)) || null;
@@ -59,7 +48,7 @@ export default function TenderCockpit({ onOpen }) {
       {top.length ? (
         <div className="ovt">
           <div className="ovc-h">
-            <span className="eyebrow">{sect.top}</span>
+            <span className="eyebrow">Top tenders</span>
             {notes.topTenders ? <span className="ovc-note">{notes.topTenders}</span> : null}
           </div>
           <div className="ovt-scroll">
@@ -100,7 +89,7 @@ export default function TenderCockpit({ onOpen }) {
       {projects.length ? (
         <div className="ovt">
           <div className="ovc-h">
-            <span className="eyebrow">{sect.projects}</span>
+            <span className="eyebrow">Projects to win before they tender</span>
             {notes.projects ? <span className="ovc-note">{notes.projects}</span> : null}
           </div>
           <div className="ovt-scroll">
@@ -143,7 +132,7 @@ export default function TenderCockpit({ onOpen }) {
       {moves.length ? (
         <div className="ovt">
           <div className="ovc-h">
-            <span className="eyebrow">{sect.moves}</span>
+            <span className="eyebrow">Next moves</span>
             {notes.nextMoves ? <span className="ovc-note">{notes.nextMoves}</span> : null}
           </div>
           <div className="ovt-scroll">
