@@ -751,6 +751,36 @@ def award_to_signal(cur, ctx: dict) -> None:
         ctx["notes"].append(f"award_to_signal: tender {tid} -> signal {sid}: {label}")
 
 
+TENDER_FACT_COLS = ("title", "buyer_name", "country_name", "description", "published_date", "closing_date", "notice_reference", "tender_number",
+                    "value_amount", "value_currency", "value_text", "quantity", "quantity_unit", "frequency", "latest_milestone",
+                    "local_presence_requirement", "registration_requirement", "submission_method", "awarded_to", "award_date", "award_value_text")
+
+
+@hook("tender_source_facts")
+def tender_source_facts(cur, ctx: dict) -> None:
+    """Every stored fact column of a tender the prompt filled without its own _sources gets a fact_source row that names the stored
+    API record (staging.tender_raw: source api + notice id) and the notice url. The prompt reads that record, so the record IS the source
+    of those values; the quote says so and is not a quotation. Columns the model sourced itself are left alone (A.0.2). No AI."""
+    from backend.sources import classify
+    for tid in ids(ctx, "market_tender"):
+        t = _row(cur, "market_tender", "tender_id", tid)
+        if t is None:
+            continue
+        cur.execute("SELECT source_api, notice_id, notice_url FROM staging.tender_raw WHERE tender_id = %s LIMIT 1", (t["tender_id"],))
+        r = cur.fetchone()
+        url = t.get("source_url") or (r["notice_url"] if r else None)
+        if not url:
+            continue
+        cur.execute("SELECT column_name FROM staging.fact_source WHERE table_name = 'market_tender' AND row_id = %s", (str(t["tender_id"]),))
+        have = {x["column_name"] for x in cur.fetchall()}
+        tier = classify(url, ()) or "stored"
+        quote = f"stored API record {r['source_api']} {r['notice_id']}" if r else "notice page"
+        for col in TENDER_FACT_COLS:
+            if t.get(col) not in (None, "") and col not in have:
+                cur.execute("INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, quote, retrieved_at) "
+                            "VALUES ('market_tender', %s, %s, %s, %s, %s, now())", (str(t["tender_id"]), col, url, tier, quote))
+
+
 def rebuild_filter_options(cur, pillars=("competitive", "technology", "market"), data: str = "staging", ui: str = "staging_ui", live: bool = False) -> dict:
     """Rebuild the filter-option tables from the distinct stored values: competitive_filter_option, technology_filter_option (ui schema)
     and market_filter_option (data schema), with record counts. Labels come from ui.code_label where the column has rows there.
@@ -1038,6 +1068,9 @@ def selftest_db() -> None:
         conn.rollback()
         conn.close()
 
+
+from prompts import derive_tech  # noqa: E402,F401  (technology-pillar hooks: tech_glance, innovation_gate, innovation_stance, patent_trend, technology_metric)
+from prompts import derive_comp  # noqa: E402,F401  (competitive research hooks: partnership_overlap, project_story, geo_match_code)
 
 if __name__ == "__main__":
     import sys

@@ -583,8 +583,13 @@ def documents(cur, spec: dict, subject: dict) -> tuple[str, list[str]]:
             blocks = raw_docs.resolve(cur, d, subject)
             raw_urls.update(b.url for b in blocks)
             parts += [f"[SOURCE {b.url}]\n{b.text}" for b in blocks]
+        elif src == "tender_raw":                   # the stored API record of a tender notice (prompts/tender_docs.py); "" = no raw row, the next entry is tried
+            from prompts import tender_docs
+            text = tender_docs.resolve(cur, d, subject)
+            if text:
+                parts.append(f"[SOURCE {subject.get(d.get('url_field', 'source_url'))}]\n{text}")
         else:
-            raise PromptError(f"subject.documents: unknown 'from: {src}' (use url, sql or source_document)")
+            raise PromptError(f"subject.documents: unknown 'from: {src}' (use url, sql, source_document or tender_raw)")
     n_url = sum(1 for d in docs if d.get("from") == "url" and subject.get(d["field"]) and str(subject.get(d["field"])) not in raw_urls)
     if failures and not has_other and len(failures) == n_url:
         raise DocumentError("; ".join(failures))

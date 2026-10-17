@@ -16,49 +16,6 @@ import { STANCE_WORD as DIR_WORD, stanceOf, TENDER_WORD as tenderWord } from "..
    labels its rows by kind rather than by stance (Technology: ADOPTABLE, or nothing for a
    competitor advance) passes it so the panel says what the row says -- not "Watch". An
    empty word draws no pill. Without it, the stance pill as before. */
-/* Probability (rows, 5 at top) x impact (columns) grid with the signal's cell lit; the
-   label next to it is the stored one, computed by code from these scores (derive.signal_label). */
-function RiskBox({ risk }) {
-  const cells = [];
-  for (let p = 5; p >= 1; p -= 1) {
-    for (let im = 1; im <= 5; im += 1) {
-      const hot = p >= 4 && im >= 4;
-      const on = p === risk.probability && im === risk.impact;
-      cells.push(<span key={`${p}-${im}`} className={`rm-c${hot ? " hot" : ""}${on ? " on" : ""}`} />);
-    }
-  }
-  const row = (k, v) => (v || v === 0 ? (
-    <div className="cd-frow"><span className="cd-fline"><span className="cd-fk">{k}</span><span className="cd-fv">{v}</span></span></div>
-  ) : null);
-  return (
-    <div className="ctx-sec">
-      <span className="eyebrow">Risk position</span>
-      <div className="rm-wrap">
-        <div className="rm">
-          <span className="rm-y">Probability ↑</span>
-          <div className="rm-g">{cells}</div>
-          <span className="rm-x">Impact →</span>
-        </div>
-        <div className="cd-facts" style={{ flex: 1 }}>
-          {row("Probability", `${risk.probability}/5 · ${risk.probabilityLabel}`)}
-          {row("Impact", `${risk.impact}/5 · ${risk.impactLabel} · ${risk.dimension}${risk.dimension2 ? `, ${risk.dimension2}` : ""}`)}
-          {row("Time to effect", risk.timeToEffect)}
-          {row("Same product type", risk.subtypeMatch)}
-          {row("In a KSSL market", risk.inMarket)}
-          {row("Direction", risk.direction)}
-        </div>
-      </div>
-      {risk.rows && risk.rows.length ? (
-        <div className="rm-dims">
-          {risk.rows.map(([k, v]) => (
-            <span key={k}>{k} <b>{v}</b></span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export default function DetailPanel({ detail, onClose, badge }) {
   const { data } = useData();
   const { jumpTo } = useAppState();
@@ -134,11 +91,9 @@ export default function DetailPanel({ detail, onClose, badge }) {
           (f) => !DROPPED_FACTS.has(String(f[0]).trim().toLowerCase()),
         );
   const bullets = articleBullets(detail.lens);
-  /* signal v2 (detail.risk set): every key point with its label, and the prompt's facts,
-     which the six-field glance above replaces in the glance list */
-  const v2 = !!detail.risk;
+  /* signal v2 (detail.v2): every key point, with its label */
+  const v2 = !!detail.v2;
   const keyPoints = v2 ? (detail.lens || []).filter((p) => p && p[1]) : [];
-  const v2Facts = v2 ? (detail.facts || []).filter((f) => f && f[1]) : [];
 
   return (
     <div className="ctx v-overview revealed">
@@ -317,24 +272,6 @@ export default function DetailPanel({ detail, onClose, badge }) {
             </ul>
           </div>
         ) : null}
-
-        {v2 && v2Facts.length ? (
-          <div className="ctx-sec">
-            <span className="eyebrow">Facts</span>
-            <div className="cd-facts">
-              {v2Facts.map((f, i) => (
-                <div className="cd-frow" key={`f-${i}`} title={typeof f[2] === "string" ? f[2] : undefined}>
-                  <span className="cd-fline">
-                    <span className="cd-fk">{f[0]}</span>
-                    <span className="cd-fv">{f[1]}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {v2 ? <RiskBox risk={detail.risk} /> : null}
 
         {v2 && detail.story && detail.story.steps.length ? (
           <div className="ctx-sec">

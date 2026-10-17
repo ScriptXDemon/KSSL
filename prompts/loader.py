@@ -428,6 +428,8 @@ class Loader:
             r = r.parent
         if ref == "ref_product":
             return next((x.resolved["ref_competitor"]["id"] for x in chain if "ref_competitor" in x.resolved), self.subject.get("competitor_id"))
+        if ref == "ref_signal":
+            return self.subject.get("competitor_id")
         if ref == "ref_client_spec":
             return next((x.resolved["ref_client_product"]["id"] for x in chain if "ref_client_product" in x.resolved),
                         self.subject.get("client_product_id"))

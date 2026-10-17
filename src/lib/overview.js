@@ -128,6 +128,9 @@ export function compareCards(data) {
   return (a, b) =>
     (DIR_RANK[a.dir] === undefined ? 9 : DIR_RANK[a.dir]) -
       (DIR_RANK[b.dir] === undefined ? 9 : DIR_RANK[b.dir]) ||
+    /* card.risk is probability x impact, computed by the backend (a_competitive.signal risk);
+       a sort key only, never shown. Riskier first inside a stance band. */
+    (b.risk || 0) - (a.risk || 0) ||
     when(b) - when(a) ||
     bySeq(a, b);
 }

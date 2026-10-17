@@ -221,7 +221,6 @@ def evidence_parts(rows):
 
 GLANCE = (("glance_who", "Who"), ("glance_move", "Move"), ("glance_where", "Where"),
           ("glance_impact", "Impact on KSSL"), ("glance_third_party", "Third party"), ("glance_when", "When"))
-IMPACT_DIMS = ("orders_revenue", "market_standing", "supply_chain", "technology_gap", "partnerships", "policy_export")
 
 
 def signal_v2(database, row, det, labels, steps_by, stories, news_by, products):
@@ -232,19 +231,8 @@ def signal_v2(database, row, det, labels, steps_by, stories, news_by, products):
     story_id = text(row.get("story_id"))
     story = stories.get(story_id) or {}
     return {
+        "v2": True,
         "glance": [[name, det.get(col)] for col, name in GLANCE if det and det.get(col)],
-        "risk": {
-            "probability": row.get("probability"), "probabilityLabel": lab("probability", row.get("probability")),
-            "impact": row.get("impact"), "impactLabel": lab("impact", row.get("impact")),
-            "dimension": lab("impact_dimension", row.get("impact_dimension")),
-            "dimension2": lab("impact_dimension_2", row.get("impact_dimension_2")) if row.get("impact_dimension_2") else None,
-            "rows": [[lab("impact_dimension", d), row.get("impact_" + d)] for d in IMPACT_DIMS if row.get("impact_" + d) is not None],
-            "timeToEffect": lab("time_to_effect", row.get("time_to_effect")),
-            "subtypeMatch": lab("subtype_match", row.get("subtype_match")),
-            "inMarket": lab("in_client_market", row.get("in_client_market")),
-            "direction": lab("direction", row.get("direction")),
-            "rule": row.get("rule_version"),
-        },
         "story": {
             "title": story.get("title"),
             "label": lab("label_after", story.get("current_label"), "story_step"),
@@ -298,6 +286,8 @@ def build_signals(database, competitors, details):
             "sowhat": row.get("summary"),
             "url": url,
             "image": row.get("thumbnail_url"),
+            # ponytail: risk = probability x impact (1-25), sort key only, never displayed
+            "risk": (row.get("probability") or 0) * (row.get("impact") or 0) or None,
             "ksslImpact": det.get("why_it_matters") if det else None,
             "ksslImpactKind": lower(classification),
             "sec": [],
@@ -329,7 +319,7 @@ def build_signals(database, competitors, details):
     return cards
 
 
-TECH_KIND = {"competitor_advance": "rival-advance", "adoptable": "tech-advance"}
+TECH_KIND = {"competitor_advance": "rival-advance", "adoptable": "tech-advance", "threat_to_position": "threat", "industry_trend": "trend"}
 
 
 def build_tech_articles(database, competitors, details):
@@ -380,6 +370,9 @@ def build_tech_articles(database, competitors, details):
             "ksslImpactKind": kind,
             "sec": [],
             "_src": card_src,
+            # v2 scores (maturity 1-5, relevance 1-5, horizon, KSSL position) for the maturity x relevance view; the label is `dir`
+            "maturity": row.get("maturity"), "relevance": row.get("relevance"), "horizon": row.get("horizon"),
+            "horizonSource": row.get("horizon_source"), "clientPosition": row.get("client_position"), "storyId": row.get("story_id"),
         }
         cards.append(card)
         details[aid] = {

@@ -28,6 +28,7 @@ REFS = {
     "ref_opportunity": ("market_opportunity", "opportunity_id", ["title"], None),
     "ref_location": ("competitive_geo_location", "location_id", ["country_name"], None),
     "ref_innovation": ("technology_innovation", "innovation_id", ["title"], None),
+    "ref_signal": ("competitive_signal", "signal_id", ["title"], "company_id"),            # a moment points at the signal it rolls up (scope: the subject competitor)
     "ref_client_spec": ("client_product_specification", "specification_id", ["spec_name"], "client_product_id"),
     "ref_competitor_spec": ("competitive_product_specification", "spec_id", ["spec_label"], "product_id"),
 }
