@@ -1,5 +1,16 @@
 # Visual verification against the Cummins reference
 
+> **Chrome restore (binding, supersedes every "stored word / ui row" statement below).** The data-driven rule applies to the
+> serving tables only. Navigation, pillar names, page headings, tabs, tile labels, time windows, filter controls and their
+> option lists are FRONT-END CODE, defined as the Cummins UI defines them (`src/lib/route.js`, `src/lib/chrome.js`); no
+> `ui.*` chrome table is read by the front end any more, so a database with empty `ui` tables shows the full chrome
+> (`test_ui_labels.mjs` runs every lane on a dataset with all `ui` tables emptied). Filters compare the option CODE against
+> the tag stored on each row (stance, kind, country, category, region). What stays data: every fact, name, number, date and
+> judgement (including a moment's level, an innovation's maturity and position words, a signal's impact eyebrow, a
+> recommendation). The two stances are threat and watch. Rows below that say a label "is the stored ..." describe the
+> earlier design and are historical.
+
+
 How it was done. Every route of the rail (`src/lib/route.js` RAIL, 15 routes) was opened at 1440x900 in Chromium on
 
 - KSSL: the live build, `http://127.0.0.1:5190`, backend `:8610` on `kssl_test_serving` (the fictional seed, built with `bash db/make_test_pair.sh --approve-all`), and
@@ -132,17 +143,13 @@ Still open: none.
 
 ## Label sources
 
-What the screens' words are made of, so a hardcoded word that looks identical to the reference is not mistaken for data.
+What the screens' words are made of.
 
-Wired to the database (read with `src/lib/uiText.js`, covered by `test_ui_labels.mjs`, `test_filter_counts.mjs` and e2e FE-006 / FE-022 / "stored words"): the pillar names Market and Technology (`ui.market_pillar.display_name`, `ui.technology_pillar.pillar_name`); the Tenders and Market Intelligence filter labels and the Tenders sort note (`ui.market_tenders_view`); the Top-opportunity section titles (`ui.market_top_opportunity_view.*_section_label`); the Product Evaluation tab labels, order and enabled flag (`ui.competitive_positioning_tab`); the impact eyebrow of a signal (`serving.competitive_signal_detail.impact_eyebrow`, shipped as `details[id].eyebrow`); the page empty texts of Tenders, Top opportunity, Market Intelligence and Global Requirements (`ui.market_view.empty_state_text`, `ui.market_global_requirement_view.empty_state_text`); competitive overview tiles (`ui.competitive_metric`); stance pills, badge words and the stance words in the detail panel and Projects (`ui.filter_option` group `stance`); technology tiles (`serving.technology_metric`); technology pills, groups and badge (`ui.filter_option` group `technology-feed`); technology heading, sequence menu, sequence label and search placeholder (`ui.technology_ui_view`); market top-opportunity tiles and heading (`ui.market_top_opportunity_view`); market feed pills, groups and badges (`ui.filter_option` group `market-feed`); market report tiles (`ui.market_metric`); the rail labels, rail order and page headings of all three pillars (`ui.competitive_navigation`, `ui.market_view`, `ui.technology_ui_view`); Market Intelligence tabs (`ui.market_intelligence_tab`); the Moment time-window chips and the Profile news windows (`ui.competitive_competitor_moment_time_window`); Moment level words (`ui.competitive_competitor_moment_level`); the Innovation maturity and position words (`serving.technology_innovation_status.maturity_label` / `position_label`, shipped as `matLabel` / `gapLabel`; the stored codes stay the colour keys), its list heading and empty text (`ui.technology_innovation_view`); the Geo dropdown labels and "all" options (`ui.competitive_geo_filter`); Projects filters and sequence (`ui.ui_project_*` through `projectsConfig`). A row, label or table that is missing draws nothing (no tile, no pill, no tab, no rail item); there is no default set.
+Front-end code (`src/lib/route.js`, `src/lib/chrome.js`, and the page files): the three pillar names (Competitive, Market, Technology); the rail items of every pillar in order (Overview / Competitor Profile / Competitor Moment / Products / Product Evaluation / Partnership / Projects / Geo Footprint / Patent; Top opportunity / Tenders / Global Requirements / Market Intelligence; Overview / Innovations) and every page heading; the three overview lanes (heading, tile labels, filter pills, group headings, badge words); the Market report tiles; the Market Intelligence tabs; the Product Evaluation tabs; the Competitor Moment and Profile time windows; the Geo, Tenders and Market filter labels; the Projects region filter and sequence menu; the section titles of the cockpit; the page empty texts.
 
-Data, not labels: the options of every country, category, revenue-tier, origin and company filter are the distinct stored values of the rows on screen. The only literal in those controls is the reset word "All".
+Data (the serving tables): every fact, name, number, date and judgement; the stance stored on a row (threat or watch; any other value means no stance); a moment's level; an innovation's maturity and position words (`matLabel` / `gapLabel`, with the code's own word when none is stored); a signal's impact eyebrow (`details[id].eyebrow`, named by the signal's kind when none is stored); the project stage steps (the stages the projects carry, `projectsConfig.stageSteps`); the options of every country, category, revenue-tier, origin and company filter (the distinct stored values of the rows on screen).
 
-Chrome by decision (MAPPING E5): the pillar name "Competitive" (no ui table holds it: `ui.competitive_pillar` carries the account, the brand and the active-pillar code); the competitive overview heading "Competitive Intelligence"; the empty-feed notes of the overview feeds (`ui.competitive_overview_feed.empty_message` is one message per filter-state row, not one text) and the specific per-section notes of Market Intelligence ("no past award with a named winner", ...); the word "Filter" on the filter bars; the sequence menus and search placeholder of the competitive and market overviews; the reset pills "All" / "All time" / "All dates"; archived and hidden view titles (Finances, Gap Analysis, Awarded and Closed Tenders); block titles, column headers, parameter labels, call-to-action words.
-
-No place to render: the Global Requirements filter labels and sort note (`ui.market_global_requirement_filter`, `ui.market_global_requirement_view.sort_label`). The Global Requirements page is the Overview feed with Search and Sequence and has no filter controls in the reference or in the port, so there is nothing to label. The Top-opportunity section notes already come from the dataset (`topOpportunities.notes`). Every label MAPPING E maps to a ui table or a stored column is read from it (the Innovation and Geo ones were still literals until the final review round; `test_ui_labels.mjs` now scans for them).
-
-New table this round: `ui.filter_option(filter_group, option_code, option_label, badge_label, display_order)` (staging_ui + ui, guard trigger, seeded). It is meant to be filled by the prompts. Its groups: `stance` (threat, watch), `market-feed` (tenders, opportunities), `technology-feed` (competitor-advances, adoptable).
+Still read from `ui` tables (not chrome, not part of this restore): the partnership legend and overlap texts (`ui.partner_category`, `ui.partner_overlap_kind`, `ui.partner_overlap_effect`) and `ui.section_visibility` (shipped as `sectionVisibility`; a missing key is hidden).
 
 ## Cummins hide rules preserved
 
@@ -150,12 +157,12 @@ The reference source (read only) was audited for every place it deliberately hid
 
 | Cummins hide rule (file:line) | Where and how the port keeps it |
 |---|---|
-| `lib/dataset.js:344-347` the competitive overview drops the third stance's filter and its cards | `src/lib/lanes.js` builds the pills from the stored stance rows (threat and watch only); `src/lib/dataset.js` marks a card whose stored stance is neither as `noStance` and leaves it off the competitive overview; no stance is kept anywhere (`uiText.stanceOf`). `test_threat_logic.mjs`, `test_ui_labels.mjs` |
+| `lib/dataset.js:344-347` the competitive overview drops the third stance's filter and its cards | `src/lib/chrome.js` builds the pills from the stored stance rows (threat and watch only); `src/lib/dataset.js` marks a card whose stored stance is neither as `noStance` and leaves it off the competitive overview; no stance is kept anywhere (`chrome.stanceOf`). `test_threat_logic.mjs`, `test_ui_labels.mjs` |
 | `pages/overview/Overview.jsx:86` no third-stance badge anywhere; `pages/competitive/ThreatAnalysis.jsx:21` its Moment level word is empty, so it draws no pill | no third stance in `src` (a test greps for it); the Moment page draws a word and pill only when the stored level's tag is a stance (`ThreatAnalysis.jsx levelWord`) |
 | `pages/competitive/Profile.jsx:791`, `Products.jsx:1376`, `Projects.jsx:156`, `ThreatAnalysis.jsx:124` the dot colour falls back to watch for any other value | the dot is drawn only for a stored threat or watch; any other value draws no dot (no stance is invented) |
 | `lib/geo.js:47`, `pages/competitive/Geo.jsx:695` the client's own marker reuses the third-stance class | class `client` (`geo.css .pk-dot.client`, `.geo-d-h.dir-client`); no stance word |
 | `lib/overview.js:694` the third-stance tile predicate | removed with the stance (`overview.js tilePredicate`); `TILE_LABELS` has no such entry (`test_feed_state.mjs`) |
-| `lib/dataset.js:371` only ADOPTABLE is labelled on a technology row | `lanes.js technologyLane`: the stored badge word of each option; the competitor-advance option has none, so no badge |
+| `lib/dataset.js:371` only ADOPTABLE is labelled on a technology row | `chrome.js technologyLane`: the stored badge word of each option; the competitor-advance option has none, so no badge |
 | `lib/dataset.js:373`, `:696` the All / Competitor / Adoptable and All / Latest Tenders / Perceived Opportunities buttons are off on those pillars; `:714` and `Overview.jsx:382` the group banner is off | `hideFilterButtons: true` on both lanes (`dataset.js`); `Overview.jsx` renders no group banner; the pills stay in the config for the tiles and the count line |
 | `lib/dataset.js:690` the TENDER badge reads green | kind `tender` gives `.dirtag.k-tender` (`shell.css`) |
 | `components/metricsStrip/MetricsStrip.jsx:82,113,125` two slots empty, no tile dot, no descriptive subline (the warning subline stays) | the unused slots are empty cells (`lanes.js withBlanks`, `MetricsStrip` `blank`); dot and subline code unchanged |
