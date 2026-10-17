@@ -8,6 +8,7 @@
 import { pairingReason } from "./specs.js";
 import { wireTendersWithRealDays } from "./tenderCalc.js";
 import { tenderGist, tenderSummary } from "./tenderRow.js";
+import { fitOf } from "./tenderIntel.js";
 import { titleCaseHeadline, smartTitleCase, formatProductName, tidySeparators } from "./profile.js";
 import { formatDate } from "../utils/formatDate.js";
 // the patent country vocabulary. patents.js imports nothing from here, so this edge
@@ -391,7 +392,7 @@ export function wireDataset(raw) {
       const cards = shown.map((t, i) => {
         const id = `tender-${t.id}`;
         const live = hasValue(t);
-        const isGo = t.lean === "go";
+        const isGo = fitOf(t) === "strong";
         const urgent = t.dl >= 1 && t.dl <= ATTENTION_DAYS;
         const where = [t.issuer, t.country].filter(Boolean).join(" · ");
         /* The closing DATE, in the one house format -- not `t.deadline`, which the

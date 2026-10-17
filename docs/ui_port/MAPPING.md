@@ -278,6 +278,8 @@ One row per field the Cummins frontend reads (or, for globals Cummins ships and 
 | tpAllCountries | [country] | Tenders.jsx, countryFacet.js | existing | serving.market_filter_option.option_label where filter_type='country' |
 | tpAllCats | [category] | Tenders.jsx | existing | serving.market_filter_option.option_label where filter_type='category' |
 
+> DECISION (user, 2026-10-17): the Market > Top opportunity page no longer reads topOpportunities. Like Cummins it builds its tables in the browser from the stored fields (src/lib/tenderIntel.js): Top tenders = open tenders with a stored clientFit/fit, ordered strong > partial > weak, then the nearest closingDate, then the larger valueAmount (no stored fit = not listed); model = matches[0].n, rival = competitorFit[0], revenue = revenueEstimate / expectedRevenue / value as stored, else a dash (never computed); Projects = data.projects (stage note, the project's own competitor as the rival, a stored fit/model/revenue only when the project carries one); Next moves = tenders[].actions not yet due. The topOpportunities tables and their backend stay as they are, unread by this page. The tender card (Tenders.jsx) always prints Buyer, Country, Category, Value, Status and the client fit row; an empty cell prints the chrome.js empty word.
+
 ### topOpportunities  (KSSL-only global that feeds TenderCockpit; Cummins computes the same tables from tenders with tenderIntel.js - ruling R6)
 
 | global | field | read by | disposition | KSSL source |
