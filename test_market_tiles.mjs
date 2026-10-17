@@ -56,17 +56,6 @@ const raw = {
       ],
     },
   },
-  /* the lane's words are database rows: the four tile labels and the two feed pills */
-  database: { ui: {
-    market_top_opportunity_view: [{
-      page_heading: "Top opportunity", latest_tenders_metric_label: "Latest tenders", strong_fits_metric_label: "Strong fits",
-      tender_value_metric_label: "Tender value", perceived_opportunities_metric_label: "Perceived opportunities",
-    }],
-    filter_option: [
-      { filter_group: "market-feed", option_code: "tenders", option_label: "Latest Tenders", badge_label: "TENDER", display_order: 1 },
-      { filter_group: "market-feed", option_code: "opportunities", option_label: "Perceived Opportunities", badge_label: "OPPORTUNITY", display_order: 2 },
-    ],
-  } },
   techCats: [], innovations: {}, matchups: {}, details: {}, competitorNews: {},
   patents: {}, competitors: {},
   marketCards: [
@@ -102,18 +91,10 @@ const tile = (l) => m.find((x) => x.key === KEY[l]) || {};
 const v = (l) => tile(l).v;
 const act = (l) => tile(l).act;
 if (m.length !== 5 || m.filter((x) => x.blank).length !== 1) fail(`the strip is four stored tiles and one empty slot, got ${m.length} tiles`);
-if (tile("Latest tenders").l !== "Latest tenders") fail("the tile label is the stored label");
-{
-  // editing the stored label changes the tile's words and nothing else
-  const d2 = wireDataset({ ...JSON.parse(JSON.stringify(raw)), database: { ui: { ...raw.database.ui, market_top_opportunity_view: [{ ...raw.database.ui.market_top_opportunity_view[0], latest_tenders_metric_label: "Fresh bids" }] } } });
-  const m3 = metricsFor(d2.overviewConfig.market, "market", d2);
-  const t3 = m3.find((x) => x.key === "latest_tenders");
-  if (t3.l !== "Fresh bids" || t3.v !== "3") fail(`a renamed label must follow the database and keep its count, got ${t3.l} ${t3.v}`);
-  // no label rows, no tiles and no pills
-  const d3 = wireDataset({ ...JSON.parse(JSON.stringify(raw)), database: { ui: {} } });
-  if (metricsFor(d3.overviewConfig.market, "market", d3).length !== 0) fail("no stored tile labels must draw no tiles");
-  if ((d3.overviewConfig.market.filters || []).length !== 0) fail("no stored pill labels must draw no pills");
-}
+// the tile words are the front end's own (chrome.js), the same with or without any ui table in the dataset
+if (JSON.stringify(m.filter((x) => !x.blank).map((x) => x.l)) !== JSON.stringify(["Latest tenders", "Strong fits", "Tender value", "Perceived opportunities"]))
+  fail("the four tile labels are the front-end words");
+if (JSON.stringify((cfg.filters || []).map((f) => f.l)) !== JSON.stringify(["All", "Latest Tenders", "Perceived Opportunities"])) fail("the pills are the front-end words");
 if (v("Latest tenders") !== "3") fail(`Latest tenders reads ${v("Latest tenders")}, 3 are on the shortlist`);
 if (v("Strong fits") !== "—") fail(`Strong fits reads ${v("Strong fits")}, no tender is graded so it must read "—"`);
 // the tile shows the stored amount in its own currency; nothing is converted

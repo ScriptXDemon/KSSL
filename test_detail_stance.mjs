@@ -12,8 +12,8 @@ const overview = readFileSync(new URL("./src/pages/overview/Overview.jsx", impor
 assert.ok(!/detail\.dir \|\| "watch"/.test(panel), "no default stance in DetailPanel");
 // only a threat or watch stance is read off a detail; anything else is "none"
 assert.ok(/stanceOf\(detail\.dir\) \|\| "none"/.test(panel));
-// the stance words are the ui.filter_option rows (stanceWords holds threat and watch only), so "none" draws no pill
-assert.ok(/const DIR_WORD = stanceWords\(data\)/.test(panel));
+// the stance words are the front-end STANCE_WORD (threat and watch only), so "none" draws no pill
+assert.ok(/STANCE_WORD as DIR_WORD/.test(panel));
 assert.ok(!/favou?rable|\bfav\b/i.test(panel), "no third stance in DetailPanel");
 // the ad-hoc details opened from the cockpit hold no dir
 const adhoc = overview.match(/select\(id, \{[\s\S]*?\}\);|select\(`tender-\$\{t\.id\}`, \{[\s\S]*?\}\);/g);
