@@ -12,7 +12,7 @@ import { sourceHref } from "../../components/sourceLink/SourceLink.jsx";
 import { srcChips } from "../../lib/html";
 import { Review } from "../../components/review/Review.jsx";
 
-/* Competitor Moment: what each tracked competitor has just done, newest first, with what it
+/* Competitor Movement (code name: moment): what each tracked competitor has just done, newest first, with what it
    means for the client. Every row is one dated, sourced move from `competitorNews` (the same
    list the Competitor Profile reads); nothing is computed beyond counting them. Moves are plain rows: the article's picture and date
    on the left, what happened on the right; a click opens the analysis in the white panel beside the list. Today / Week / Month (or a From-To range) window them, counted
@@ -92,14 +92,14 @@ export default function ThreatAnalysis() {
   useEffect(() => {
     setScope("competitive", { moves: moves.length, competitor: co ? co.cid : null }, {
       pillar: "Competitive",
-      view: "Competitor Moment",
+      view: "Competitor Movement",
       selection: label,
     });
   }, [moves.length, co, label, setScope]);
 
   // memoised: an inline object here made the header report re-fire on every render
   const report = useMemo(() => ({
-    title: `${label}: competitor moment`,
+    title: `${label}: competitor movement`,
     subtitle: `${moves.length} move${moves.length === 1 ? "" : "s"} ${range.from ? `from ${range.from} to ${range.to}` : "on record"}`,
     sections: [{
       heading: "Moves, newest first",
@@ -110,7 +110,7 @@ export default function ThreatAnalysis() {
   useHeaderReport(report);
 
   if (!roster.length) {
-    return <div className="empty-note">No competitor moments on record.</div>;
+    return <div className="empty-note">No competitor movements on record.</div>;
   }
 
   const row = (cid, name, n, dot, all) => (
@@ -153,7 +153,7 @@ export default function ThreatAnalysis() {
       <div className="proj-main" style={{ overflowY: "auto", padding: "22px 28px 40px" }}>
         <div className="proj-co-header">
           <div className="proj-co-title-group">
-            <span className="proj-co-eyebrow">Competitor Moment</span>
+            <span className="proj-co-eyebrow">Competitor Movement</span>
             <h1 className="proj-co-name">{label}</h1>
             <div className="proj-co-sub">
               <span>{moves.length} {moves.length === 1 ? "move" : "moves"} in this window · {threats} graded a threat</span>

@@ -99,7 +99,7 @@ export function marketLane() {
 /* the badge word of a promoted tender */
 export const TENDER_WORD = "Tender";
 
-/* ---- Competitor Moment ----------------------------------------------------------------------------------------- */
+/* ---- Competitor Movement --------------------------------------------------------------------------------------- */
 /* [key, label, days back from the newest move]; null days = every date */
 export const MOMENT_PRESETS = [["today", "Today", 0], ["week", "Week", 6], ["month", "Month", 29], ["all", "All", null]];
 

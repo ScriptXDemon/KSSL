@@ -414,7 +414,7 @@ test("front-end words: pillar names, rail, tender filters and sort note, cockpit
   expect((await page.locator(".topnav .pill").allInnerTexts()).map(lc)).toEqual(["competitive", "market", "technology"]);
   // each pillar's rail: its items in order, with the reference words
   const RAILS = {
-    competitive: ["Overview", "Competitor Profile", "Competitor Moment", "Products", "Product Evaluation", "Partnership", "Projects", "Geo Footprint", "Patent"],
+    competitive: ["Overview", "Competitor Profile", "Competitor Movement", "Products", "Product Evaluation", "Partnership", "Projects", "Geo Footprint", "Patent"],
     market: ["Top opportunity", "Tenders", "Global Requirements", "Market Intelligence"],
     technology: ["Overview", "Innovations"],
   };

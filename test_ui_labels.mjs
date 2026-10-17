@@ -116,7 +116,7 @@ for (const [name, make] of [["fixture", clone], ["empty ui tables", noUi]]) {
   assert.deepEqual(PILLARS, ["competitive", "market", "technology"]);
   assert.deepEqual(PILLARS.map((p) => PILLAR_LABEL[p]), ["Competitive", "Market", "Technology"]);
   const all = (p) => RAIL[p].map((r) => r.label);
-  assert.deepEqual(all("competitive"), ["Overview", "Competitor Profile", "Competitor Moment", "Products", "Product Evaluation", "Partnership", "Projects", "Geo Footprint", "Patent"]);
+  assert.deepEqual(all("competitive"), ["Overview", "Competitor Profile", "Competitor Movement", "Products", "Product Evaluation", "Partnership", "Projects", "Geo Footprint", "Patent"]);
   assert.deepEqual(all("market"), ["Top opportunity", "Tenders", "Global Requirements", "Market Intelligence"]);
   assert.deepEqual(all("technology"), ["Overview", "Innovations"]);
   assert.equal(navTitle("technology", "innovation"), "Innovation Pipeline");

@@ -734,26 +734,6 @@
   text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
 .cp-meta-tv{color:var(--d-txt);font-weight:600}
 
-/* Global-locations value: chips for short place names, a note line for prose entries.
-   Grounded display of the served list -- no data invented, only laid out. */
-.cp-loc-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.cp-loc-chip {
-  display: inline-block;
-  padding: 2px 9px;
-  border: 1px solid var(--d-line-2);
-  border-radius: 999px;
-  background: var(--d-bg-3);
-  color: var(--d-txt);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.cp-loc-note { color: var(--d-txt); font-weight: 600; font-size: 13px; line-height: 1.45; width: 100%; }
-/* Wider-reach summary line under the country chips ("Sold to 100+ countries").
-   Muted and full-width so it reads as a footnote to the chips, one shape for all. */
-.cp-loc-reach { width: 100%; margin-top: 2px; color: var(--d-txt-3); font-weight: 500; font-size: 12px; line-height: 1.5; }
-.cp-loc-reach::before { content: "↳ "; opacity: .7; }
-
 /* Products page: portfolio product cards (3 per row, clean vertical hierarchy: name at top, image below, bottom-corner view specs) */
 .product-cards-grid {
   display: grid;

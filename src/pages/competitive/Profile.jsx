@@ -214,7 +214,7 @@ function PersonAvatar({ name, photo, className }) {
  * — founded date, headcount, revenue, site count, all typed in — and a fallback
  * that INVENTED the rest: "₹1,000 Cr+ (Published Financials)", "1,000–5,000
  * Employees". Every one of those values now has a column in serving.competitors
- * (starting_year, company_size, sales, global_locations, hq, sector, assess), so
+ * (starting_year, company_size, sales, hq, sector, assess), so
  * the panel reads them instead. A fact the corpus does not state renders as a
  * dash. The markup below is untouched; only where the values come from changed.
  */
@@ -262,14 +262,6 @@ const firstFigure = (v) => {
    geo map's "Head office" badge needed the same answer and had been doing raw
    full-string equality instead. It is imported at the top of this file. */
 
-const joinList = (v) => {
-  if (!Array.isArray(v) || !v.length) return null;
-  const names = v
-    .map((x) => (typeof x === "string" ? x : x && (x.value || x.name)))
-    .filter(Boolean);
-  return names.length ? names.join(" · ") : null;
-};
-
 /* feed cards opened per "View more" click */
 /* Superseded by feedSplit/FEED_N in lib/news.js. The feed used to open at six and
    grow by six per click with no ceiling, so Rheinmetall's 56 articles became 55
@@ -282,7 +274,6 @@ const getCompanyDetailsMeta = (p) => {
   return {
     founded: p.starting_year ? String(p.starting_year) : DASH,
     hq: tidyHq(p.hq) || DASH,
-    globalLocs: joinList(p.global_locations) || DASH,
     size: p.company_size || DASH,
     revenue: firstFigure(p.sales) || DASH,
     sector: p.sector || DASH,
@@ -574,7 +565,6 @@ export default function Profile() {
       ? [
           ["Starting year", companyMeta.founded],
           ["Headquarters", companyMeta.hq],
-          ["Global locations", companyMeta.globalLocs],
           ["Company size", companyMeta.size],
           ["Annual revenue / sales", companyMeta.revenue],
           ["Industry / sector", formatSectorName(companyMeta.sector)],
@@ -605,7 +595,6 @@ export default function Profile() {
           ? {
               startingYear: companyMeta.founded,
               hq: companyMeta.hq,
-              globalLocations: companyMeta.globalLocs,
               companySize: companyMeta.size,
               revenue: companyMeta.revenue,
               sector: companyMeta.sector,
@@ -790,21 +779,6 @@ export default function Profile() {
                       Headquarters
                     </span>
                     <span style={{ color: "var(--d-txt)", fontWeight: "600" }}>{companyMeta.hq}</span>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: "12px", padding: "14px 18px", borderBottom: "1px solid var(--d-line)", fontSize: "13px", alignItems: "start" }}>
-                    <span style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--d-txt-3)", fontWeight: "600", textTransform: "uppercase", letterSpacing: ".06em", whiteSpace: "nowrap", paddingTop: "3px" }}>
-                      Global Locations
-                    </span>
-                    <span className="cp-loc-wrap">
-                      {(Array.isArray(p.global_locations) ? p.global_locations : [])
-                        .map((x) => (typeof x === "string" ? x : x && (x.value || x.name)))
-                        .filter(Boolean)
-                        .map((place) => (
-                          <span className="cp-loc-chip" key={place}>{place}</span>
-                        ))}
-                      {!(Array.isArray(p.global_locations) && p.global_locations.length) ? <span className="cp-thin">—</span> : null}
-                    </span>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: "12px", padding: "14px 18px", borderBottom: "1px solid var(--d-line)", fontSize: "13px", alignItems: "center" }}>

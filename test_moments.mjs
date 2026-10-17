@@ -1,4 +1,4 @@
-/* The Competitor Moment page lists moments only: the competitorNews rows that carry a stored `level` (ruling R4).
+/* The Competitor Movement page lists moments only: the competitorNews rows that carry a stored `level` (ruling R4).
  * Plain news rows (no level) stay in the competitor's news, but are not moments and are not counted as moments.
  *
  *     node test_moments.mjs

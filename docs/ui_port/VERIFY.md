@@ -49,7 +49,7 @@ Layout, navigation, tab strips, filter bars, card anatomy, graph, map, and table
 | Revenue shows an em dash, leadership reads "No executive officers published on public record", company size is a number | seed (those fields are empty in the seed; empty states are the component's own) |
 | News thumbnails are blank tiles | seed (no article images stored) |
 
-### competitive / threat-analysis (Competitor Moment)
+### competitive / threat-analysis (Competitor Movement)
 | Difference | Reason |
 |---|---|
 | Subtitle "0 graded a threat" and pills read raw "HIGH" / lower-case | was UNEXPECTED, fixed: the word, tag class and threat count come from `ui.competitive_competitor_moment_level`. Now "5 graded a threat", pills "HIGH THREAT" and "WATCH". The third stored level (opportunity) draws no pill, as the reference's third level drew none (its word was empty) |
@@ -145,7 +145,7 @@ Still open: none.
 
 What the screens' words are made of.
 
-Front-end code (`src/lib/route.js`, `src/lib/chrome.js`, and the page files): the three pillar names (Competitive, Market, Technology); the rail items of every pillar in order (Overview / Competitor Profile / Competitor Moment / Products / Product Evaluation / Partnership / Projects / Geo Footprint / Patent; Top opportunity / Tenders / Global Requirements / Market Intelligence; Overview / Innovations) and every page heading; the three overview lanes (heading, tile labels, filter pills, group headings, badge words); the Market report tiles; the Market Intelligence tabs; the Product Evaluation tabs; the Competitor Moment and Profile time windows; the Geo, Tenders and Market filter labels; the Projects region filter and sequence menu; the section titles of the cockpit; the page empty texts.
+Front-end code (`src/lib/route.js`, `src/lib/chrome.js`, and the page files): the three pillar names (Competitive, Market, Technology); the rail items of every pillar in order (Overview / Competitor Profile / Competitor Movement / Products / Product Evaluation / Partnership / Projects / Geo Footprint / Patent; Top opportunity / Tenders / Global Requirements / Market Intelligence; Overview / Innovations) and every page heading; the three overview lanes (heading, tile labels, filter pills, group headings, badge words); the Market report tiles; the Market Intelligence tabs; the Product Evaluation tabs; the Competitor Movement and Profile time windows; the Geo, Tenders and Market filter labels; the Projects region filter and sequence menu; the section titles of the cockpit; the page empty texts.
 
 Data (the serving tables): every fact, name, number, date and judgement; the stance stored on a row (threat or watch; any other value means no stance); a moment's level; an innovation's maturity and position words (`matLabel` / `gapLabel`, with the code's own word when none is stored); a signal's impact eyebrow (`details[id].eyebrow`, named by the signal's kind when none is stored); the project stage steps (the stages the projects carry, `projectsConfig.stageSteps`); the options of every country, category, revenue-tier, origin and company filter (the distinct stored values of the rows on screen).
 

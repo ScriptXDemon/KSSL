@@ -30,7 +30,7 @@ export const RAIL = {
   competitive: [
     { view: "overview", label: "Overview", ix: "grid", overview: true },
     { view: "profile", label: "Competitor Profile", ix: "01" },
-    { view: "threat-analysis", label: "Competitor Moment", ix: "02" },
+    { view: "threat-analysis", label: "Competitor Movement", ix: "02" },
     { view: "products", label: "Products", ix: "03" },
     { view: "positioning", label: "Product Evaluation", ix: "04" },
     { view: "partnerships", label: "Partnership", ix: "05" },
