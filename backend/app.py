@@ -14,6 +14,7 @@ import psycopg2.extras
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 from backend.areas import a_competitive, b_products, c_network, d_market_tech, e_ui_port
 from backend import review
@@ -31,6 +32,7 @@ SOURCE_SCHEMA = {"ui": "staging_ui", "serving": "staging"} if REVIEW else {"ui":
 
 app = FastAPI(title="KSSL PostgreSQL Dataset API", docs_url=None, redoc_url=None)
 from backend.news import router as news_router; app.include_router(news_router)  # noqa: E402,E702
+app.add_middleware(GZipMiddleware, minimum_size=1024)      # the dataset JSON compresses ~5x
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -41,6 +43,8 @@ app.add_middleware(
 
 def build_dataset(database):
     """The UI contract. Each area module fills its keys; nothing is defaulted beyond empty."""
+    # `database` (raw ui/serving rows) is sent: the 137Parallax UI reads labels, filter options and
+    # section visibility from it via uiText(). v2 dropped it for payload size; responses are gzipped.
     d = {"database": database, "details": {}}
     for area in AREAS:
         area.build(database, d)
