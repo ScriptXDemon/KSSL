@@ -169,21 +169,22 @@ for (const [name, make] of [["fixture", clone], ["empty ui tables", noUi]]) {
   ok("no favourable stance anywhere in src; no chrome ui table is read by any source file");
 }
 
-/* ---- the Perceived opportunities tile counts the opportunity cards (kind), never a stance ------------------- */
+/* ---- the Perceived opportunities door opens the opportunity cards (kind), never a stance ------------------- */
 {
   const d = wireDataset(noUi());
   const mk = d.overviewConfig.market;
   const opps = d.marketCards.filter((c) => c.kind === "opportunity");
   assert.ok(opps.length > 0, "the fixture carries pipeline opportunity cards");
-  assert.ok(opps.every((c) => !c.dir), "market cards carry no stance, so the tile cannot depend on one");
+  assert.ok(opps.every((c) => !c.dir), "market cards carry no stance, so the door cannot depend on one");
   const tile = metricsFor(mk, "market", d).find((x) => x.key === "perceived_opportunities");
   assert.ok(tile, "the tile is drawn");
+  const stored = d.topOpportunities.metrics.find((x) => x.key === "perceived_opportunities");
+  assert.equal(tile.v, stored.value, "the tile prints the stored metric");
   const served = mk.cards.filter((c) => c.kind === "opportunity");
   assert.ok(served.length > 0, "the opportunity lane is not empty on the fixture");
-  assert.equal(tile.v, String(served.length), "the tile counts the opportunity cards it names");
-  assert.equal(mk.cards.filter(tilePredicate("opps")).length, served.length, "its door opens exactly those cards");
+  assert.equal(mk.cards.filter(tilePredicate("opps")).length, served.length, "its door opens exactly the opportunity cards");
   assert.equal(mk.cards.filter((c) => filterMatch(c, "opps", mk.filters)).length, served.length, "and so does the pill");
-  ok("Perceived opportunities tile counts the opportunity cards (" + served.length + " > 0 on the fixture)");
+  ok("Perceived opportunities tile prints the stored metric; its door opens the " + served.length + " opportunity cards");
 }
 
 console.log("\nok - chrome is front-end code; the lanes, rail and stances hold with and without ui rows");

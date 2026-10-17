@@ -228,23 +228,20 @@ export const TENDER_CARD_CELLS = [
 
 /* How many rows each Top opportunity table lists, and the headings, column titles and one-line notes above them.
    {client} is the client's short name from the data (the empty string when the dataset names none). */
-export const COCKPIT_TENDER_ROWS = 10;
-export const COCKPIT_PROJECT_ROWS = 8;
-export const COCKPIT_MOVE_ROWS = 6;
 export function cockpitWords(client) {
   const c = client || "";
   return {
     tendersHead: "Top tenders",
     tendersCols: ["Rank", "Tender", "Decides", c ? `${c} fit` : "Fit", c ? `${c} model` : "Model", "Rival to beat", "Revenue"],
-    tendersNote: `ranked by how well ${c ? `a ${c}` : "a"} model fits, then the nearest closing date, then the larger stored value`,
-    tendersEmpty: "No open tender on record carries a stored fit yet.",
+    tendersNote: "in the stored rank order",
+    tendersEmpty: "No top tender is on record yet.",
     projectsHead: "Projects to win before they tender",
     projectsCols: ["Rank", "Project", "Where it stands", c ? `${c} fit` : "Fit", c ? `${c} model` : "Model", "Rival to beat", "Revenue"],
-    projectsNote: "projects on record with no tender yet and a stored fit, ranked by fit, then how far along they are",
-    projectsEmpty: "No project on record carries a stored fit yet.",
+    projectsNote: "projects with no tender yet, in the stored rank order",
+    projectsEmpty: "No project to win before it tenders is on record yet.",
     movesHead: "Next moves",
     movesCols: ["Due", "Action", "Tender"],
-    movesNote: "stored actions on open tenders, soonest first",
-    estimateNote: "revenue is a stored estimate",
+    movesNote: "in the stored order",
+    movesEmpty: "No next move is on record yet.",
   };
 }

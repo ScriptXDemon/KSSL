@@ -20,8 +20,8 @@
  * already clear. What this pins:
  *
  *   1. a promoted tender card's `sec` is an array, like every other card's;
- *   2. metricsFor(market) counts All signals / Open opportunities / Already concluded /
- *      Markets tracked from the wired data, never from the served `v`;
+ *   2. metricsFor(market) prints the STORED Top opportunity metrics (topOpportunities.metrics, by tile key),
+ *      never the served `v` and never a browser count; a key with no stored row reads "—";
  *   3. a non-array `sec` on any card cannot take the whole strip down;
  *   4. the "Open opportunities" tile's door (act "open") selects exactly the promoted
  *      open tenders, and the two tiles that have no feed behind them carry acts
@@ -62,6 +62,11 @@ const raw = {
     { id: "d1", kind: "opportunity", title: "Kyiv faces sustained attacks", lens: "Market", sec: [{ lens: "Market" }] },
     { id: "d2", kind: "opportunity", title: "Japan MoD allocates funds", lens: "Market", sec: [] },
   ],
+  topOpportunities: { metrics: [
+    { key: "latest_tenders", value: "84", note: "counted from the stored records" },
+    { key: "strong_fits", value: "0", note: "counted from the stored records" },
+    { key: "perceived_opportunities", value: "", note: "an empty stored value" },
+  ] },
   tenders: [
     tender("t-open-1"),
     tender("t-open-2", { country: "France" }),
@@ -81,9 +86,7 @@ promoted.forEach((c) => {
   if (!Array.isArray(c.sec)) fail(`promoted card ${c.id} carries sec as ${typeof c.sec}, not an array`);
 });
 
-// 2. counted, not baked -- and over the SHOWN shortlist (marketAttention), so the tiles
-//    agree with the visible list. The 3 open tenders here are far-future and ungraded,
-//    so marketAttention falls back to the soonest head and shows all 3.
+// 2. stored, not baked and not counted: the tiles print the stored metric rows by key
 const m = metricsFor(cfg, "market", d);
 // a tile is found by its KEY (the column it came from), never by its label text
 const KEY = { "Latest tenders": "latest_tenders", "Strong fits": "strong_fits", "Tender value": "tender_value", "Perceived opportunities": "perceived_opportunities" };
@@ -95,18 +98,19 @@ if (m.length !== 5 || m.filter((x) => x.blank).length !== 1) fail(`the strip is 
 if (JSON.stringify(m.filter((x) => !x.blank).map((x) => x.l)) !== JSON.stringify(["Latest tenders", "Strong fits", "Tender value", "Perceived opportunities"]))
   fail("the four tile labels are the front-end words");
 if (JSON.stringify((cfg.filters || []).map((f) => f.l)) !== JSON.stringify(["All", "Latest Tenders", "Perceived Opportunities"])) fail("the pills are the front-end words");
-if (v("Latest tenders") !== "3") fail(`Latest tenders reads ${v("Latest tenders")}, 3 are on the shortlist`);
-if (v("Strong fits") !== "—") fail(`Strong fits reads ${v("Strong fits")}, no tender is graded so it must read "—"`);
-// the tile shows the stored amount in its own currency; nothing is converted
-if (v("Tender value") !== "USD 145 m") fail(`Tender value reads ${v("Tender value")}, one shown tender states USD 145 million`);
-// the two demand cards (no KSSL taxonomy served in this fixture, so the lane is kept) are
-// the Perceived Opportunities stream on the same feed
-if (v("Perceived opportunities") !== "2") fail(`Perceived opportunities reads ${v("Perceived opportunities")}, expected the 2 watch cards`);
+if (v("Latest tenders") !== "84") fail(`Latest tenders reads ${v("Latest tenders")}, the stored value is 84 (3 are on the feed: not counted)`);
+if (tile("Latest tenders").sub !== "counted from the stored records") fail("the line under a tile is the stored note");
+if (v("Strong fits") !== "0") fail(`Strong fits reads ${v("Strong fits")}, the stored value is 0`);
+if (v("Tender value") !== "—" || tile("Tender value").sub !== "not on record yet" || !tile("Tender value").warn)
+  fail(`Tender value has no stored row: must read "—" / not on record yet, got ${v("Tender value")} / ${tile("Tender value").sub}`);
+if (v("Perceived opportunities") !== "—") fail(`an empty stored value reads "—", got ${v("Perceived opportunities")}`);
+if (metricsFor(cfg, "market", { ...d, topOpportunities: undefined }).some((x) => !x.blank && x.v !== "—"))
+  fail("no stored metrics: every tile is “—”, nothing is counted");
 
 // 3. a hostile shape on one card degrades that card, not the strip
 const hostile = { ...cfg, cards: cfg.cards.concat([{ id: "x", kind: "opportunity", sec: "Artillery" }]) };
 const m2 = metricsFor(hostile, "market", d);
-if ((m2.find((x) => x.key === "latest_tenders") || {}).v !== "3")
+if ((m2.find((x) => x.key === "latest_tenders") || {}).v !== "84")
   fail("a string `sec` on one card still takes the whole strip back to the baked values");
 
 // 4. doors -- each tile filters the feed to the rows it counts
@@ -118,14 +122,13 @@ const opened = cfg.cards.filter(tilePredicate("open"));
 const openedIds = opened.map((c) => c.id).sort().join(",");
 const promotedIds = promoted.map((c) => c.id).sort().join(",");
 if (openedIds !== promotedIds) fail(`the Latest tenders door opens [${openedIds}], the tile counts [${promotedIds}]`);
-if (opened.length !== Number(v("Latest tenders"))) fail(`door opens ${opened.length}, tile says ${v("Latest tenders")}`);
 // the Perceived opportunities door opens exactly the watch stream
 const oppsOpened = cfg.cards.filter(tilePredicate("opps"));
-if (oppsOpened.length !== Number(v("Perceived opportunities"))) fail(`opps door opens ${oppsOpened.length}, tile says ${v("Perceived opportunities")}`);
+if (oppsOpened.length !== 2) fail(`opps door opens ${oppsOpened.length}, expected the 2 watch cards`);
 // the "valued" door opens exactly the one priced tender
 const valued = cfg.cards.filter(tilePredicate("valued"));
 if (valued.length !== 1 || !valued[0].id.includes("t-open-val"))
   fail(`the Live bid value door opens ${valued.map((c) => c.id).join(",")}, expected the one priced tender`);
 
 if (bad) { console.log(`test_market_tiles: ${bad} failure(s)`); process.exit(1); }
-console.log("test_market_tiles: ok -- market tiles are counted from the wired data and their doors open what they count");
+console.log("test_market_tiles: ok -- market tiles print the stored metrics and their doors open the feed rows they name");

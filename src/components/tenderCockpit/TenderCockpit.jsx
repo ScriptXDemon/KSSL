@@ -1,51 +1,48 @@
-import { useMemo } from "react";
 import { clientShort } from "../../lib/client.js";
 import { useData } from "../../state/DataProvider";
 import { useAppState } from "../../state/AppState";
-import { topTenders, topProjects, nextMoves } from "../../lib/tenderIntel.js";
-import { bucketTenders } from "../../lib/overview.js";
 import { cockpitWords } from "../../lib/chrome.js";
 import "../../styles/market-overview.css";
 import "../../styles/tender-intel.css";
 import { Review } from "../review/Review";
 
 /* Tender Intelligence, at a glance: the platform's own table style (the Market Intelligence .ovt table).
-   Both tables are built here in the browser from the STORED tender and project fields (lib/tenderIntel.js):
-   which rows, their order, the fit word, the model, the rival and the revenue are stored values, ordered by
-   deterministic rules and nothing else; nothing is weighted or estimated. A cell the record leaves empty shows a
-   dash. Every row opens its detail beside the table. */
+   The three tables print the STORED Top opportunity rows (data.topOpportunities, from serving
+   market_top_opportunity_tender / _project / market_next_move), in their stored rank order, with their stored
+   text. Nothing is ranked, filtered or derived here; a cell the row leaves empty shows a dash, an empty table says
+   so. Every row opens its tender (or project) beside the table. */
 
 const show = (v) => (v == null || String(v).trim() === "" ? "—" : v);
 const cls = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-const dueWord = (days) => (days === 0 ? "today" : `in ${days} day${days === 1 ? "" : "s"}`);
+const where = (r) => [r.country, r.issuer].filter((v) => v != null && String(v).trim() !== "").join(" · ");
 
 export default function TenderCockpit({ onOpen }) {
   const { data } = useData();
   const { jumpTo } = useAppState();
-  const today = useMemo(() => new Date(), []);
-  const open = useMemo(() => bucketTenders(data.tenders).open, [data.tenders]);
-  const top = useMemo(() => topTenders(open), [open]);
-  const projects = useMemo(() => topProjects(data.projects), [data.projects]);
-  const moves = useMemo(() => nextMoves(open, today), [open, today]);
+  const top = (data.topOpportunities && data.topOpportunities.topTenders) || [];
+  const projects = (data.topOpportunities && data.topOpportunities.projectsBeforeTender) || [];
+  const moves = (data.topOpportunities && data.topOpportunities.nextMoves) || [];
+  const tenderOf = (id) => (data.tenders || []).find((t) => String(t.id) === String(id));
 
-  const client = clientShort();
-  const W = cockpitWords(client);
-  const est = (rows) => (rows.some((r) => r.estimate) ? ` · ${W.estimateNote}` : "");
+  const W = cockpitWords(clientShort());
   // a row opens its tender (or project) beside the table; the Tender Pipeline jump is the fallback
-  const openTender = (t) => {
-    if (onOpen) onOpen(t);
-    else jumpTo("market", "tender", { tenderTitle: t.title });
+  const openTender = (id, title) => {
+    const t = tenderOf(id);
+    if (onOpen && t) onOpen(t);
+    else jumpTo("market", "tender", { tenderTitle: (t && t.title) || title });
   };
-  const openProject = (row) => { if (onOpen) onOpen(null, row.p); };
+  const openProject = (r) => {
+    if (onOpen) onOpen(null, { id: r.id, name: r.title, customer: r.issuer, location: r.country, stageNote: r.stage, sources: r.sources });
+  };
   const rowKey = (e, fn) => { if (e.key === "Enter") fn(); };
-  const fitCell = (row) => (row.fit ? <span className={`ti-fit ${cls(row.fit)}`}>{row.fit}</span> : "—");
+  const fitCell = (fit) => (fit ? <span className={`ti-fit ${cls(fit)}`}>{fit}</span> : "—");
 
   return (
     <section className="ti-simple" aria-label="Tender intelligence">
       <div className="ovt">
         <div className="ovc-h">
           <span className="eyebrow">{W.tendersHead}</span>
-          <span className="ovc-note">{W.tendersNote}{est(top)}</span>
+          <span className="ovc-note">{W.tendersNote}</span>
         </div>
         {top.length ? (
           <div className="ovt-scroll">
@@ -56,18 +53,18 @@ export default function TenderCockpit({ onOpen }) {
                 </tr>
               </thead>
               <tbody>
-                {top.map((r, i) => (
-                  <tr key={r.id} className="ti-row-link" tabIndex={0} onClick={() => openTender(r.t)} onKeyDown={(e) => rowKey(e, () => openTender(r.t))}>
-                    <td className="num">{i + 1}</td>
+                {top.map((r) => (
+                  <tr key={r.id} className="ti-row-link" tabIndex={0} onClick={() => openTender(r.tenderId, r.title)} onKeyDown={(e) => rowKey(e, () => openTender(r.tenderId, r.title))}>
+                    <td className="num">{show(r.rank)}</td>
                     <td className="ovt-t">
                       <span className="ti-title" title={r.title}>{show(r.title)}</span>
-                      <span className="ovt-buyer" title={r.issuer}>{r.where}</span>
+                      <span className="ovt-buyer" title={r.issuer}>{where(r)}</span>
                       <Review src={r._src} />
                     </td>
                     <td className="num">{show(r.decides)}</td>
-                    <td>{fitCell(r)}</td>
-                    <td>{show(r.model)}</td>
-                    <td>{show(r.rival)}</td>
+                    <td>{fitCell(r.ksslFit)}</td>
+                    <td>{show(r.ksslModel)}</td>
+                    <td>{show(r.rivalToBeat)}</td>
                     <td className="num">{show(r.revenue)}</td>
                   </tr>
                 ))}
@@ -82,7 +79,7 @@ export default function TenderCockpit({ onOpen }) {
       <div className="ovt">
         <div className="ovc-h">
           <span className="eyebrow">{W.projectsHead}</span>
-          <span className="ovc-note">{W.projectsNote}{est(projects)}</span>
+          <span className="ovc-note">{W.projectsNote}</span>
         </div>
         {projects.length ? (
           <div className="ovt-scroll">
@@ -93,20 +90,20 @@ export default function TenderCockpit({ onOpen }) {
                 </tr>
               </thead>
               <tbody>
-                {projects.map((r, i) => (
+                {projects.map((r) => (
                   <tr key={r.id} className="ti-row-link" tabIndex={0} onClick={() => openProject(r)} onKeyDown={(e) => rowKey(e, () => openProject(r))}>
-                    <td className="num">{i + 1}</td>
+                    <td className="num">{show(r.rank)}</td>
                     <td className="ovt-t">
                       <span className="ti-title" title={r.title}>{show(r.title)}</span>
-                      <span className="ovt-buyer" title={r.issuer}>{r.where}</span>
+                      <span className="ovt-buyer" title={r.issuer}>{where(r)}</span>
                       <Review src={r._src} />
                     </td>
                     <td className="ovt-t ti-stage">
                       <span className="ti-title" title={r.stage}>{show(r.stage)}</span>
                     </td>
-                    <td>{fitCell(r)}</td>
-                    <td>{show(r.model)}</td>
-                    <td>{show(r.rival)}</td>
+                    <td>{fitCell(r.ksslFit)}</td>
+                    <td>{show(r.ksslModel)}</td>
+                    <td>{show(r.rivalToBeat)}</td>
                     <td className="num">{show(r.revenue)}</td>
                   </tr>
                 ))}
@@ -118,12 +115,12 @@ export default function TenderCockpit({ onOpen }) {
         )}
       </div>
 
-      {moves.length ? (
-        <div className="ovt">
-          <div className="ovc-h">
-            <span className="eyebrow">{W.movesHead}</span>
-            <span className="ovc-note">{W.movesNote}</span>
-          </div>
+      <div className="ovt">
+        <div className="ovc-h">
+          <span className="eyebrow">{W.movesHead}</span>
+          <span className="ovc-note">{W.movesNote}</span>
+        </div>
+        {moves.length ? (
           <div className="ovt-scroll">
             <table>
               <thead>
@@ -133,17 +130,19 @@ export default function TenderCockpit({ onOpen }) {
               </thead>
               <tbody>
                 {moves.map((m) => (
-                  <tr key={m.id} className="ti-row-link" tabIndex={0} onClick={() => openTender(m.t)} onKeyDown={(e) => rowKey(e, () => openTender(m.t))}>
-                    <td className="num">{dueWord(m.days)}</td>
+                  <tr key={m.id} className="ti-row-link" tabIndex={0} onClick={() => openTender(m.tenderId, m.tenderTitle)} onKeyDown={(e) => rowKey(e, () => openTender(m.tenderId, m.tenderTitle))}>
+                    <td className="num">{show(m.due)}</td>
                     <td>{show(m.action)}</td>
-                    <td className="ovt-t"><span className="ti-title" title={m.t.title}>{show(m.t.title)}</span><Review src={m._src} /></td>
+                    <td className="ovt-t"><span className="ti-title" title={m.tenderTitle}>{show(m.tenderTitle)}</span><Review src={m._src} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      ) : null}
+        ) : (
+          <div className="empty-note">{W.movesEmpty}</div>
+        )}
+      </div>
     </section>
   );
 }

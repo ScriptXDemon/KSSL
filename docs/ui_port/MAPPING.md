@@ -278,9 +278,9 @@ One row per field the Cummins frontend reads (or, for globals Cummins ships and 
 | tpAllCountries | [country] | Tenders.jsx, countryFacet.js | existing | serving.market_filter_option.option_label where filter_type='country' |
 | tpAllCats | [category] | Tenders.jsx | existing | serving.market_filter_option.option_label where filter_type='category' |
 
-> DECISION (user, 2026-10-17): the Market > Top opportunity page no longer reads topOpportunities. Like Cummins it builds its tables in the browser from the stored fields (src/lib/tenderIntel.js): Top tenders = open tenders with a stored clientFit/fit, ordered strong > partial > weak, then the nearest closingDate, then the larger valueAmount (no stored fit = not listed); model = matches[0].n, rival = competitorFit[0], revenue = revenueEstimate / expectedRevenue / value as stored, else a dash (never computed); Projects = data.projects (stage note, the project's own competitor as the rival, a stored fit/model/revenue only when the project carries one); Next moves = tenders[].actions not yet due. The topOpportunities tables and their backend stay as they are, unread by this page. The tender card (Tenders.jsx) always prints Buyer, Country, Category, Value, Status and the client fit row; an empty cell prints the chrome.js empty word.
+> DECISION (user, 2026-10-17, supersedes the earlier "derive from tender fit" ruling): the Market > Top opportunity page reads ONLY the stored topOpportunities rows (market_top_opportunity_tender / _project, market_next_move, market_top_opportunity_metric), in stored rank_position / sequence order, printing the stored text (decides, kssl_fit, kssl_model, rival_to_beat, revenue_text, where_it_stands, due_text). Nothing is ranked or derived in the browser; tenderIntel.js keeps only fitOf. The four market tiles print the stored metric whose metric_key equals the tile key (latest_tenders, strong_fits, tender_value, perceived_opportunities): formatted_value as the value, note as the line under it, "—" / "not on record yet" when no row. An empty table prints its empty sentence. The prompt (top_opportunity.yml + backend/market_rollups.py) fills the tables. The tender card (Tenders.jsx) always prints Buyer, Country, Category, Value, Status and the client fit row; an empty cell prints the chrome.js empty word.
 
-### topOpportunities  (KSSL-only global that feeds TenderCockpit; Cummins computes the same tables from tenders with tenderIntel.js - ruling R6)
+### topOpportunities  (feeds TenderCockpit and the market tiles; Cummins computes the same tables in the browser, KSSL stores them)
 
 | global | field | read by | disposition | KSSL source |
 |---|---|---|---|---|
@@ -289,7 +289,7 @@ One row per field the Cummins frontend reads (or, for globals Cummins ships and 
 | topOpportunities | topTenders[].ksslFit / ksslModel / rivalToBeat / revenue | TenderCockpit.jsx | existing | serving.market_top_opportunity_tender.kssl_fit, kssl_model, rival_to_beat, revenue_text |
 | topOpportunities | projectsBeforeTender[] (id, title, issuer, country, stage, ksslFit, ksslModel, rivalToBeat, revenue) | TenderCockpit.jsx | existing | serving.market_top_opportunity_project (+ market_opportunity.title, buyer_name, where_it_stands, kssl_fit, kssl_model, rival_to_beat, revenue_text) |
 | topOpportunities | nextMoves[] (action, due, tenderTitle) | TenderCockpit.jsx | existing | serving.market_next_move.action_text, due_text/due_date, tender_title |
-| topOpportunities | metrics[], notes{topTenders, projects, nextMoves} | TenderCockpit.jsx, MarketOverview.jsx tiles | existing | serving.market_top_opportunity_metric; ui.market_top_opportunity_view.*_description (E) |
+| topOpportunities | metrics[], notes{topTenders, projects, nextMoves} | TenderCockpit.jsx, overview.js metricsFor (market tiles, by metric_key = tile key) | existing | serving.market_top_opportunity_metric; ui.market_top_opportunity_view.*_description (E) |
 
 ### awards  (past tender awards; Cummins ships it from awards.json via the datapack)
 

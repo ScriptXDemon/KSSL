@@ -3,8 +3,6 @@ import { globalRequirements } from "./globalRequirements.js";
 import { momentsOf } from "./moments.js";
 /* Overview feed: the sequence logic, the group split, and the per-pillar metric
    strip. Pure — it returns data, and the React components render it. */
-import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
-import { fitOf, topTenders, topProjects } from "./tenderIntel.js";
 import { isVisible, viewVisible } from "./visibility.js";
 import { navTitle } from "./route.js";
 import { COMPETITIVE_TITLE } from "./chrome.js";
@@ -509,47 +507,18 @@ export function metricsFor(cfg, pillar, d) {
       const wSub = dirSub("watch", "watch") || dirIsAll("watch");
       if (wSub) { subByKey.watch = wSub; WARN_SUBS.add(wSub); }
     } else if (pillar === "market") {
-      const tenders = (d && d.tenders) || [];
-      const { open } = bucketTenders(tenders);
-      /* THE TILES DESCRIBE THE SHOWN SHORTLIST, so the visible list count and the tiles
-         cannot disagree the way "958 rows above a tile reading 119 open" did. `shown` is
-         exactly what dataset.js promotes into the feed (same function, same open set), so
-         the "Live bids" tile equals the header count and the pager total. "Already
-         concluded" and "Markets tracked" moved to the Market Report -- they are not
-         actionable on an overview and were never in this feed. */
-      const shown = marketAttention(open);
-      const go = shown.filter((x) => fitOf(x) === "strong");
-      // A tender whose source never published a value contributes nothing; if NO shown
-      // tender carries one, the total is unknown, not zero -- "not measured" and "zero"
-      // must not look the same.
-      const priced = shown.filter(hasAmount);
-      const totals = valueTotals(shown);
-      // Fit is a graded field the corpus may not carry at all. If NO open tender was
-      // graded, "Strong fits" is not zero-fits -- it is not-assessed, and says so.
-      const anyFit = open.some((x) => fitOf(x));
-      // The Perceived Opportunities stream on the same feed: watch cards (geopolitical /
-      // demand moves), which need no tender. Counted from the served set the feed shows.
-      const opps = (cards || []).filter((c) => c.kind === "opportunity").length;
-      byKey = {
-        latest_tenders: shown.length,
-        strong_fits: anyFit ? go.length : "—",
-        tender_value: formatTotals(totals),
-        perceived_opportunities: opps,
-      };
-      const goSub = anyFit ? null : "no fit assessment was served for these tenders";
-      if (goSub) { subByKey.strong_fits = goSub; WARN_SUBS.add(goSub); }
-      const valSub = priced.length
-        ? `${priced.length} of ${shown.length} publish a value` +
-          (totals.length > 1 ? ` · ${totals.length} currencies, not converted` : "")
-        : "no tender on this shortlist publishes a value";
-      subByKey.tender_value = valSub;
-      if (!priced.length) WARN_SUBS.add(valSub);
-      /* no line under this tile (owner request): the count alone, so it sits at the same
-         height as its neighbours */
-      /* The doors: each tile filters the feed to the rows it counts. "Latest tenders"
-         opens the promoted open tenders (kind tender); "Strong fits" and "Live bid value"
-         narrow that by the tag/price the promoter stamps; "Perceived opportunities" opens
-         the watch stream. tilePredicate reads those. */
+      /* THE TILES PRINT THE STORED TOP OPPORTUNITY METRICS (serving.market_top_opportunity_metric), matched on the
+         tile key; the value and the line under it are the stored formatted_value and note. A key with no stored row
+         is "—" and says so: nothing is counted here. The doors still filter the feed (tilePredicate). */
+      const stored = new Map(((d && d.topOpportunities && d.topOpportunities.metrics) || []).map((x) => [x.key, x]));
+      const NOT_STORED = "not on record yet";
+      (cfg.metrics || []).filter((t) => !t.blank).forEach((t) => {
+        const x = stored.get(t.key);
+        const has = x && x.value != null && String(x.value).trim() !== "";
+        byKey[t.key] = has ? x.value : "—";
+        subByKey[t.key] = has ? x.note : NOT_STORED;
+      });
+      WARN_SUBS.add(NOT_STORED);
     } else if (pillar === "technology") {
       const innovations = (d && d.innovations) || {};
       const domains = Object.keys(innovations).filter((k) => (innovations[k] || []).length);
@@ -720,7 +689,7 @@ export function navCounts(d, gapModel) {
        lane here put a 141 on a feed that shows the shortlist. */
     /* The Market overview is the tender tables now (Top tenders, Projects): its badge counts their rows. The signal
        cards moved to Global Requirements, whose badge counts them. */
-    counts["m-overview"] = topTenders(open).length + topProjects(d.projects).length;   // the rows the two tables list
+    counts["m-overview"] = ["topTenders", "projectsBeforeTender"].reduce((n, k) => n + ((d.topOpportunities && d.topOpportunities[k]) || []).length, 0);   // the stored rows the two tables list
     counts["global-requirement"] = globalRequirements(d).length;   // the rows the page lists
     counts["m-report"] = (d.tenders || []).length;
     counts.tender = open.length;
