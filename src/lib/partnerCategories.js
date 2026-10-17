@@ -1,11 +1,11 @@
-/* PARTNERSHIP CATEGORIES: every kind of tie a rival can have, read from the dataset.
+/* PARTNERSHIP CATEGORIES: every kind of tie a rival can have.
 
-   The legend is ui.partner_category (data.database.ui.partner_category): category_key is the slug of the
-   stored partner_type, with its group, label, short label, a definition and the overlap kind it belongs to.
-   A definition may contain {rival} and {client}: joins of dataset values, filled in here. Only the colours
-   are code: a neutral palette indexed by display order, so a colour means the same thing in the legend,
-   the graph and the cards. No category, label or definition is written in this file. */
-import { stanceOf } from "./chrome.js";
+   The legend (groups, category and short labels, definitions, the overlap kind of each, display order) is front-end
+   code (chrome.js PARTNER_GROUPS / PARTNER_CATEGORIES), like the rest of the screen's chrome. A row's `rel` is the
+   slug of its stored partner_type; it is looked up in the legend by key or alias. A definition may contain {rival}
+   and {client}: joins of dataset values, filled in here. Colours are a neutral palette indexed by legend position,
+   so a colour means the same thing in the legend, the graph and the cards. */
+import { stanceOf, PARTNER_GROUPS, PARTNER_CATEGORIES } from "./chrome.js";
 
 
 /* line colour and fill, by position in the legend */
@@ -20,20 +20,22 @@ const NEUTRAL = ["#9aa0aa", "#2a2a30"];
 const fill = (text, rival, client) =>
   String(text == null ? "" : text).replace(/\{rival\}/g, rival || "").replace(/\{client\}/g, client || "");
 
-/* The categories of one dataset. `rel` on a partner row is the category key. */
-export function buildCategories(d) {
-  const rows = ((d && d.database && d.database.ui && d.database.ui.partner_category) || [])
-    .filter((r) => r && r.category_key)
-    .slice()
-    .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-  const list = rows.map((r, i) => {
+/* The categories. `rel` on a partner row is the category key (or one of its aliases). The dataset argument is
+   accepted for the callers; the legend does not depend on it. */
+export function buildCategories() {
+  const groupLabel = Object.fromEntries(PARTNER_GROUPS.map((g) => [g.key, g.label]));
+  const list = PARTNER_CATEGORIES.map((c, i) => {
     const [color, fillColor] = PALETTE[i % PALETTE.length];
     return {
-      key: r.category_key, group: r.group_key, groupLabel: r.group_label, label: r.category_label || "",
-      short: r.short_label || "", def: r.definition || "", overlapKind: r.overlap_kind || "", color, fill: fillColor,
+      key: c.key, group: c.group, groupLabel: groupLabel[c.group] || "", label: c.label, short: c.short || "",
+      def: c.def || "", overlapKind: c.overlapKind || "", color, fill: fillColor,
     };
   });
-  const byKey = Object.fromEntries(list.map((c) => [c.key, c]));
+  const byKey = {};
+  list.forEach((c, i) => {
+    byKey[c.key] = c;
+    PARTNER_CATEGORIES[i].aliases.forEach((a) => { if (!byKey[a]) byKey[a] = c; });
+  });
   const groups = [];
   list.forEach((c) => { if (c.group && !groups.some((g) => g.key === c.group)) groups.push({ key: c.group, label: c.groupLabel || "" }); });
   /* a tie type the legend does not list gets a neutral entry with no label or definition of its own */
@@ -43,9 +45,9 @@ export function buildCategories(d) {
   function categoryCounts(items, keyOf = (r) => r) {
     const n = {};
     (items || []).forEach((r) => {
-      const k = r && r.rel;
-      if (!byKey[k]) return;
-      (n[k] = n[k] || new Set()).add(keyOf(r));
+      const c = byKey[r && r.rel];
+      if (!c) return;
+      (n[c.key] = n[c.key] || new Set()).add(keyOf(r));
     });
     return list.map((c) => ({ ...c, n: n[c.key] ? n[c.key].size : 0 }));
   }

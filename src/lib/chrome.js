@@ -140,3 +140,66 @@ export const MARKET_TILE_LABEL = {
   "source-portals": "Source portals",
   "value-disclosed": "Value disclosed",
 };
+
+/* ---- the partnership legend ------------------------------------------------------------------------------------------ */
+/* Every kind of tie a rival can have, in legend order. `key` is the slug of the stored partner_type (the `rel` of a
+   partnership row); `aliases` are other slugs that name the same kind. A definition may carry {rival} and {client},
+   filled with names from the data at render. `overlapKind` names the overlap read a SHARED partner of that kind
+   gets (OVERLAP_KINDS). Colours are not here: they follow the legend position (partnerCategories.js). */
+export const PARTNER_GROUPS = [
+  { key: "channel", label: "Channel & distribution" },
+  { key: "supply", label: "Supply chain" },
+  { key: "tech", label: "Technology & strategy" },
+  { key: "buyer", label: "Buyers & customers" },
+];
+
+export const PARTNER_CATEGORIES = [
+  { key: "channel-partner", group: "channel", label: "Channel partner", short: "Channel", overlapKind: "channel",
+    aliases: ["distribution", "distributor", "dealer", "reseller", "integration"],
+    def: "Sells, stocks or services {rival}'s products in an assigned market: {rival}'s route to market there." },
+  { key: "supplier", group: "supply", label: "Supplier", short: "Supplier", overlapKind: "supplier",
+    aliases: ["component-supplier", "manufacturing", "oem", "framework-supplier"],
+    def: "{rival} buys parts, materials or major components from this company; a shared supplier can tighten {client}'s own supply." },
+  { key: "supply-customer", group: "supply", label: "Supply / customer", short: "Supply", overlapKind: "supplier",
+    aliases: ["supply"],
+    def: "Buys from or sells to {rival} on ordinary commercial supply terms." },
+  { key: "localization-partner", group: "supply", label: "Localization partner", short: "Local", overlapKind: "supplier",
+    aliases: ["localization", "local"],
+    def: "Licensed or equipped to make, assemble or source {rival}'s products inside the country, which counts toward local-content rules." },
+  { key: "service-partner", group: "supply", label: "Service partner", short: "Service", overlapKind: "service",
+    aliases: ["service", "service-and-retrofit-partner"],
+    def: "Maintains, repairs and supplies parts for {rival}'s installed products in its territory." },
+  { key: "technology-partner", group: "tech", label: "Technology / licence", short: "Tech", overlapKind: "technology",
+    aliases: ["technology", "tech", "technology-tot", "licensing", "rnd"],
+    def: "A technology, licence or product-development tie that gives {rival} (or the partner) a capability the other supplies." },
+  { key: "joint-venture", group: "tech", label: "Joint venture", short: "JV", overlapKind: "technology",
+    aliases: ["jv"],
+    def: "A jointly owned company with shared investment and control." },
+  { key: "acquisition-stake", group: "tech", label: "Acquisition / stake", short: "Acquisition", overlapKind: "technology",
+    aliases: ["acquisition", "acq"],
+    def: "{rival} owns, or has bought into, the other party (or the reverse)." },
+  { key: "mou-strategic", group: "tech", label: "MoU / strategic", short: "MoU", overlapKind: "technology",
+    aliases: ["mou", "strategic"],
+    def: "A memorandum or strategic agreement: stated intent to cooperate, not yet a supply, licence or ownership contract." },
+  { key: "key-account", group: "buyer", label: "Key account", short: "Account", overlapKind: "",
+    aliases: ["account", "customer"],
+    def: "A named end customer that buys {rival}'s products: the buyer in the relationship." },
+  { key: "other", group: "tech", label: "Other", short: "Other", overlapKind: "",
+    aliases: ["partner"],
+    def: "A tie the source records without classifying its type." },
+];
+
+/* The heading and one-line lead of the overlap read in the partnership drawer: what a SHARED partner of that kind
+   means for the client. {client} and {rival} are filled from the data. The effects under each heading (what the
+   overlap costs the client, point by point) are analysis, so they are DATA (ui.partner_overlap_effect rows keyed by
+   overlap kind) and are drawn only when stored. */
+export const OVERLAP_KINDS = [
+  { kind: "channel", aliases: [], label: "What an overlapping channel costs {client}",
+    lead: "the same channel partner represents {client} and {rival}, so the buying decision moves from the customer to the partner" },
+  { kind: "supplier", aliases: [], label: "What an overlapping supplier costs {client}",
+    lead: "{client} and {rival} buy the same part from the same vendor, so that component stops separating the two offers" },
+  { kind: "service", aliases: [], label: "What an overlapping service network costs {client}",
+    lead: "the aftermarket is delivered by someone who also earns on {rival}'s installed base" },
+  { kind: "technology", aliases: ["tech"], label: "What an overlapping technology partner costs {client}",
+    lead: "the partner behind a {client} capability is also inside {rival}, so the capability is a lead-time rather than a moat" },
+];

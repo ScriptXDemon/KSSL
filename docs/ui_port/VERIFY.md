@@ -149,7 +149,7 @@ Front-end code (`src/lib/route.js`, `src/lib/chrome.js`, and the page files): th
 
 Data (the serving tables): every fact, name, number, date and judgement; the stance stored on a row (threat or watch; any other value means no stance); a moment's level; an innovation's maturity and position words (`matLabel` / `gapLabel`, with the code's own word when none is stored); a signal's impact eyebrow (`details[id].eyebrow`, named by the signal's kind when none is stored); the project stage steps (the stages the projects carry, `projectsConfig.stageSteps`); the options of every country, category, revenue-tier, origin and company filter (the distinct stored values of the rows on screen).
 
-Still read from `ui` tables (not chrome, not part of this restore): the partnership legend and overlap texts (`ui.partner_category`, `ui.partner_overlap_kind`, `ui.partner_overlap_effect`) and `ui.section_visibility` (shipped as `sectionVisibility`; a missing key is hidden).
+The partnership legend (groups, category and short labels, definitions, display order, overlap kind of each) and the overlap headings and leads are front-end code (`chrome.js` PARTNER_GROUPS, PARTNER_CATEGORIES, OVERLAP_KINDS); a stored partner type is matched to a category by slug or alias. Still read from `ui` tables: `ui.partner_overlap_effect` (the point-by-point cost of an overlap to the client is analysis, so it is data; with no rows no effect is drawn) and `ui.section_visibility` (shipped as `sectionVisibility`; a missing key is hidden).
 
 ## Cummins hide rules preserved
 

@@ -161,7 +161,7 @@ for (const [name, make] of [["fixture", clone], ["empty ui tables", noUi]]) {
   assert.deepEqual(hit, [], `the word favourable appears in ${hit.join(", ")}`);
   const fav = files.filter((f) => /["'`.-]fav\b|\bfav["':]/.test(readFileSync(f, "utf-8")));
   assert.deepEqual(fav, [], `a fav stance is referenced in ${fav.join(", ")}`);
-  const CHROME_TABLE = /ui\.(competitive_navigation|competitive_metric|competitive_positioning_tab|competitive_competitor_moment_(level|time_window)|competitive_geo_filter|market_(view|pillar|metric|top_opportunity_view|tenders_view|intelligence_tab|global_requirement_view)|technology_(ui_view|pillar|innovation_view)|filter_option|ui_project_)/;
+  const CHROME_TABLE = /ui\.(competitive_navigation|competitive_metric|competitive_positioning_tab|competitive_competitor_moment_(level|time_window)|competitive_geo_filter|market_(view|pillar|metric|top_opportunity_view|tenders_view|intelligence_tab|global_requirement_view)|technology_(ui_view|pillar|innovation_view)|filter_option|ui_project_|partner_category|partner_overlap_kind)/;
   const reads = files.filter((f) => CHROME_TABLE.test(strip(f)));
   assert.deepEqual(reads, [], `chrome is read from a ui table in ${reads.join(", ")}`);
   assert.ok(!files.some((f) => /lib[\\/](uiText|lanes)\.js$/.test(f)), "uiText.js and lanes.js are gone");

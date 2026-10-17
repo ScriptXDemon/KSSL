@@ -110,8 +110,9 @@ def build_client_partners(database, competitors):
 
 
 def build_rel_label(database):
-    return {text(r.get("category_key")): r.get("category_label")
-            for r in ordered(table(database, "ui", "partner_category"), "display_order") if r.get("category_key")}
+    # The relationship legend (category and short labels, definitions) is front-end code (src/lib/chrome.js), not a
+    # ui table; the key stays in the dataset contract and is empty.
+    return {}
 
 
 def build_synthesis(database):

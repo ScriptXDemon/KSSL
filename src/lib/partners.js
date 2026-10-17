@@ -16,7 +16,7 @@ import { canonicalizeLabels } from "./orgident.js";
 import { countryFlagDisc } from "./countryFlags.js";
 import { categoryDisc } from "./categorySymbols.js";
 import { buildCategories, verdictOf, impactText } from "./partnerCategories.js";
-import { stanceWords } from "./chrome.js";
+import { stanceWords, OVERLAP_KINDS } from "./chrome.js";
 
 /* THE CLIENT ROSTER AND A RIVAL'S PARTNER ROWS DO NOT SHARE A KEY SPACE.
    KSSL_PARTNERS is reference data and carries `plp_01`..`plp_03` with cid null; the rows
@@ -549,23 +549,28 @@ export function overlapBadge(p, clientName) {
   return `<span class="ov-badge ov-${state}" title="${escAttr(title)}" style="font-family: var(--mono); font-size: 9.5px; background: ${bg}; color: ${fg}; border: 1px solid ${br}; padding: 2px 7px; border-radius: 4px; font-weight: 700; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;">${text}</span>`;
 }
 
-/* What each kind of overlap does to the client: ui.partner_overlap_kind (heading, lead) and
-   ui.partner_overlap_effect (title, text), keyed by overlap_kind. {rival} and {client} are filled in by the caller.
-   Empty tables give an empty object, and the drawer then prints nothing. */
+/* What each kind of overlap does to the client. The heading and lead of each kind are front-end code (chrome.js
+   OVERLAP_KINDS); the effects under it (title, text) are DATA: the rows of ui.partner_overlap_effect, keyed by
+   overlap_kind. {rival} and {client} are filled in by the caller. With no effect rows a kind keeps its heading and
+   lead and draws no effects: no effect prose is written in code. */
 export function overlapDefs(d) {
   const ui = (d && d.database && d.database.ui) || {};
   const out = {};
-  (ui.partner_overlap_kind || []).slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).forEach((k) => {
-    if (k && k.overlap_kind) out[k.overlap_kind] = { label: k.kind_label || "", lead: k.lead || "", fx: [] };
+  const canon = {};
+  OVERLAP_KINDS.forEach((k) => {
+    out[k.kind] = { label: k.label, lead: k.lead, fx: [] };
+    canon[k.kind] = k.kind;
+    (k.aliases || []).forEach((a) => { canon[a] = k.kind; });
   });
   (ui.partner_overlap_effect || []).slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).forEach((e) => {
-    if (e && out[e.overlap_kind]) out[e.overlap_kind].fx.push([e.effect_title || "", e.effect_text || ""]);
+    const k = e && canon[e.overlap_kind];
+    if (k) out[k].fx.push([e.effect_title || "", e.effect_text || ""]);
   });
   return out;
 }
 
 export function createPartners(d) {
-  const { competitors, KSSL_PARTNERS, REL_LABEL, FIELDSYN, COMPSYN, TRACEIDS, sourceRegistry } = d;
+  const { competitors, KSSL_PARTNERS, FIELDSYN, COMPSYN, TRACEIDS, sourceRegistry } = d;
   const cats = buildCategories(d);
   const { categoryOf, categoryDef } = cats;
   const CLIENT_CID = (d.client && d.client.id);
@@ -998,11 +1003,11 @@ const PG_IMG_ONERROR =
      here as in the legend and on the cards. */
   const PG_TYPE_ORDER = cats.list.map((c) => c.key);
   const PG_TYPE_META = Object.fromEntries(
-    cats.list.map((c) => [c.key, { label: (REL_LABEL || {})[c.key] || c.label, color: c.color, fill: c.fill, hue: c.group }]),
+    cats.list.map((c) => [c.key, { label: c.label, color: c.color, fill: c.fill, hue: c.group }]),
   );
   /* a tie type the legend does not list is its own group under its stored word, in the neutral colour */
   const pgTypeKey = (r) => {
-    const k = (r && r.rel) || "";
+    const k = categoryOf((r && r.rel) || "").key;
     if (!PG_TYPE_META[k]) {
       const n = categoryOf(k);
       PG_TYPE_META[k] = { label: (r && (r.ptype || r.rel)) || "", color: n.color, fill: n.fill, hue: "" };
@@ -1692,7 +1697,7 @@ const PG_IMG_ONERROR =
       rows.forEach((p) => {
         b +=
           `<div class="pg-rel" data-pid="${escAll(p.id)}"><span class="rmark rel-${p.rel}"></span>` +
-          `<span class="rtxt"><b>${esc(p.label)}</b> <span class="pg-ctag sm">${esc(p.country || "—")}</span> <span class="rtype">${esc(p.ptype || REL_LABEL[p.rel] || '—')}</span>${statusTag(p)}<br>` +
+          `<span class="rtxt"><b>${esc(p.label)}</b> <span class="pg-ctag sm">${esc(p.country || "—")}</span> <span class="rtype">${esc(p.ptype || categoryOf(p.rel).label || "—")}</span>${statusTag(p)}<br>` +
           `<span class="rnote">${joinParts([p.note, p.deal !== "n/d" ? p.deal : null, p.date].map(esc))}</span></span></div>`;
       });
       b += "</div></div>";

@@ -5,6 +5,7 @@ import { createPartners, overlapDefs } from "./partners.js";
 import { setClient, clientShort } from "./client.js";
 import { buildCategories, verdictOf, impactText } from "./partnerCategories.js";
 import * as pc from "./partnerCategories.js";
+import { PARTNER_CATEGORIES, OVERLAP_KINDS } from "./chrome.js";
 
 const d = JSON.parse(fs.readFileSync(new URL("../../fixtures/kssl_dataset.json", import.meta.url), "utf8"));
 const rivals = Object.entries(d.competitors).filter(([, c]) => c.dir !== "client");
@@ -18,34 +19,55 @@ test("the category tables are gone from the code", () => {
   assert.ok(!/Brand choice moves to the counter|dealer quotes/i.test(par));
 });
 
-test("every relationship type in the dataset is a category of ui.partner_category", () => {
+test("every relationship type in the dataset is a category of the front-end legend", () => {
   const cats = buildCategories(d);
-  assert.ok(cats.list.length > 0);
+  assert.deepEqual(cats.list.map((c) => c.label), PARTNER_CATEGORIES.map((c) => c.label));
   rivals.forEach(([, c]) =>
-    (c.partners || []).forEach((p) => assert.ok(cats.list.some((x) => x.key === p.rel), `${c.name}: ${p.label} -> ${p.rel}`)),
+    (c.partners || []).forEach((p) => assert.ok(cats.categoryOf(p.rel).label, `${c.name}: ${p.label} -> ${p.rel}`)),
   );
-  assert.ok(Object.keys(d.REL_LABEL).every((k) => cats.list.some((x) => x.key === k)), "REL_LABEL has a key the legend does not");
-  assert.deepEqual(cats.list.map((c) => c.label), d.database.ui.partner_category.slice().sort((a, b) => a.display_order - b.display_order).map((r) => r.category_label));
+  // an alias is the same category as its key
+  assert.equal(cats.categoryOf("jv").key, "joint-venture");
+  assert.equal(cats.categoryOf("distribution").key, "channel-partner");
+  assert.ok(cats.groups.length > 1 && cats.groups.every((g) => g.label));
+});
+
+test("the legend renders with every ui table empty", () => {
+  const empty = JSON.parse(JSON.stringify(d));
+  for (const t of Object.keys(empty.database.ui)) empty.database.ui[t] = [];
+  const cats = buildCategories(empty);
+  assert.equal(cats.list.length, PARTNER_CATEGORIES.length);
+  assert.ok(cats.list.every((c) => c.label && c.short && c.def));
+  setClient(empty.client);
+  const P = createPartners(empty);
+  const [cid, c] = rivals.find(([, x]) => (x.partners || []).length > 1);
+  const groups = P.pgTypeGroups({ ...c, id: cid });
+  assert.ok(groups.length > 0 && groups.every((g) => g.label), "the graph groups carry the legend words");
 });
 
 test("a definition names the rival and the client from data; an unknown type has no invented text", () => {
   setClient(d.client);
   const cats = buildCategories(d);
-  const k = cats.list.find((c) => /\{rival\}/.test(d.database.ui.partner_category.find((r) => r.category_key === c.key).definition));
+  const k = cats.list.find((c) => /\{rival\}/.test(c.def) && /\{client\}/.test(c.def));
   const txt = cats.categoryDef(k.key, "Zed Co", clientShort());
-  assert.ok(txt.includes("Zed Co") && !/\{rival\}|\{client\}/.test(txt));
+  assert.ok(txt.includes("Zed Co") && txt.includes(clientShort()) && !/\{rival\}|\{client\}/.test(txt));
   const u = cats.categoryOf("no-such-type");
   assert.equal(u.label, "");
   assert.equal(u.def, "");
 });
 
-test("overlap definitions are the ui.partner_overlap_* rows", () => {
+test("overlap headings and leads are front-end code; the effects are the ui.partner_overlap_effect rows", () => {
   const defs = overlapDefs(d);
-  const kinds = d.database.ui.partner_overlap_kind;
-  assert.deepEqual(Object.keys(defs).sort(), kinds.map((k) => k.overlap_kind).sort());
+  assert.deepEqual(Object.keys(defs).sort(), OVERLAP_KINDS.map((k) => k.kind).sort());
+  assert.ok(Object.values(defs).every((x) => x.label && x.lead && /\{client\}/.test(x.label)));
   const n = Object.values(defs).reduce((a, x) => a + x.fx.length, 0);
   assert.equal(n, d.database.ui.partner_overlap_effect.length);
-  assert.deepEqual(overlapDefs({}), {});
+  // no effect rows: the headings stay, no effect prose is drawn
+  const none = overlapDefs({});
+  assert.deepEqual(Object.keys(none).sort(), OVERLAP_KINDS.map((k) => k.kind).sort());
+  assert.ok(Object.values(none).every((x) => x.fx.length === 0));
+  // an effect keyed by the alias of a kind lands under that kind
+  const aliased = overlapDefs({ database: { ui: { partner_overlap_effect: [{ overlap_kind: "tech", display_order: 1, effect_title: "t", effect_text: "x" }] } } });
+  assert.deepEqual(aliased.technology.fx, [["t", "x"]]);
 });
 
 test("one company is one node and the type groups follow the legend", () => {
