@@ -92,3 +92,18 @@ DB impact: **no table change required.** Data gaps (DB/prompt side, **not implem
    product. 422 of 607 matches also have no `_line` rows, so they show only the product and the fit. A
    `match_rationale text` column (filled by the prompt) would give every card its reason line.
 3. `fit_percent` is set on 69 of 607 matches; the pill falls back to the fit word.
+
+## 2026-10-17 · Technology: ADOPTABLE / stage pill / "<client> behind" labels
+
+Checked against the reference: ADOPTABLE (Technology overview) and the "<client> behind / at parity / ahead" pill
+(Innovations) were already wired. Frontend change: the Innovations row pill now prints the short stage word of the
+stored maturity code (`technology_innovation.maturity` -> LAB / IN DEVELOPMENT / IN PRODUCTION / FIELDED / IN SERVICE,
+words in `src/lib/innovation.js` MAT_LAB) as the reference does; the stored sentence
+(`technology_innovation_status.maturity_label`) moved to the pill's tooltip and stays in the detail panel.
+
+DB impact: **no table change required.** Data gaps (**not implemented**):
+1. Position: 14 of 15 local innovations store gap `unknown` and no `position_label`, so only one row carries a
+   "KSSL behind" pill. The prompt (`innovation_detail`) has to assess the client position for each innovation.
+2. "IN PRODUCTION" appears only for maturity code `prod`; no local innovation has it today (12 dev, 2 fielded, 1 lab).
+3. Coverage: the 15 innovations sit in 3 of 10 domains (Protected & Armoured Vehicles, UAVs & Drones, Missiles & Air
+   Defence); the other tabs (Artillery first) are empty until `innovation_discovery` fills them.

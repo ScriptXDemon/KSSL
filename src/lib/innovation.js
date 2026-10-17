@@ -36,6 +36,10 @@ export const maturityWord = (iv) =>
   iv && has(iv.matLabel) ? String(iv.matLabel).trim() : iv && has(iv.mat) ? MAT_LAB[iv.mat] || String(iv.mat) : "";
 export const positionWord = (iv) => (iv && has(iv.gapLabel) ? String(iv.gapLabel).trim() : iv && has(iv.gap) ? gapLab(iv.gap) : "");
 
+/* The row's stage pill: the short stage word of the stored maturity code (IN DEVELOPMENT, IN PRODUCTION, ...), as the
+   reference prints it; the stored maturity sentence (`matLabel`) is the longer read in the detail. */
+export const maturityStage = (iv) => (iv && has(iv.mat) ? MAT_LAB[iv.mat] || String(iv.mat) : "");
+
 /* A missing maturity says so in words. */
 export function maturityLabel(iv) {
   return maturityWord(iv) || NOT_STATED;

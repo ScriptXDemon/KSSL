@@ -8,7 +8,7 @@ import { useData } from "../../state/DataProvider";
 import { techReportHtml } from "../../lib/reports";
 import { gapCorrelateStrip } from "../../lib/gapModel";
 import { srcChips, attr } from "../../lib/html";
-import { NOT_ASSESSED, has, maturityLabel, maturityWord, positionWord, positionPill, filterInnovations } from "../../lib/innovation";
+import { NOT_ASSESSED, has, maturityLabel, maturityStage, maturityWord, positionWord, positionPill, filterInnovations } from "../../lib/innovation";
 import { Review } from "../../components/review/Review";
 
 /* Not every pipeline row carries an assessed position. `gap`, `horizon`, `whatsNew`
@@ -288,7 +288,7 @@ export default function Innovation() {
                     still carries border:1px solid + padding, leaving a bare ~16x18px
                     rectangle beside the title -- the "small Box symbol" in the report. */}
                 {has(item.mat) ? (
-                  <span className={`mat ${item.mat}`}>{maturityWord(item)}</span>
+                  <span className={`mat ${item.mat}`} title={maturityWord(item)}>{maturityStage(item)}</span>
                 ) : null}
               </div>
               <div
