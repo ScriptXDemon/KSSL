@@ -73,3 +73,22 @@ DB impact: **no table change required.** Key points read `serving.market_global_
    and have `requirement_assessment`/the prompt fill it; the panel would then read it instead of the lane word.
 2. The reference's key points are 1-4 bullets; the stored assessment is one paragraph, shown as one bullet. A stored
    bullet list (e.g. a `market_global_requirement_point` child table, or an array column) would give separate bullets.
+
+## 2026-10-17 · Market > Tenders: Matched products and Competitor fit
+
+Frontend (`src/pages/market/Tenders.jsx`, `src/styles/tender.css`): both sections already existed and render whenever
+the tender carries the rows. Fixed how the stored rows print:
+- a matched product's pill shows the stored percentage, else the stored fit word ("partial fit"), else "— fit"
+  (it printed a bare " fit" because `fit_percent` is empty on most rows)
+- a stored match line is `[label, value]` (`market_tender_product_match_line`); it printed a ▼ and dropped the label.
+  It now prints "• Label: value"; an arrow only for a reference-style `[up|down, text]` line
+- the rival's fit pill is readable (it was white on white) and reads "<word> fit"
+
+DB impact: **no table change required.** Data gaps (DB/prompt side, **not implemented**):
+1. Coverage: of 292 open/closing tenders in local staging only 87 have a `market_tender_product_match` row and 53 a
+   `market_tender_competitor_fit` row (132 have a `market_tender_fit_assessment`). Every other tender shows neither
+   section -- `tender_assessment` needs to run on the live tenders.
+2. `market_tender_product_match` has no rationale column; the reference card carries a one-line reason under each matched
+   product. 422 of 607 matches also have no `_line` rows, so they show only the product and the fit. A
+   `match_rationale text` column (filled by the prompt) would give every card its reason line.
+3. `fit_percent` is set on 69 of 607 matches; the pill falls back to the fit word.

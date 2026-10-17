@@ -7,7 +7,7 @@ import { useAppState, useHeaderReport } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
 import { gapCorrelateStrip } from "../../lib/gapModel";
 import { productOwner } from "../../lib/productLink";
-import { srcChips } from "../../lib/html";
+import { srcChips, cssWord } from "../../lib/html";
 import { formatLabel, smartTitleCase } from "../../lib/profile";
 import { facetOptions } from "../../lib/countryFacet";
 import { NOT_ON_RECORD, reqLabel, resolveTenderRow, tenderCardCells, tenderFactRows, tenderFitBar } from "../../lib/tenderRow";
@@ -529,14 +529,23 @@ export default function Tenders({ mode = "tender" }) {
                     <div className="tp-match" key={`${m.n}-${i}`}>
                       <div className="mh">
                         <span className="mn">{prodName(m.n)}</span>
-                        <span className={`fit ${m.fit}`}>{m.pct} fit</span>
+                        {/* the stored percentage, else the stored fit word (strong / partial / weak) */}
+                        <span className={`fit ${cssWord(m.fit)}`}>{has(m.pct) ? m.pct : has(m.fit) ? m.fit : "—"} fit</span>
                       </div>
-                      {(m.lines || []).map((l, j) => (
-                        <div className="mline" key={j}>
-                          <span className={`mk ${l[0]}`}>{l[0] === "up" ? "▲" : "▼"}</span>
-                          <span dangerouslySetInnerHTML={{ __html: l[1] }} />
-                        </div>
-                      ))}
+                      {/* a stored line is [label, value] (market_tender_product_match_line); a reference-style line is
+                          [up|down, text]. Only a stored direction draws an arrow. */}
+                      {(m.lines || []).map((l, j) => {
+                        const dirn = l[0] === "up" || l[0] === "down";
+                        return (
+                          <div className="mline" key={j}>
+                            <span className={`mk ${dirn ? l[0] : "info"}`}>{l[0] === "up" ? "▲" : l[0] === "down" ? "▼" : "•"}</span>
+                            <span>
+                              {dirn || !has(l[0]) ? null : <b>{l[0]}: </b>}
+                              <span dangerouslySetInnerHTML={{ __html: l[1] }} />
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
@@ -557,7 +566,7 @@ export default function Tenders({ mode = "tender" }) {
                     <div className="tp-comp-card" key={i}>
                       <div className="tp-comp-header">
                         <span className="tp-comp-name">{c.company || c.name || c.n}</span>
-                        {c.incumbent ? <span className="fit high">Incumbent</span> : c.fit ? <span className="fit high">{c.fit}</span> : null}
+                        {c.incumbent ? <span className="fit high">Incumbent</span> : c.fit ? <span className={`fit ${cssWord(c.fit)}`}>{c.fit} fit</span> : null}
                       </div>
                       {(c.products || c.models || c.lines || []).map((l, j) => (
                         <div className="tp-comp-line" key={j}>

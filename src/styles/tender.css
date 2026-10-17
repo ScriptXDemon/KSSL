@@ -526,6 +526,9 @@
     margin-top: 3px;
     color: #16a34a;
   }
+  .tp-match .mline .mk.info { color: #64748b; }
+  /* the rival's stored fit word, in the threat ink (the match pill above is the client's, in green) */
+  .tp-comp-header .fit { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fee2e2; color: #b91c1c; }
   .tp-match .mline .mk.down {
     color: #dc2626;
   }
