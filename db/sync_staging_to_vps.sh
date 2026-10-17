@@ -9,7 +9,7 @@
 #   raw layer / bookkeeping          -- prompt inputs, never displayed (tender_raw alone is ~800 MB)
 set -euo pipefail
 EXCLUDE=(staging.review_decision staging.tender_raw staging.source_document staging.news_candidate
-         staging.prompt_run staging.spec_dictionary)
+         staging.prompt_run staging.prompt_run_stats staging.spec_dictionary)  # prompt_run_stats: view over prompt_run
 args=(); for t in "${EXCLUDE[@]}"; do args+=(--exclude-table="$t"); done
 GRANTS="GRANT USAGE ON SCHEMA staging, staging_ui TO kssl_app;
         GRANT ALL ON ALL TABLES IN SCHEMA staging, staging_ui TO kssl_app;
