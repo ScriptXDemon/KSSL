@@ -107,3 +107,28 @@ DB impact: **no table change required.** Data gaps (**not implemented**):
 2. "IN PRODUCTION" appears only for maturity code `prod`; no local innovation has it today (12 dev, 2 fielded, 1 lab).
 3. Coverage: the 15 innovations sit in 3 of 10 domains (Protected & Armoured Vehicles, UAVs & Drones, Missiles & Air
    Defence); the other tabs (Artillery first) are empty until `innovation_discovery` fills them.
+
+## 2026-10-17 · Layout fixes, rupee display, revenue-tier filter
+
+Frontend only: profile news cards line up (fixed 3-line headline, one-line meta/source; the news list's category chip
+no longer overruns the source column); Partnership's expand button sits clear of the header line; the Top opportunity,
+Market outlook, Awarded/Active/Closed and By-category tables use fixed column widths with wrapped, 3-line-clamped
+text; the Market Intelligence category filter is plain text (no category colours); the "Data: …" footers under the
+Market Intelligence tables are removed; stored codes such as `need_stated` read as words; a long metric value
+steps down a size and clamps to two lines; the Competitor Profile always shows the revenue-tier filter under the
+origin filter.
+
+DB impact / gaps (**not implemented**):
+1. **Indian rupees.** Value totals are now formatted in rupees, Indian style (`₹ 472 Cr`, `₹ 8.5 L`, see
+   `src/lib/tenderValue.js`). An INR amount is shown directly; any other currency is converted **only with a stored
+   exchange rate**, read from the dataset key `fxRates` (`{ "USD": <rupees per unit>, … }`). No rate exists in the DB
+   today, so non-INR amounts still show in their own currency. To switch everything to rupees: add a rates table
+   (e.g. `serving.fx_rate (currency_code char(3) primary key, inr_per_unit numeric not null, as_of_date date not null,
+   source_url text)`) and have the backend ship it as `fxRates`. No rate is written in code.
+2. The Top opportunity "Tender value" tile prints the stored `market_top_opportunity_metric.formatted_value` text
+   ("UAH 2.41 bn · CZK …"), which the frontend cannot convert. The `top_opportunity` lane should write this metric in
+   INR (formatted_value in ₹ Cr, amount_value in rupees, currency_code `INR`) once rates exist.
+3. Revenue tier: no competitor carries a revenue tier in local staging (`competitive_competitor.revenue_filter` empty),
+   so the filter shows "No revenue tier on record yet" until the competitor prompt / Excel load fills it.
+4. `market_tender` / `market_award` stage codes (`need_stated`, `approved_funded`, `rfi`) are displayed as words; a
+   stored label column would let the wording be edited without code.

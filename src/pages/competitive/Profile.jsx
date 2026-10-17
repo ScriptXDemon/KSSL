@@ -667,22 +667,25 @@ export default function Profile() {
               </option>
             ))}
           </select>
-          {revenueOpts.length ? (
-            <select
-              aria-label="Filter competitors by revenue"
-              className="mu-fsel"
-              onChange={(e) => setRevenue(e.target.value)}
-              style={{ width: "100%", marginTop: "8px" }}
-              value={revenue}
-            >
-              <option value="all">All revenue tiers ({roster.length})</option>
-              {revenueOpts.map((o) => (
+          {/* always under the origin filter; with no stored revenue tier it says so instead of disappearing */}
+          <select
+            aria-label="Filter competitors by revenue"
+            className="mu-fsel"
+            onChange={(e) => setRevenue(e.target.value)}
+            style={{ width: "100%", marginTop: "8px" }}
+            value={revenue}
+          >
+            <option value="all">All revenue tiers ({roster.length})</option>
+            {revenueOpts.length ? (
+              revenueOpts.map((o) => (
                 <option key={o.v} value={o.v}>
                   {o.l} ({o.n})
                 </option>
-              ))}
-            </select>
-          ) : null}
+              ))
+            ) : (
+              <option disabled value="none">No revenue tier on record yet</option>
+            )}
+          </select>
         </div>
         <div id="patc-list">
           {list.map((r) => (
@@ -1042,7 +1045,7 @@ export default function Profile() {
                     className="ln-all-row"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "110px 1fr 140px 220px",
+                      gridTemplateColumns: "100px minmax(0, 1fr) 210px 180px",   /* the chip column holds its widest chip; longer ones end in "…" */
                       gap: "16px",
                       alignItems: "center",
                       padding: "10px 14px",
@@ -1058,9 +1061,13 @@ export default function Profile() {
                     <span className="ln-row-title" style={{ fontSize: "13px", color: "var(--d-txt)", fontWeight: "500", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.title}
                     </span>
-                    <span className="ln-row-cat" style={{ display: "flex", justifyContent: "center" }}>
+                    <span className="ln-row-cat" style={{ display: "flex", justifyContent: "center", minWidth: 0 }}>
                       <span
+                        title={item.category || undefined}
                         style={{
+                          maxWidth: "100%",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                           display: "inline-block",
                           padding: "3px 12px",
                           background: "var(--d-bg-2)",

@@ -20,6 +20,7 @@ import { rosterIndex, rosterLookup } from "./partners.js";
 import { markOverlaps } from "./overlap.js";
 import { competitiveLane, technologyLane, marketLane, stanceOf } from "./chrome.js";
 import { logger } from "../utils/logger.js";
+import { setFxRates } from "./tenderValue.js";
 
 /* THE PUBLISHER'S DATED PERMALINK IS AUTHORITATIVE FOR THE DAY.
    Most signal cards carry a month-only `ago` ("Sep 2026"); 740 of 765 URL-dated cards
@@ -123,6 +124,8 @@ export function wireDataset(raw) {
   /* markOverlaps runs on the dataset as served: competitor_id is unique, so there is no merge step.
      sortCompaniesByName puts every company list in alphabetical order. */
   const d = markOverlaps(sortCompaniesByName(plainDashes(decodeAmp({ ...raw }))));
+  // the stored exchange rates (rupees per unit) every value total is shown with; none served -> nothing converted
+  setFxRates(d.fxRates);
 
   /* ONE capitalisation for every headline in the app, applied at the single point they
      all enter it. Doing it here rather than at the render sites is the whole point: the

@@ -14,6 +14,11 @@ import { Review } from "../review/Review";
 
 const show = (v) => (v == null || String(v).trim() === "" ? "—" : v);
 const cls = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+/* column widths: every table keeps the same columns in the same place, long text wraps and stops at three lines */
+const COLS7 = ["5%", "28%", "13%", "8%", "19%", "18%", "9%"];
+const COLS3 = ["16%", "54%", "30%"];
+const Cols = ({ w }) => <colgroup>{w.map((x, i) => <col key={i} style={{ width: x }} />)}</colgroup>;
+const clip = (v) => <span className="clamp3" title={v == null ? undefined : String(v)}>{show(v)}</span>;
 const where = (r) => [r.country, r.issuer].filter((v) => v != null && String(v).trim() !== "").join(" · ");
 
 export default function TenderCockpit({ onOpen }) {
@@ -46,7 +51,8 @@ export default function TenderCockpit({ onOpen }) {
         </div>
         {top.length ? (
           <div className="ovt-scroll">
-            <table>
+            <table className="ovt-fixed">
+              <Cols w={COLS7} />
               <thead>
                 <tr>
                   {W.tendersCols.map((h, i) => <th className={i === 0 || i === 6 ? "num" : undefined} key={h}>{h}</th>)}
@@ -61,10 +67,10 @@ export default function TenderCockpit({ onOpen }) {
                       <span className="ovt-buyer" title={r.issuer}>{where(r)}</span>
                       <Review src={r._src} />
                     </td>
-                    <td className="num">{show(r.decides)}</td>
+                    <td>{clip(r.decides)}</td>
                     <td>{fitCell(r.ksslFit)}</td>
-                    <td>{show(r.ksslModel)}</td>
-                    <td>{show(r.rivalToBeat)}</td>
+                    <td>{clip(r.ksslModel)}</td>
+                    <td>{clip(r.rivalToBeat)}</td>
                     <td className="num">{show(r.revenue)}</td>
                   </tr>
                 ))}
@@ -83,7 +89,8 @@ export default function TenderCockpit({ onOpen }) {
         </div>
         {projects.length ? (
           <div className="ovt-scroll">
-            <table>
+            <table className="ovt-fixed">
+              <Cols w={COLS7} />
               <thead>
                 <tr>
                   {W.projectsCols.map((h, i) => <th className={i === 0 || i === 6 ? "num" : undefined} key={h}>{h}</th>)}
@@ -102,8 +109,8 @@ export default function TenderCockpit({ onOpen }) {
                       <span className="ti-title" title={r.stage}>{show(r.stage)}</span>
                     </td>
                     <td>{fitCell(r.ksslFit)}</td>
-                    <td>{show(r.ksslModel)}</td>
-                    <td>{show(r.rivalToBeat)}</td>
+                    <td>{clip(r.ksslModel)}</td>
+                    <td>{clip(r.rivalToBeat)}</td>
                     <td className="num">{show(r.revenue)}</td>
                   </tr>
                 ))}
@@ -122,7 +129,8 @@ export default function TenderCockpit({ onOpen }) {
         </div>
         {moves.length ? (
           <div className="ovt-scroll">
-            <table>
+            <table className="ovt-fixed">
+              <Cols w={COLS3} />
               <thead>
                 <tr>
                   {W.movesCols.map((h, i) => <th className={i === 0 ? "num" : undefined} key={h}>{h}</th>)}
@@ -132,7 +140,7 @@ export default function TenderCockpit({ onOpen }) {
                 {moves.map((m) => (
                   <tr key={m.id} className="ti-row-link" tabIndex={0} onClick={() => openTender(m.tenderId, m.tenderTitle)} onKeyDown={(e) => rowKey(e, () => openTender(m.tenderId, m.tenderTitle))}>
                     <td className="num">{show(m.due)}</td>
-                    <td>{show(m.action)}</td>
+                    <td>{clip(m.action)}</td>
                     <td className="ovt-t"><span className="ti-title" title={m.tenderTitle}>{show(m.tenderTitle)}</span><Review src={m._src} /></td>
                   </tr>
                 ))}

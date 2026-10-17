@@ -1,7 +1,6 @@
-/* Tender values are never converted. A tender states one amount in one currency
-   (serving.market_tender.value_amount + value_currency, shipped as valueAmount / valueCurrency);
-   a total is a sum per currency, and a mixed set is shown as one total for each. No exchange
-   rate exists anywhere in code or in the loader (ruling R9). */
+/* A tender states one amount in one currency (serving.market_tender.value_amount + value_currency, shipped as
+   valueAmount / valueCurrency); a total is a sum per currency. Totals are SHOWN in rupees (formatTotals) using only
+   stored exchange rates; no rate exists anywhere in code (ruling R9). */
 
 /* the field names a record keeps its amount and currency under: tenders use the default, awards use AWARD_FIELDS */
 export const TENDER_FIELDS = { amount: "valueAmount", currency: "valueCurrency" };
@@ -27,7 +26,32 @@ export function valueTotals(list, f = TENDER_FIELDS) {
 
 const short = (n) => (n >= 1e6 ? `${(Math.round(n / 1e5) / 10).toLocaleString("en-US")} m` : Math.round(n).toLocaleString("en-US"));
 
-/* "USD 1,070 m · EUR 9 m", or "—" when no tender states an amount */
+/* RUPEES. Amounts are shown in Indian rupees, Indian style (₹ 12.4 Cr, ₹ 8.5 L). An amount stated in INR is shown as
+   it is; another currency is converted only with a STORED rate (data.fxRates: { "USD": <rupees per unit>, ... },
+   handed in by wireDataset through setFxRates). No rate is written in code: a currency with no stored rate keeps its
+   own code and amount, so nothing is converted at a guessed rate. */
+let FX = {};
+export function setFxRates(rates) {
+  FX = {};
+  Object.entries(rates || {}).forEach(([c, r]) => {
+    const v = Number(r);
+    if (Number.isFinite(v) && v > 0) FX[String(c).trim().toUpperCase()] = v;
+  });
+}
+const inrOf = (t) => {
+  const c = String(t.currency).trim().toUpperCase();
+  return c === "INR" ? t.amount : FX[c] ? t.amount * FX[c] : null;
+};
+const one = (n, unit, d) => `${(Math.round((n / unit) * 10 ** d) / 10 ** d).toLocaleString("en-IN")}`;
+export const rupees = (n) =>
+  n >= 1e7 ? `₹ ${one(n, 1e7, n >= 1e9 ? 0 : 1)} Cr` : n >= 1e5 ? `₹ ${one(n, 1e5, 1)} L` : `₹ ${Math.round(n).toLocaleString("en-IN")}`;
+
+/* "₹ 1,240 Cr" when every currency is INR or has a stored rate; otherwise the converted part in rupees and each
+   unconverted currency in its own code ("₹ 12 Cr · UAH 34,516 m"); "—" when no record states an amount */
 export function formatTotals(totals) {
-  return totals && totals.length ? totals.map((t) => `${t.currency} ${short(t.amount)}`).join(" · ") : "—";
+  if (!totals || !totals.length) return "—";
+  const inr = totals.map(inrOf);
+  const sum = inr.filter((v) => v != null).reduce((a, b) => a + b, 0);
+  const rest = totals.filter((_, i) => inr[i] == null).map((t) => `${t.currency} ${short(t.amount)}`);
+  return [...(inr.some((v) => v != null) ? [rupees(sum)] : []), ...rest].join(" · ");
 }

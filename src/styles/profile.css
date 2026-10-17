@@ -864,3 +864,10 @@ a.ln-feed-card:hover .ln-feed-title { text-decoration: underline; }
 .ln-feed-info .ln-feed-title { font-size: 15px; font-weight: 700; line-height: 1.4; }
 .ln-feed-info .ln-feed-meta { font-size: 11.5px; }
 .ln-feed-info .ln-feed-src { font-size: 12.5px; }
+
+/* NEWS CARDS LINE UP: the headline always takes three lines of room (clamped at three), the meta and source lines one
+   each, so the date, headline and publisher of every card in a row sit at the same heights whatever the headline's
+   length. The lead story (two cells) keeps its own size. */
+.ln-grid .ln-feed-item:not(.ln-top-story) .ln-feed-info .ln-feed-title { height: calc(1.4em * 3); }
+.ln-feed-info .ln-feed-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ln-feed-info .ln-feed-src { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: auto; }

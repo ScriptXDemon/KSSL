@@ -375,7 +375,11 @@ export default function MarketOverview() {
     src.length ? (
       <>
         <div className="ovt-scroll">
-          <table>
+          {/* fixed column widths: the columns line up whatever the text, long text wraps in its cell */}
+          <table className="ovt-fixed">
+            <colgroup>
+              {(showCloses ? ["44%", "14%", "16%", "11%", "15%"] : ["50%", "16%", "18%", "16%"]).map((w, i) => <col key={i} style={{ width: w }} />)}
+            </colgroup>
             <thead>
               <tr>
                 <th>Tender</th>
@@ -491,13 +495,6 @@ export default function MarketOverview() {
           ) : null}
         </label>
         <label className="ovf-sel">
-          {cat ? (
-            <span
-              aria-hidden="true"
-              className="ovf-sw"
-              style={{ background: CATEGORY_COLOR(sliceLabel(cat)) }}
-            />
-          ) : null}
           <span className="ddlbl">Category</span>
           <select
             aria-label="Filter by category"
@@ -506,7 +503,7 @@ export default function MarketOverview() {
           >
             <option value="all">All ({cats.length})</option>
             {cats.map((c) => (
-              <option key={c.label} style={{ color: CATEGORY_COLOR(sliceLabel(c.label)) }} value={c.label}>
+              <option key={c.label} value={c.label}>
                 {c.label} ({c.count})
               </option>
             ))}
@@ -575,7 +572,8 @@ export default function MarketOverview() {
               </span>
             </div>
             <div className="ovt-scroll">
-              <table>
+              <table className="ovt-fixed">
+                <colgroup>{["30%", "12%", "12%", "46%"].map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
                 <thead>
                   <tr>
                     <th>Category</th>
@@ -648,7 +646,8 @@ export default function MarketOverview() {
                 {awardsList.length ? (
                   <>
                     <div className="ovt-scroll">
-                      <table>
+                      <table className="ovt-fixed">
+                        <colgroup>{["11%", "33%", "21%", "14%", "6%", "15%"].map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
                         <thead>
                           <tr>
                             <th className="num">Awarded</th>
@@ -669,7 +668,7 @@ export default function MarketOverview() {
                                 <Review src={a._src} />
                               </td>
                               <td>
-                                {a.winner}
+                                <span className="clamp3" title={a.winner || undefined}>{a.winner}</span>
                                 {a.brand ? <span className="ovt-buyer">{a.brand}</span> : null}
                               </td>
                               <td className="num">{a.value_text || (a.value && a.currency ? `${a.currency} ${a.value.toLocaleString("en-US")}` : "—")}</td>

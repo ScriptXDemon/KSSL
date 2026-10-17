@@ -116,7 +116,8 @@ export default function MetricsStrip({ metrics, active, onPick, inert = false })
               of it. `m.dot` is still served and still on the metric; nothing else reads
               it, so restoring the dot is restoring this one span. */}
           <span className="ml">{m.l}</span>
-          <span className="mv">
+          {/* a long value (several currencies) steps down a size and stops at two lines; the whole text is the tooltip */}
+          <span className={`mv${String(m.v || "").length > 14 ? " long" : ""}`} title={String(m.v || "").length > 14 ? String(m.v) : undefined}>
             <CountUp text={m.v} />
             {m.unit ? <span className="unit">{m.unit}</span> : null}
             {m.delta ? <span className="delta up">{m.delta}</span> : null}

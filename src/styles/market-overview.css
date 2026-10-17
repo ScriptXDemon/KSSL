@@ -130,3 +130,15 @@
    Per-option colour is applied where the browser honours it and is ignored where it
    does not; nothing depends on it, the option text says the category either way. */
 .ovf-sw{width:10px;height:10px;border-radius:2px;flex-shrink:0;box-shadow:inset 0 0 0 1px rgb(255 255 255 / .18)}
+
+/* Fixed-width tables: the columns keep their share whatever the text, long text wraps inside its cell and stops at
+   three lines (the whole text is the cell's tooltip). */
+.ovt table.ovt-fixed{table-layout:fixed;min-width:0}
+.ovt table.ovt-fixed td,.ovt table.ovt-fixed th{overflow-wrap:anywhere;word-break:normal}
+.ovt table.ovt-fixed th{white-space:normal}
+.ovt table.ovt-fixed .ovt-t{min-width:0;max-width:none}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* inside a fixed table the title line takes the cell's width, not its own 520px cap */
+.ti-simple table.ovt-fixed .ti-title,.ti-simple table.ovt-fixed .ovt-buyer{max-width:100%}
+.ovt .clamp3,.ovt .od-main.clamp3{display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+.ovt table.ovt-fixed td.ovt-t > :first-child{display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}

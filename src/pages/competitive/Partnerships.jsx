@@ -439,7 +439,7 @@ export default function Partnerships() {
             title="Expand competitor list"
             aria-label="Expand competitor list"
             style={{
-              display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px",
+              display: "flex", alignItems: "center", justifyContent: "center", margin: "12px auto 8px",
               width: "28px", height: "28px", padding: 0,
               background: "var(--d-bg-2)", border: "1px solid var(--d-line)", color: "var(--d-txt-2)",
               borderRadius: "6px", fontSize: "12px", cursor: "pointer", lineHeight: 1,
