@@ -454,13 +454,13 @@ INSERT INTO staging.technology_overview_source
 -- The metric tiles on the Technology pages (counts; metric_action is the filter the tile opens). 8 rows.
 INSERT INTO staging.technology_metric
   (metric_id, pillar_id, metric_key, metric_label, metric_value, metric_unit, metric_action, display_order, as_of_date) VALUES
-  (72501, 1, 'innovations_tracked',  'Innovations tracked',    16, 'innovations', 'open-innovation-tab',          1, '2026-10-16'),
-  (72502, 1, 'aurora_behind',        'Aurora behind',           8, 'innovations', 'filter-position-behind',       2, '2026-10-16'),
-  (72503, 1, 'aurora_parity',        'Aurora at parity',        6, 'innovations', 'filter-position-parity',       3, '2026-10-16'),
-  (72504, 1, 'aurora_ahead',         'Aurora ahead',            2, 'innovations', 'filter-position-ahead',        4, '2026-10-16'),
-  (72505, 1, 'signals_total',        'Overview signals',       10, 'signals',     'open-overview',                5, '2026-10-16'),
-  (72506, 1, 'competitor_advances',  'Competitor advances',     6, 'signals',     'filter-classification-competitor_advance', 6, '2026-10-16'),
-  (72507, 1, 'adoptable',            'Adoptable technologies',  4, 'signals',     'filter-classification-adoptable', 7, '2026-10-16'),
+  (72501, 1, 'innovations_tracked',  'Innovations tracked',    16, 'innovations', 'open-innovation-tab',          3, '2026-10-16'),
+  (72502, 1, 'aurora_behind',        'Aurora behind',           8, 'innovations', 'filter-position-behind',       4, '2026-10-16'),
+  (72503, 1, 'aurora_parity',        'Aurora at parity',        6, 'innovations', 'filter-position-parity',       5, '2026-10-16'),
+  (72504, 1, 'aurora_ahead',         'Aurora ahead',            2, 'innovations', 'filter-position-ahead',        6, '2026-10-16'),
+  (72505, 1, 'signals_total',        'Overview signals',       10, 'signals',     'open-overview',                7, '2026-10-16'),
+  (72506, 1, 'competitor_advances',  'Competitor advances',     6, 'signals',     'filter-classification-competitor_advance', 1, '2026-10-16'),
+  (72507, 1, 'adoptable',            'Adoptable technologies',  4, 'signals',     'filter-classification-adoptable', 2, '2026-10-16'),
   (72508, 1, 'candidates_pending',   'Candidates pending detail', 2, 'innovations', NULL,                         8, '2026-10-16');
 
 -- ---------------------------------------------------------------------------------------------------------------- staging.fact_source (Trace panel)

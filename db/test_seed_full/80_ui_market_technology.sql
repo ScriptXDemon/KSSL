@@ -61,18 +61,19 @@ INSERT INTO staging_ui.market_ui_navigation
 INSERT INTO staging_ui.market_view
   (view_id, view_title, rail_label, rail_order, rail_count, is_selected, empty_state_text) VALUES
   ('top-opportunity',     'Top opportunity',     'Top opportunity',     1, 9,  true,  'No top opportunities or tender pipelines are on record.'),
-  ('market-intelligence', 'Market Intelligence', 'Market Intelligence', 2, 7,  false, 'Nothing on record matches the filters.'),
-  ('tenders',             'Tenders',             'Tenders',             3, 11, false, 'No tenders match the filters.'),
-  ('tender-assessment',   'Tender assessment',   'Tender assessment',   4, 6,  false, 'No tender has been assessed yet.'),
-  ('global-requirement',  'Global requirements', 'Global requirements', 5, 6,  false, 'No requirements on record');
+  ('tenders',             'Tenders',             'Tenders',             2, 11, false, 'No tenders match the filters.'),
+  ('global-requirement',  'Global requirements', 'Global requirements', 3, 6,  false, 'No requirements on record'),
+  ('market-intelligence', 'Market Intelligence', 'Market Intelligence', 4, 7,  false, 'Nothing on record matches the filters.'),
+  ('tender-assessment',   'Tender assessment',   'Tender assessment',   5, 6,  false, 'No tender has been assessed yet.');
 
--- market_intelligence_tab: the four tabs of Market Intelligence with record counts. 4 rows.
+-- market_intelligence_tab: the five tabs of Market Intelligence with record counts. 5 rows.
 INSERT INTO staging_ui.market_intelligence_tab
   (tab_id, tab_label, tab_order, record_count, is_selected, category_filter, country_filter) VALUES
-  ('active',      'Number of active tenders', 1, 7, true,  NULL, NULL),
-  ('by-category', 'By category',              2, 6, false, NULL, NULL),
-  ('awarded',     'Awarded',                  3, 2, false, NULL, NULL),
-  ('closed',      'Closed',                   4, 2, false, NULL, NULL);
+  ('outlook',     'Market outlook',           1, 6, false, NULL, NULL),
+  ('active',      'Number of active tenders', 2, 7, true,  NULL, NULL),
+  ('by-category', 'By category',              3, 6, false, NULL, NULL),
+  ('awarded',     'Awarded',                  4, 2, false, NULL, NULL),
+  ('closed',      'Closed',                   5, 2, false, NULL, NULL);
 
 -- market_metric: the four tiles above Market Intelligence (value as display text). 5 rows.
 INSERT INTO staging_ui.market_metric
@@ -223,9 +224,9 @@ INSERT INTO staging_ui.technology_pillar
 INSERT INTO staging_ui.technology_ui_view
   (view_id, pillar_id, view_code, view_key, view_name, view_label, view_number, route_hash, page_heading, search_placeholder,
    sequence_label, sequence_default, sequence_options, record_count, rail_count, display_order, is_active) VALUES
-  (91001, '1', 'technology-overview',   'overview',   'Technology Overview',   'Technology Overview',   '1', '#/technology/overview',   'Technology Overview',   'Search signals...',
+  (91001, '1', 'technology-overview',   'overview',   'Technology Overview',   'Overview',   '1', '#/technology/overview',   'Technology Overview',   'Search signals...',
    'Sequence', 'newest', '[{"code": "newest", "label": "Newest first"}, {"code": "oldest", "label": "Oldest first"}, {"code": "threat", "label": "Threat first"}]'::jsonb, 10, 10, 1, true),
-  (91002, '1', 'technology-innovation', 'innovation', 'Technology Innovation', 'Technology Innovation', '2', '#/technology/innovation', 'Technology Innovation', 'Search innovations...',
+  (91002, '1', 'technology-innovation', 'innovation', 'Technology Innovation', 'Innovations', '2', '#/technology/innovation', 'Technology Innovation', 'Search innovations...',
    'Sequence', 'category', '[{"code": "category", "label": "By category"}, {"code": "position", "label": "Aurora position"}]'::jsonb, 16, 16, 2, true);
 
 -- technology_ui_navigation: the Technology entries of the left navigation (labels, search placeholder, print button). 2 rows.

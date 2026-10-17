@@ -16,11 +16,11 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
-from backend.areas import a_competitive, b_products, c_network, d_market_tech
+from backend.areas import a_competitive, b_products, c_network, d_market_tech, e_ui_port
 from backend import review
 from backend.common import json_value
 
-AREAS = (a_competitive, b_products, c_network, d_market_tech)  # a first: others read competitors
+AREAS = (a_competitive, b_products, c_network, d_market_tech, e_ui_port)  # a first: others read competitors
 
 
 # Two databases (db/make_databases.sh): the live backend reads the serving DB (KSSL_SERVING_DSN,
@@ -43,8 +43,9 @@ app.add_middleware(
 
 def build_dataset(database):
     """The UI contract. Each area module fills its keys; nothing is defaulted beyond empty."""
-    # the raw tables (`database`) are not sent: no page reads them and they doubled the payload (14 MB of 27)
-    d = {"details": {}, "sourceRegistry": {}, "companySources": {}}
+    # `database` (raw ui/serving rows) is sent: the 137Parallax UI reads labels, filter options and
+    # section visibility from it via uiText(). v2 dropped it for payload size; responses are gzipped.
+    d = {"database": database, "details": {}}
     for area in AREAS:
         area.build(database, d)
     return d

@@ -23,14 +23,14 @@ import { SEQ_OPTIONS } from "../../lib/overview";
    happen, and below about 1280px on the market pillar (four pills) the row ran off the
    right edge of a header whose scrollbar is hidden. The Sequence control was simply
    gone at 1024px. */
-export default function FeedFilters({ filters, active, onFilter, seqMode, onSeq, searchQuery, onSearch, counts }) {
+export default function FeedFilters({ filters, active, onFilter, seqMode, onSeq, searchQuery, onSearch, counts, seqOptions = SEQ_OPTIONS, seqLabel = "Sequence", placeholder = "Search" }) {
   return (
     <div className="filters">
       <div className="feed-search-box">
         <span className="feed-search-icon">⌕</span>
         <input
           type="text"
-          placeholder="Search"
+          placeholder={placeholder}
           value={searchQuery || ""}
           onChange={(e) => onSearch?.(e.target.value)}
         />
@@ -64,7 +64,7 @@ export default function FeedFilters({ filters, active, onFilter, seqMode, onSeq,
               disabled={empty}
               key={f.f}
               onClick={() => onFilter(f.f)}
-              title={empty ? `No signals carry ${f.l}` : undefined}
+              title={empty ? `Nothing carries ${f.l}` : undefined}
               type="button"
             >
               {f.l}
@@ -78,9 +78,9 @@ export default function FeedFilters({ filters, active, onFilter, seqMode, onSeq,
           the next */}
       <span className="seq-ctl">
         <span className="seq-sep" />
-        <span className="seq-label">Sequence</span>
+        <span className="seq-label">{seqLabel}</span>
         <select className="seq-select" onChange={(e) => onSeq(e.target.value)} value={seqMode}>
-          {SEQ_OPTIONS.map(([v, label]) => (
+          {seqOptions.map(([v, label]) => (
             <option key={v} value={v}>
               {label}
             </option>

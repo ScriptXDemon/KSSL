@@ -126,6 +126,14 @@ GRAPH: dict[str, tuple[str, bool, list[tuple[str, str]]]] = {
     # one thread of events (prompts/story.py): a story is a card of its own, its dated steps are its children
     "story": ("story_id", True, []),
     "story_step": ("step_id", False, [("story_id", "story")]),
+    # ui-port tables (db/setup/09_ui_port_tables.sql). The synthesis rows ride on the competitor card; the rest are their own cards.
+    "competitive_synthesis": ("competitor_id", False, [("competitor_id", C)]),
+    "competitive_synthesis_vulnerability": ("vulnerability_id", False, [("competitor_id", "competitive_synthesis")]),
+    "competitive_synthesis_vulnerability_trace": ("trace_id", False, [("vulnerability_id", "competitive_synthesis_vulnerability")]),
+    "competitive_field_synthesis": ("synthesis_id", True, []),
+    "market_award": ("award_id", True, []),
+    "market_segment_assessment": ("segment", True, []),
+    "patent_field_assessment": ("area_label", True, []),
 }
 # Not in GRAPH (no page reads them): competitive_product_evaluation, competitive_product_evaluation_spec.
 # A reviewed row whose key column is empty is keyed by its alternate column.
