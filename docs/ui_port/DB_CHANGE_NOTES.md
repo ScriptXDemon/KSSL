@@ -26,3 +26,34 @@ loaded by `backend/location_load.py`, shipped as `competitors[].global_locations
 `backend/areas/a_competitive.py`) is **no longer displayed on the profile**. It is **still read** by the
 country filter (`src/lib/countryFacet.js` unions geo footprint + global_locations + HQ), so the table and its
 loader stay needed. Drop it only if the country filter stops using it too.
+
+## 2026-10-17 · Geo Footprint rebuilt to the reference (Cummins :8101) layout
+
+Frontend (`src/lib/geo.js`, `src/pages/competitive/Geo.jsx`):
+- market list: the client row in the client colour reading "<client> present"; badges "◉ overlap" / "◎ category only",
+  country badges "◉ N contested" / "◎ N category only"
+- client → country: the reference overlap table (Rival · Overlapping categories · Matched pairs · Datasheet outcome ·
+  Presence), then "What this means for <client>" (the stored geo analysis, moved here from the top of the market list)
+- rival → country: "Products <rival> sells" with each product's client counter and verdict pill, and the product
+  comparison pane (grouped spec table, ▲ on the winning side, gap, "ahead on" lines, qualitative differences)
+
+Everything is read from existing stored rows; nothing is paired or graded in the browser. **No table change required.**
+Tables read: `serving.competitive_geo_company_presence` (overlap_status, matched_ranges, activity),
+`serving.competitive_matchup` (+ `_specification`: win, gap, group; edge_score -> verdict via the Product Evaluation
+thresholds), `serving.competitive_product` (category; the rival list shows products in the client's categories plus any
+with a stored comparison), `serving.competitive_geo_analysis`.
+
+Data gaps that leave parts of the reference layout empty (DB/prompt side, **not implemented**):
+1. `competitive_geo_company_presence.matched_ranges` is empty on almost every row, so "Overlapping categories" falls back
+   to the categories of the stored comparisons with that rival (or "—"); the "meets <client> in …" line never shows.
+2. `competitive_matchup.edge_score` is NULL on 21 of 43 local pairs -> pill "Not decided: no stored verdict" and those
+   pairs do not count in "Datasheet outcome".
+3. `competitive_matchup_specification.win` is set on 34 of 469 spec rows and `gap` is mostly NULL -> few ▲ marks,
+   empty Gap column and no "<side> is ahead on" lines.
+4. No per-matchup datasheet/source link is shipped (the reference prints "<rival> datasheet ↗ · <client> datasheet ↗"
+   under each comparison) -> would need the matchup's source URLs (e.g. a `competitive_matchup_source` table or the two
+   products' source_url) added to the matchup payload.
+5. The reference product row carries a class line (rating band · rating · frequency · type); `competitive_product` only
+   has `category`, so the row shows the category. A stored product class / key-rating column would fill it.
+6. Presence words are the stored activity (Local production / Licensed production / Export / Sales and service /
+   Sourcing); the reference's "builds here / exports in / partner" are not mapped.

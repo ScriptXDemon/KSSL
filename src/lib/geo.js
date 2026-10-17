@@ -9,6 +9,7 @@
    =================================================================== */
 import { clientShort } from "./client.js";
 import { escAll } from "./html.js";
+import { edgeVerdict } from "./edge.js";
 
 /* the stored overlap words, mapped to the two badge styles the stylesheet has; any other word is no overlap */
 const OV_TIER = { confirmed: "spec", category: "cat" };
@@ -64,42 +65,223 @@ export function createGeo(d) {
     const tip = `Overlap ${escAll(ov.status)}${what ? `: ${escAll(what)}` : ""}`;
     return ov.tier === "spec"
       ? `<span class="geo-ovb spec" title="${tip}">◉ overlap</span>`
-      : `<span class="geo-ovb cat" title="${tip}">◎ ${escAll(ov.status)}</span>`;
+      : `<span class="geo-ovb cat" title="${tip}">◎ category only</span>`;
   }
   function geoOvBadgeCountry(country) {
     const rs = geoRivalsIn(country);
     if (!rs.length) return "";
     const spec = rs.filter((r) => r.tier === "spec").length;
     return spec
-      ? `<span class="geo-ovb spec" title="${spec} rival${spec === 1 ? "" : "s"} with a confirmed overlap with ${escAll(clientShort())} here">◉ ${spec} confirmed</span>`
-      : `<span class="geo-ovb cat" title="${rs.length} rival${rs.length === 1 ? "" : "s"} with a category overlap with ${escAll(clientShort())} here">◎ ${rs.length} ${escAll(rs[0].status)}</span>`;
+      ? `<span class="geo-ovb spec" title="${spec} rival${spec === 1 ? "" : "s"} with a confirmed overlap with ${escAll(clientShort())} here">◉ ${spec} contested</span>`
+      : `<span class="geo-ovb cat" title="${rs.length} rival${rs.length === 1 ? "" : "s"} with a category overlap with ${escAll(clientShort())} here">◎ ${rs.length} category only</span>`;
   }
 
-  /* The client's row in a country: the rivals with a stored overlap, as stored. */
+  /* ---- stored product comparisons (data.matchups, the Product Evaluation pairs) ----
+     A rival product's client counterpart is the stored matchup on that product (compProductId). Its verdict is the
+     stored edge score read through edgeVerdict (the thresholds Product Evaluation uses); each spec row's winner and
+     gap are stored (win, gap). Nothing is paired, graded or classified here. */
+  const matchups = Object.values(d.matchups || {});
+  const competitors = d.competitors || {};
+  const pairOfProduct = (pid) => matchups.find((x) => String(x.compProductId) === String(pid)) || null;
+  const pairsOfRival = (cid) => matchups.filter((x) => String(x.compId) === String(cid));
+  const CMP_CLS = { rival: "gc-rival", koel: "gc-koel", level: "gc-level", none: "gc-none" };
+  const cmpWord = (who) => ({
+    rival: "Competitor’s product is better",
+    koel: `${clientShort()} has the superior product`,
+    level: "Level: neither leads",
+    none: "Not decided: no stored verdict",
+  })[who];
+  // the stored rival product name carries "Company · " in front; the company is already named beside it
+  const stripCo = (v) => String(v || "").replace(/^[^·]*·\s*/, "");
+  const verdictOf = (x) =>
+    x && x.edge != null && x.edge !== ""
+      ? ({ behind: "rival", ahead: "koel", parity: "level" })[edgeVerdict(Number(x.edge)).cls] || "none"
+      : "none";
+
+  function geoPairCard(x, rivalName) {
+    const who = verdictOf(x);
+    const specs = x.specs || [];
+    const n = (w) => specs.filter((sp) => sp.win === w).length;
+    const rv = n("competitor");
+    const kv = n("client");
+    const lv = n("equal");
+    const ks = clientShort();
+    const fmt = (v, u) => (v == null || v === "" ? "—" : escAll(`${v}${u && !String(v).includes(u) ? " " + u : ""}`));
+    const pct = (g) => {
+      const v = Number(g);
+      return g == null || g === "" || !Number.isFinite(v) ? "" : `${v < 1 ? "<1" : v.toFixed(v < 10 ? 1 : 0)}%`;
+    };
+    const lead = (w, who2, cls) => {
+      const t = specs.filter((sp) => sp.win === w).sort((a, b) => (Number(b.gap) || 0) - (Number(a.gap) || 0)).slice(0, 3);
+      return t.length
+        ? `<div class="gc-lead ${cls}"><b>${escAll(who2)} is ahead on</b> ${t
+            .map((sp) => `${escAll(String(sp.l).replace(/ \(.*\)$/, ""))}${pct(sp.gap) ? ` (${pct(sp.gap)})` : ""}`)
+            .join(", ")}</div>`
+        : "";
+    };
+    let h =
+      `<details class="gc-pair" open><summary><span class="gc-names"><b>${escAll(x.bf)}</b> <i>vs</i> <b>${escAll(stripCo(x.comp))}</b></span>` +
+      `<span class="gc-chip ${CMP_CLS[who]}">${escAll(cmpWord(who))}</span>` +
+      `<span class="gc-score">${rv + kv + lv ? `${escAll(rivalName)} ${rv} · ${escAll(ks)} ${kv} · level ${lv} (of ${rv + kv + lv} decided rows)` : "no decided rows"}</span></summary>`;
+    if (x.verdictH) h += `<div class="gc-reason"><b>${escAll(x.verdictH)}</b></div>`;
+    if (x.reason) h += `<div class="gc-reason">${escAll(x.reason)}</div>`;
+    h += lead("competitor", rivalName, "rv") + lead("client", ks, "kv");
+    h += `<table class="gc-tbl"><tr><th>Spec</th><th>${escAll(ks)}<br>${escAll(x.bf)}</th><th>${escAll(rivalName)}<br>${escAll(stripCo(x.comp))}</th><th>Gap</th></tr>`;
+    const groups = [];
+    specs.forEach((sp) => {
+      const g = sp.group || "Other";
+      if (!groups.includes(g)) groups.push(g);
+    });
+    groups.forEach((g) => {
+      h += `<tr class="gc-grp"><td colspan="4">${escAll(g)}</td></tr>`;
+      specs
+        .filter((sp) => (sp.group || "Other") === g)
+        .forEach((sp) => {
+          const kw = sp.win === "client";
+          const rw = sp.win === "competitor";
+          h +=
+            `<tr><td>${escAll(sp.l)}</td><td class="${kw ? "gc-win" : ""}">${fmt(sp.kv, sp.u)}${kw ? " ▲" : ""}</td>` +
+            `<td class="${rw ? "gc-win rv" : ""}">${fmt(sp.cv, sp.u)}${rw ? " ▲" : ""}</td><td class="gc-gap">${kw || rw ? pct(sp.gap) : ""}</td></tr>`;
+        });
+    });
+    h += "</table>";
+    const q = [
+      ...(x.advComp || []).map((t) => `<li class="rv">${escAll(t)}</li>`),
+      ...(x.advBf || []).map((t) => `<li class="kv">${escAll(t)}</li>`),
+    ];
+    if (q.length) h += `<div class="gc-ql">Qualitative differences</div><ul class="gc-q">${q.join("")}</ul>`;
+    if (x.verdict) h += `<div class="gc-reason">${escAll(x.verdict)}</div>`;
+    return h + "</details>";
+  }
+
+  /* The rival's products in the categories the client also sells (the client's stored product categories), plus any
+     with a stored comparison; matched first, then by category and name. One with no comparison says so. */
+  function geoRivalProducts(cid) {
+    const clientCats = new Set((((competitors[CLIENT_KEY] || {}).products) || []).map((p) => p.category).filter(Boolean));
+    return (((competitors[cid] || {}).products) || [])
+      .map((p) => ({ p, x: pairOfProduct(p.id) }))
+      .filter(({ p, x }) => x || clientCats.has(p.category))
+      .sort(
+        (a, b) =>
+          (b.x ? 1 : 0) - (a.x ? 1 : 0) ||
+          String(a.p.category || "").localeCompare(String(b.p.category || "")) ||
+          String(a.p.name).localeCompare(String(b.p.name)),
+      );
+  }
+  function geoProductListHtml(cid, activeId) {
+    const c = geoComps.find((x) => x.id === cid);
+    if (!c || c.isBf) return "";
+    const rows = geoRivalProducts(cid);
+    if (!rows.length) return "";
+    const nm = escAll(c.name);
+    const ks = escAll(clientShort());
+    const paired = rows.filter((r) => r.x).length;
+    let h = `<div class="geo-pl-h"><span class="geo-pl-t">Products ${nm} sells</span><span class="geo-pl-n">${rows.length} model${rows.length === 1 ? "" : "s"} · ${paired} matched to a ${ks} model</span></div>`;
+    h += `<div class="geo-pl-hint">Pick a model to compare it with its ${ks} counterpart on the right.</div>`;
+    rows.forEach(({ p, x }) => {
+      const who = x ? verdictOf(x) : null;
+      const chip = x
+        ? `<span class="gc-chip ${CMP_CLS[who]}">${escAll(cmpWord(who))}</span>`
+        : `<span class="gc-chip gc-none">No matched ${ks} model</span>`;
+      h +=
+        `<div class="geo-rel-item prod${String(p.id) === String(activeId) ? " active" : ""}" data-cmp-prod="${escAll(p.id)}"><span class="ri-act ex"></span><div class="ri-main">` +
+        `<div class="ri-nm">${escAll(p.name)}</div><div class="ri-desc">${escAll(p.category || "")}</div>` +
+        `<div class="ri-counter${x ? "" : " none"}"><span class="rc-lab">${ks} counter</span> ` +
+        (x ? `<span class="rc-prod">${escAll(x.bf)}</span>` : '<span class="rc-prod muted">no like-for-like product</span>') +
+        ` ${chip}</div></div><span class="ri-chev">›</span></div>`;
+    });
+    return h;
+  }
+  // { title, html } for the right-hand pane: one rival model against its stored client counterpart
+  function geoProductCompare(cid, pid) {
+    const row = geoRivalProducts(cid).find((r) => String(r.p.id) === String(pid));
+    if (!row) return null;
+    const { p, x } = row;
+    const c = geoComps.find((z) => z.id === cid) || { name: "" };
+    if (x) return { title: `${p.name} vs ${x.bf}`, html: `<div class="gc">${geoPairCard(x, c.name)}</div>` };
+    let h = `<div class="gc"><div class="gc-blk"><b>${escAll(p.name)}</b>: no like-for-like comparison. No stored comparison pairs it with a ${escAll(clientShort())} model.</div>`;
+    const specs = Object.entries(p.specs || {});
+    if (specs.length) {
+      h += `<table class="gc-tbl"><tr><th>Spec</th><th>${escAll(p.name)}</th></tr>`;
+      specs.forEach(([k, v]) => {
+        h += `<tr><td>${escAll(k)}</td><td>${escAll(v)}</td></tr>`;
+      });
+      h += "</table>";
+    }
+    return { title: `${p.name}: no ${clientShort()} counterpart`, html: h + "</div>" };
+  }
+
+  /* The client's row in a country: every rival with a stored overlap, its stored ranges (or the categories of its
+     stored comparisons), its stored comparisons and their stored verdicts, its stored activity here; then the
+     stored footprint analysis for the country. */
+  const KIND_WORD = { anomaly: "Anomaly", overlap: "Overlap", whitespace: "White space" };
+  function analysisItems(country) {
+    return ((d.geoAnalysis || {})[country] || []).map((a) => {
+      const reasons = (a.reasons || []).map((x) => escAll(String(x).replace(/_/g, " "))).join(", ");
+      const url = typeof a.url === "string" && /^https?:\/\//i.test(a.url) ? a.url : null;
+      return (
+        `<li><b>${escAll(KIND_WORD[a.kind] || a.kind)}${a.comp ? ` · ${escAll(a.comp)}` : ""}${a.ksslProduct ? ` vs ${escAll(a.ksslProduct)}` : ""}.</b> ${escAll(a.finding)}` +
+        (a.reasonState === "stated" && reasons
+          ? ` <span class="gv-ctr">Stated reason:</span> ${reasons}${url ? ` <a href="${escAll(url)}" target="_blank" rel="noopener noreferrer">source ↗</a>` : ""}`
+          : "") +
+        (a.reasonState === "not_stated"
+          ? ` <span class="gv-non">Reason not stated in any source.${a.toFindOut ? ` Ask: ${escAll(a.toFindOut)}` : ""}</span>`
+          : "") +
+        (a.hypothesis ? ` <span class="gv-non"><i>${escAll(a.hypothesis)} (analyst hypothesis, no source)</i></span>` : "") +
+        "</li>"
+      );
+    });
+  }
   function geoOwnPanel(country) {
     const rs = geoRivalsIn(country);
     const ct = escAll(country);
+    const ks = escAll(clientShort());
+    const why = analysisItems(country);
+    const whyHtml = why.length ? `<div class="geo-ov-why"><span class="gw-l">What this means for ${ks}</span><ul>${why.join("")}</ul></div>` : "";
     if (!clientFootprintKnown) {
-      return (
-        '<div class="geo-ov none"><div class="geo-ov-h"><span class="geo-ov-t">◌ Overlap not assessed in ' +
-        `${ct}</span></div></div>`
-      );
+      return `<div class="geo-ov none"><div class="geo-ov-h"><span class="geo-ov-t">◌ Overlap not assessed in ${ct}</span></div>${whyHtml}</div>`;
     }
     if (!rs.length) {
-      return `<div class="geo-ov none"><div class="geo-ov-h"><span class="geo-ov-t">○ No overlapping rival on file in ${ct}</span></div></div>`;
+      return `<div class="geo-ov none"><div class="geo-ov-h"><span class="geo-ov-t">○ No overlapping rival on file in ${ct}</span></div>${whyHtml}</div>`;
     }
     const spec = rs.filter((r) => r.tier === "spec");
+    const rows = rs
+      .map((r) => {
+        const pairs = pairsOfRival(r.comp.id);
+        const graded = pairs.filter((x) => verdictOf(x) !== "none");
+        return {
+          r,
+          pairs,
+          graded: graded.length,
+          rival: graded.filter((x) => verdictOf(x) === "rival").length,
+          koel: graded.filter((x) => verdictOf(x) === "koel").length,
+        };
+      })
+      .sort((a, b) => b.graded - a.graded || b.pairs.length - a.pairs.length);
     let h =
       `<div class="geo-ov ${spec.length ? "spec" : "cat"}"><div class="geo-ov-h"><span class="geo-ov-t">` +
-      `${spec.length ? "◉ " : "◎ "}${rs.length} rival${rs.length === 1 ? "" : "s"} overlap ${escAll(clientShort())} in ${ct}` +
-      "</span></div>";
-    h += '<table class="geo-ov-tbl"><tr><th>Rival</th><th>Matched ranges</th><th>Overlap</th><th>Presence</th></tr>';
-    rs.forEach((r) => {
+      `${spec.length ? "◉ " : "◎ "}${rs.length} rival${rs.length === 1 ? "" : "s"} overlap ${ks} in ${ct}` +
+      `${spec.length ? "" : " - none confirmed"}</span></div>`;
+    h +=
+      '<table class="geo-ov-tbl"><tr><th>Rival</th><th>Overlapping categories</th><th class="n">Matched pairs</th>' +
+      "<th>Datasheet outcome</th><th>Presence</th></tr>";
+    rows.forEach(({ r, pairs, graded, rival, koel }) => {
       const p = presenceOf(r.comp.id, country) || {};
-      h += `<tr><td>${escAll(r.comp.name)}</td><td>${escAll(rangeText(r) || "—")}</td><td>${escAll(r.status)}</td><td>${escAll(p.activity || "—")}</td></tr>`;
+      const cats = r.ranges.length ? r.ranges : [...new Set(pairs.map((x) => x.cat).filter(Boolean))];
+      let out = '<span class="gv-non">no matched pair</span>';
+      if (graded) {
+        if (rival > koel) out = `<span class="gv-bad">rival leads ${rival} of ${graded}</span>`;
+        else if (koel > rival) out = `<span class="gv-good">${ks} leads ${koel} of ${graded}</span>`;
+        else out = '<span class="gv-mid">level</span>';
+      } else if (pairs.length) out = '<span class="gv-non">pair found, no stored verdict</span>';
+      h +=
+        `<tr><td>${escAll(r.comp.name)}</td><td>${cats.length ? escAll(cats.join(" · ")) : '<span class="gv-non">—</span>'}</td>` +
+        `<td class="n">${pairs.length || "—"}</td><td>${out}</td><td>${escAll(p.activity || "—")}</td></tr>`;
     });
-    h += "</table>";
-    h += "<div class=\"geo-ov-src\">Overlap and matched ranges are stored for each rival's presence in this country.</div>";
+    h += "</table>" + whyHtml;
+    h +=
+      '<div class="geo-ov-src">Overlap and categories from the stored footprint rows · datasheet outcome from the stored ' +
+      "Product Evaluation comparisons with each rival · what it means from the stored footprint analysis.</div>";
     return `${h}</div>`;
   }
 
@@ -173,6 +355,8 @@ export function createGeo(d) {
     geoOvBadge,
     geoOvBadgeCountry,
     geoOwnPanel,
+    geoProductListHtml,
+    geoProductCompare,
     geoPickOverlap,
     actLabel,
     selfCheck,

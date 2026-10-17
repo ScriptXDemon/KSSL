@@ -46,13 +46,32 @@ const rival = fx.geoComps.find((c) => !c.isBf && fx.geoPresence.some((p) => p.ci
 assert.equal(geo.geoPickOverlap(rival, null).cls, "ovl");
 
 // the panel and badges are built from the stored words
-assert.match(geo.geoOwnPanel("Poland"), /Matched ranges/);
+const own = geo.geoOwnPanel("Poland");
+assert.match(own, /Overlapping categories/);
+assert.match(own, /Datasheet outcome/);
 assert.match(geo.geoOvBadge(poland[0]), /geo-ovb spec/);
 
 // no band engine is left
-for (const gone of ["koelCounter", "geoCatsOf", "geoKvaSpan", "geoBandsOf", "geoBandShort", "geoBandLabel", "geoOffer", "geoProductListHtml", "geoProductCompare", "geoSpanText"])
+for (const gone of ["koelCounter", "geoCatsOf", "geoKvaSpan", "geoBandsOf", "geoBandShort", "geoBandLabel", "geoOffer", "geoSpanText"])
   assert.equal(gone in geo, false, `${gone} must be gone`);
 const src = readFileSync(new URL("./src/lib/geo.js", import.meta.url), "utf8");
 assert.ok(!/CAT_META|counterRules|kva|genset|BAND|GEO_NOTGEN/i.test(src));
 
-console.log("ok - geo overlap is the stored overlap_status and matched_ranges");
+// the rival's products carry their STORED comparison: the counterpart is the stored matchup on that product, the
+// verdict is the stored edge (edgeVerdict), and the comparison prints the stored spec rows; nothing is paired here
+{
+  const x = Object.values(fx.matchups).find((m) => m.compProductId && m.edge != null);
+  const list = geo.geoProductListHtml(x.compId, null);
+  assert.match(list, /Products .* sells/);
+  assert.ok(list.includes(`data-cmp-prod="${x.compProductId}"`), "the matched product is listed");
+  assert.ok(list.includes(x.bf.replace(/&/g, "&amp;")), "its stored counterpart is named");
+  const want = x.edge < 42 ? "Competitor’s product is better" : x.edge >= 58 ? "has the superior product" : "Level: neither leads";
+  assert.ok(list.includes(want), `the stored edge ${x.edge} reads "${want}"`);
+  const cmp = geo.geoProductCompare(x.compId, x.compProductId);
+  assert.ok(cmp && cmp.title.includes(x.bf));
+  for (const sp of x.specs.slice(0, 3)) assert.ok(cmp.html.includes(String(sp.l).replace(/&/g, "&amp;")), `spec row ${sp.l} is printed`);
+  assert.equal(geo.geoProductListHtml(fx.client.id, null), "", "the client has no counterpart list of its own");
+  assert.equal(geo.geoProductCompare(x.compId, "no-such-product"), null);
+}
+
+console.log("ok - geo overlap is the stored overlap_status and matched_ranges; product counterparts are the stored matchups");

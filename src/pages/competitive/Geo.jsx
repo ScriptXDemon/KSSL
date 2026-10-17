@@ -58,6 +58,7 @@ export default function Geo() {
   const [menuQuery, setMenuQuery] = useState("");
   const [back, setBack] = useState(savedGeo.back || null); // {mode, arg}
   const [pair, setPair] = useState(savedGeo.pair || null); // {cid, country}
+  const [cmp, setCmp] = useState(null); // {prod} while the product comparison pane is open
   const [prodIndex, setProdIndex] = useState(
     savedGeo.prodIndex !== undefined ? savedGeo.prodIndex : null,
   );
@@ -148,6 +149,8 @@ export default function Geo() {
     if (backMode) setBack({ mode: backMode, arg: backArg });
   };
 
+  useEffect(() => { setCmp(null); }, [pair && pair.cid, pair && pair.country]);
+  const cmpProd = pair && cmp && cmp.prod ? geo.geoProductCompare(pair.cid, cmp.prod) : null;
   const prods = pair ? geo.productsFor(pair.cid, pair.country) : [];
   const prod = prodIndex !== null && prods ? prods[prodIndex] : null;
 
@@ -289,22 +292,9 @@ export default function Geo() {
      rather than the dropdowns. The Back button clears the pair to come back out. */
   /* the activity word of a footprint row, as stored */
   const actOf = (p) => escAll(geo.actLabel[p.c]);
-
-  /* layer 2 of the footprint: overlaps, anomalies, white space for one country, as stored (data.geoAnalysis). A reason shows only when a source
-     states it; with none, the question to ask and the analyst hypothesis (greyed, labelled) come instead. */
-  const KIND_WORD = { anomaly: "Anomaly", overlap: "Overlap", whitespace: "White space" };
-  const analysisHtml = (country) => {
-    const rows = (data.geoAnalysis || {})[country] || [];
-    if (!rows.length) return "";
-    return `<div class="geo-d-sec"><span class="eyebrow">Analysis</span>` + rows.map((a) => {
-      const reasons = (a.reasons || []).map((x) => escAll(String(x).replace(/_/g, " "))).join(", ");
-      return `<div style="padding:8px 0;border-bottom:1px solid var(--l-bg-2);font-size:12.5px;line-height:1.5">` +
-        `<b>${escAll(KIND_WORD[a.kind] || a.kind)}</b>${a.comp ? ` · ${escAll(a.comp)}` : ""}${a.ksslProduct ? ` · vs ${escAll(a.ksslProduct)}` : ""}<br>${escAll(a.finding)}` +
-        (a.reasonState === "stated" && reasons ? `<br><span style="color:var(--l-txt-3)">Stated reason:</span> ${reasons}${a.url ? ` ${srcChips([{ label: "Source", url: a.url }])}` : ""}` : "") +
-        (a.reasonState === "not_stated" ? `<br><span style="color:var(--l-txt-3)">Reason not stated in any source.</span>${a.toFindOut ? ` Ask: ${escAll(a.toFindOut)}` : ""}` : "") +
-        (a.hypothesis ? `<br><span style="color:var(--l-txt-3);font-style:italic">${escAll(a.hypothesis)} (analyst hypothesis, no source)</span>` : "") + `</div>`;
-    }).join("") + `</div>`;
-  };
+  /* the client's own row is drawn in the client colour and reads "<client> present", as in the reference */
+  const actCls = (c, p) => (c && c.isBf ? "bf" : cssWord(p.c));
+  const actWord = (c, p) => (c && c.isBf ? `${escAll(clientName)} present` : actOf(p));
 
   const relList = () => {
     if (pair) {
@@ -313,6 +303,7 @@ export default function Geo() {
       const c = data.geoComps.find((x) => x.id === pair.cid);
       const ovPanel = c && c.isBf ? geo.geoOwnPanel(pair.country) : "";
       return (
+        (c && !c.isBf ? geo.geoProductListHtml(pair.cid, cmp && cmp.prod) : "") +
         ovPanel +
         prods
           .map((p, i) => {
@@ -320,7 +311,7 @@ export default function Geo() {
               p.src === "syn"
                 ? '<span class="syn" title="Illustrative" style="margin-left:4px"></span>'
                 : '<span class="srcbadge" style="margin-left:4px;font-size:7.5px;padding:1px 4px">Sourced</span>'
-            }</div><div class="ri-desc"><span class="ri-actlab ${cssWord(p.c)}">${actOf(p)}</span> · ${escAll(p.qty)}</div><span class="ri-tag">${escAll(p.stage)}${
+            }</div><div class="ri-desc"><span class="ri-actlab ${cssWord(p.c)}">${actOf(p)}</span>${p.qty ? ` · ${escAll(p.qty)}` : ""}</div><span class="ri-tag">${escAll(p.stage)}${
               p.val && p.val !== "n/d" ? ` · ${escAll(p.val)}` : ""
             }</span></div><span class="ri-chev">›</span></div>`;
           })
@@ -345,18 +336,18 @@ export default function Geo() {
               ? ` ov-${ov.tier}`
               : "";
           const meets = ov && ov.ranges.length ? ` · meets ${clientName} in ${escAll(ov.ranges.join(", "))}` : "";
-          return `<div class="geo-rel-item${cls}" data-country="${attr(ct)}"><span class="ri-act ${cssWord(rows[0].c)}"></span><div class="ri-main"><div class="ri-nm">${badge}${escAll(ct)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actOf(rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">since ${escAll(rows[0].since)}</span></div></div>`;
+          return `<div class="geo-rel-item${cls}" data-country="${attr(ct)}"><span class="ri-act ${actCls(c, rows[0])}"></span><div class="ri-main"><div class="ri-nm">${badge}${escAll(ct)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actWord(c, rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">since ${escAll(rows[0].since)}</span></div></div>`;
         })
         .join("");
     }
     if (resolved.kind === "competitors") {
       const cs = geo.compsInCountry(resolved.country);
-      return analysisHtml(resolved.country) + cs
+      return cs
         .map((c) => {
           const rows = geo.productsFor(c.id, resolved.country);
           const ov = geo.geoOverlap(c.id, resolved.country);
           const meets = ov && ov.ranges.length ? ` · meets ${clientName} in ${escAll(ov.ranges.join(", "))}` : "";
-          return `<div class="geo-rel-item${ov ? ` ov-${ov.tier}` : ""}" data-comp="${attr(c.id)}"><span class="ri-act ${cssWord(rows[0].c)}"></span><div class="ri-main"><div class="ri-nm">${geo.geoOvBadge(ov)}${escAll(c.name)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actOf(rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">${escAll(rows[0].name)}</span></div></div>`;
+          return `<div class="geo-rel-item${ov ? ` ov-${ov.tier}` : ""}" data-comp="${attr(c.id)}"><span class="ri-act ${actCls(c, rows[0])}"></span><div class="ri-main"><div class="ri-nm">${geo.geoOvBadge(ov)}${escAll(c.name)}</div><div class="ri-desc">${rows.length} product${rows.length !== 1 ? "s" : ""} · ${actWord(c, rows[0])}${rows.length > 1 ? " +" : ""}${meets}</div><span class="ri-tag">${escAll(rows[0].name)}</span></div></div>`;
         })
         .join("");
     }
@@ -858,7 +849,7 @@ export default function Geo() {
             </div>
 
             <div
-              className={`geo-det-overlay-body${prod ? " has-prod" : " no-prod"}`}
+              className={`geo-det-overlay-body${prod || cmpProd ? " has-prod" : " no-prod"}`}
             >
               <div className="geo-rel-overlay-list">
                 <HtmlBlock
@@ -878,7 +869,12 @@ export default function Geo() {
                         resolved.country,
                       ),
                     ".geo-rel-item[data-pi]": (el) => {
+                      setCmp(null);
                       setProdIndex(Number(el.getAttribute("data-pi")));
+                    },
+                    ".geo-rel-item[data-cmp-prod]": (el) => {
+                      setProdIndex(null);
+                      setCmp({ prod: el.getAttribute("data-cmp-prod") });
                     },
                   }}
                   html={relList()}
@@ -886,6 +882,32 @@ export default function Geo() {
                 />
                 <ReviewList items={presenceItems(shownPresences)} title="Footprint records" />
               </div>
+
+              {cmpProd && !prod && (
+                <div className="geo-det-product-sec" style={{ background: "transparent", display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+                  <div className="geo-det-product-scroll" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", paddingBottom: "24px" }}>
+                    <div className="geo-d-h" style={{ position: "relative", background: "#ffffff", color: "#0f172a", padding: "14px 18px", borderBottom: "1px solid #e2e8f0" }}>
+                      <button
+                        aria-label="Close comparison"
+                        className="geo-close-btn"
+                        onClick={() => setCmp(null)}
+                        title="Close"
+                        type="button"
+                        style={{ position: "absolute", right: "14px", top: "12px", cursor: "pointer", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "14px", color: "#334155", padding: "3px 8px", lineHeight: 1 }}
+                      >
+                        ✕
+                      </button>
+                      <span className="eyebrow" style={{ color: "#64748b", display: "block", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Product comparison · {(data.geoComps.find((x) => x.id === pair.cid) || {}).name} in {pair.country}
+                      </span>
+                      <div className="ct" style={{ fontSize: "15px", color: "#0f172a", fontWeight: 700, marginTop: "2px", lineHeight: 1.3, paddingRight: "40px" }}>
+                        {cmpProd.title}
+                      </div>
+                    </div>
+                    <HtmlBlock html={cmpProd.html} id="geo-cmp-body" />
+                  </div>
+                </div>
+              )}
 
               {prod && (
                 <div
