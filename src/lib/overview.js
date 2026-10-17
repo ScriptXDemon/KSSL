@@ -4,7 +4,7 @@ import { momentsOf } from "./moments.js";
 /* Overview feed: the sequence logic, the group split, and the per-pillar metric
    strip. Pure — it returns data, and the React components render it. */
 import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
-import { cockpit } from "./tenderIntel.js";
+import { fitOf, topTenders, topProjects } from "./tenderIntel.js";
 import { isVisible, viewVisible } from "./visibility.js";
 import { navTitle } from "./route.js";
 import { COMPETITIVE_TITLE } from "./chrome.js";
@@ -518,7 +518,7 @@ export function metricsFor(cfg, pillar, d) {
          concluded" and "Markets tracked" moved to the Market Report -- they are not
          actionable on an overview and were never in this feed. */
       const shown = marketAttention(open);
-      const go = shown.filter((x) => x.lean === "go");
+      const go = shown.filter((x) => fitOf(x) === "strong");
       // A tender whose source never published a value contributes nothing; if NO shown
       // tender carries one, the total is unknown, not zero -- "not measured" and "zero"
       // must not look the same.
@@ -526,7 +526,7 @@ export function metricsFor(cfg, pillar, d) {
       const totals = valueTotals(shown);
       // Fit is a graded field the corpus may not carry at all. If NO open tender was
       // graded, "Strong fits" is not zero-fits -- it is not-assessed, and says so.
-      const anyFit = open.some((x) => x.lean);
+      const anyFit = open.some((x) => fitOf(x));
       // The Perceived Opportunities stream on the same feed: watch cards (geopolitical /
       // demand moves), which need no tender. Counted from the served set the feed shows.
       const opps = (cards || []).filter((c) => c.kind === "opportunity").length;
@@ -720,8 +720,7 @@ export function navCounts(d, gapModel) {
        lane here put a 141 on a feed that shows the shortlist. */
     /* The Market overview is the tender tables now (Top tenders, Projects): its badge counts their rows. The signal
        cards moved to Global Requirements, whose badge counts them. */
-    const stored = cockpit(d);
-    counts["m-overview"] = stored.tenders.length + stored.projects.length;   // the rows the two stored tables list
+    counts["m-overview"] = topTenders(open).length + topProjects(d.projects).length;   // the rows the two tables list
     counts["global-requirement"] = globalRequirements(d).length;   // the rows the page lists
     counts["m-report"] = (d.tenders || []).length;
     counts.tender = open.length;

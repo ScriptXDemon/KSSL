@@ -193,7 +193,9 @@ const entry = `
   import React from "react";
   import { renderToStaticMarkup } from "react-dom/server";
   import Tenders from "./src/pages/market/Tenders.jsx";
+  import { setClient } from "./src/lib/client.js";
   export function render(data) {
+    setClient(data.client); // the page reads the client's name from the loaded dataset
     globalThis.__KSSL_TEST__ = { data, gapModel: [], counts: {}, viewMeta: {} };
     return renderToStaticMarkup(React.createElement(Tenders, { mode: "tender" }));
   }`;
@@ -236,34 +238,58 @@ rmSync(tmp, { recursive: true, force: true });
 const cards = [...html.matchAll(/<div class="tcard[^"]*"[\s\S]*?(?=<div class="tcard|<div class="tp-asmt")/g)].map((m) => m[0]);
 if (cards.length !== 3) fail(`rendered ${cards.length} cards, want 3`);
 const labelsOf = (card) => [...card.matchAll(/class="tpk"[^>]*>([^<]*)</g)].map((m) => m[1].trim().toLowerCase());
-const wantLabels = TENDER_PARAMS.map((p) => p.label.toLowerCase());
+const valuesOf = (card) => [...card.matchAll(/<span class="tpv"[^>]*>([\s\S]*?)<\/span>/g)].map((m) => m[1].replace(/<[^>]+>/g, "").trim());
+/* THE CARD IS THE SAME ON EVERY ROW: Buyer, Country, Category, Value, Status, then the client's fit row. A cell the
+   record leaves empty prints "not disclosed" (value) or a dash, it is not dropped. */
+const wantCells = ["buyer", "country", "category", "value", "status"];
 for (const card of cards) {
   const title = (card.match(/class="ttl"[^>]*>([^<]*)</) || [])[1];
   const labels = labelsOf(card);
-  // Absent rows are HIDDEN in the list (operator request): the labels shown are a SUBSET
-  // of the documented nine, kept in the documented order, and no "not on record" appears.
-  const isSub = (sub, full) => { let i = 0; for (const x of full) if (x === sub[i]) i++; return i === sub.length; };
-  if (!isSub(labels, wantLabels))
-    fail(`card "${title}": parameters ${JSON.stringify(labels)} are not the documented nine in order`);
-  const cells = [...card.matchAll(/<span class="tpv( na)?"[^>]*>([\s\S]*?)<\/span>/g)];
-  if (cells.length !== labels.length) fail(`card "${title}": ${cells.length} value cells for ${labels.length} labels`);
-  for (const c of cells) {
-    const txt = c[2].replace(/<[^>]+>/g, "").trim();
-    if (!txt) fail(`card "${title}": an empty value cell`);
-    if (c[1]) fail(`card "${title}": a "not on record" cell is still rendered -- absent rows must be hidden`);
-    if (txt === NOT_ON_RECORD) fail(`card "${title}": the unresolved literal appears in the list`);
+  if (JSON.stringify(labels) !== JSON.stringify(wantCells))
+    fail(`card "${title}": cells ${JSON.stringify(labels)}, want ${JSON.stringify(wantCells)}`);
+  const vals = valuesOf(card);
+  if (vals.length !== wantCells.length) fail(`card "${title}": ${vals.length} value cells for ${wantCells.length} labels`);
+  for (const v of vals) {
+    if (!v) fail(`card "${title}": an empty value cell`);
+    if (v === NOT_ON_RECORD) fail(`card "${title}": the old unresolved literal appears in the list`);
   }
+  if (!/<div class="fitbar"><span class="fitlab">CC(?:<!-- -->)? fit<\/span><span class="fittrack"><i [^>]*><\/i><\/span><span class="fitpct grade">/.test(card))
+    fail(`card "${title}": no fit row with the client's label`);
 }
+ok("rendered: every card has the five cells in order and the fit row");
+{
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./src/pages/market/Tenders.jsx", import.meta.url), "utf8");
+  if (!/<Review src=\{row\._src\} \/>/.test(src)) fail("the tender card carries no Review control");
+  else ok("the tender card carries the Review control");
+}
+
 const thin = cards.find((c) => /class="ttl"[^>]*>Firearms</.test(c)) || "";
-const thinNa = (thin.match(/class="tpv na"/g) || []).length;
-if (thinNa !== 0) fail(`title-only card: ${thinNa} "not on record" cells shown, want 0 (they are hidden)`);
-else if (JSON.stringify(labelsOf(thin)) !== JSON.stringify(["status"]))
-  fail(`title-only card: labels ${JSON.stringify(labelsOf(thin))}, want ["status"] (only the param it has)`);
-else ok("rendered: absent rows are hidden; each card shows only the params it has, in order");
+const thinVals = valuesOf(thin);
+if (JSON.stringify(thinVals) !== JSON.stringify(["—", "—", "—", "not disclosed", "Open"]))
+  fail(`title-only card: cells ${JSON.stringify(thinVals)}, want dashes, "not disclosed" for the value, and the stored status`);
+else ok('rendered: a title-only card prints "—" for buyer, country and category and "not disclosed" for the value');
+if (!/<span class="fitpct grade">—<\/span>/.test(thin) || !/<i class="" style="width:0%"><\/i>/.test(thin))
+  fail("title-only card: with no stored fit the bar is not empty and the word is not a dash");
+else ok("rendered: no stored fit gives an empty bar and a dash");
 const bareCard = cards.find((c) => /class="ttl"[^>]*>Ammunition</.test(c)) || "";
 if (!/class="tpv"[^>]*>Bundesamt</.test(bareCard) || !/class="tpv"[^>]*>Germany</.test(bareCard))
   fail("one-word title card: buyer and country were not composed around the title");
 else ok("rendered: a one-word title is surrounded by the buyer, country and category the record carries");
+
+/* a stored fit word (on the tender, or on the first matched product) fills the bar and prints the word */
+{
+  const html2 = render({
+    tenders: wireTendersWithRealDays([
+      tender("fit1", { title: "Graded", status: "open", clientFit: "partial" }),
+      tender("fit2", { title: "Scored", status: "open", matches: [{ n: "P", fit: "strong", pct: "92%" }] }),
+    ]),
+    tpAllCountries: [], tpAllCats: [], client: { short: "CC" },
+  });
+  if (!/<i class="mid" style="width:55%"><\/i><\/span><span class="fitpct grade">partial</.test(html2)) fail("a stored tender fit (partial) did not fill the bar and print the word");
+  else if (!/<i class="high" style="width:92%"><\/i><\/span><span class="fitpct">92%</.test(html2)) fail("a stored match percentage did not set the bar's own length");
+  else ok("rendered: a stored grade or percentage fills the fit bar");
+}
 
 /* --------------------------------- posted regex must not eat the title row ---- */
 {

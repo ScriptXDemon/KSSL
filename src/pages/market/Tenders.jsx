@@ -10,7 +10,7 @@ import { productOwner } from "../../lib/productLink";
 import { srcChips } from "../../lib/html";
 import { formatLabel, smartTitleCase } from "../../lib/profile";
 import { facetOptions } from "../../lib/countryFacet";
-import { NOT_ON_RECORD, reqLabel, resolveTenderRow, tenderFactRows } from "../../lib/tenderRow";
+import { NOT_ON_RECORD, reqLabel, resolveTenderRow, tenderCardCells, tenderFactRows, tenderFitBar } from "../../lib/tenderRow";
 import { Review } from "../../components/review/Review";
 
 const fitClass = (p) => {
@@ -87,12 +87,6 @@ const ctaNote = (t) => {
     }[t.urlKind] || "opens ") + u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]
   );
 };
-
-/* Only essential summary parameters are kept on the frontend dashboard card face
-   (Buyer, Country, Category, Value, Status). Heavy specifications (Quantity),
-   provenance/sources, and redundant closing dates are displayed when clicked in the
-   side assessment panel. */
-const DASHBOARD_PARAM_KEYS = new Set(["buyer", "country", "category", "value", "status"]);
 
 export default function Tenders({ mode = "tender" }) {
   const { data, gapModel } = useData();
@@ -396,34 +390,7 @@ export default function Tenders({ mode = "tender" }) {
         <div id="tp-cards">
           {list.length ? (
             list.map((row) => {
-              /* THE BAR'S LENGTH HAS TO BE THE MEASUREMENT.
-                 The width came from a three-value constant map -- high 85%, mid 55%,
-                 low 25% -- so a source publishing 76% and one publishing 98% both drew
-                 the same 85% bar, and the reader was looking at a lookup table rendered
-                 as a measured quantity. A real percentage now sets its own width. A
-                 TIER WORD is a grade, not a length, so it prints as the word with no
-                 track behind it rather than being converted into a bar nobody measured.
-
-                 And with no match row at all there is no verdict to fall back on:
-                 'weak' used to be stamped on every tender out of nothing. On the served
-                 corpus that is every row -- `matches` is empty on all of them -- so the
-                 whole fit line is omitted per card (see fitAssessed below) and the list
-                 header states once that no fit assessment was served. An empty labelled
-                 shell on 136 cards is a surface pretending to have an opinion. */
-              const m0 = (row.matches || [])[0];
-              const pctNum = m0 && /%/.test(m0.pct || "")
-                ? parseFloat(String(m0.pct).replace(/[^\d.]/g, ""))
-                : NaN;
-              const scored = !Number.isNaN(pctNum);
-              const graded = !!(m0 && has(m0.fit));
-              const assessed = scored || graded;
-              const fc = scored ? fitClass(m0.pct) : graded ? m0.fit : null;
-              const fw = scored ? `${Math.max(0, Math.min(100, pctNum))}%` : "0%";
-              const fp = scored
-                ? m0.pct
-                : graded
-                  ? { high: "strong", mid: "partial", low: "weak" }[fc] || fc
-                  : "";
+              const fit = tenderFitBar(row);
               return (
                 <div
                   className={`tcard${sel === row.id ? " sel" : ""}`}
@@ -443,34 +410,23 @@ export default function Tenders({ mode = "tender" }) {
                     <span className={`ddl ${dlClass(row.dl, row.statusClass)}`}>{row.deadline}</span>
                   </div>
                   <div className="tpgrid">
-                    {/* The SAME eight parameters on every card, in the same order, each a
-                        stored value or the explicit "not on record" state. The chip above
-                        is a countdown; the date it counts to is the Closing date cell. A
-                        one-word title ("Ammunition") is read with its buyer, country,
-                        category and portal around it. Rows the notice never published
-                        are hidden here at the operator's request (not shown as absent). */}
-                    {resolveTenderRow(row).params
-                      .filter((p) => DASHBOARD_PARAM_KEYS.has(p.key) && p.value != null)
-                      .map((p) => (
-                        <div className="tpp" key={p.key}>
-                          <span className="tpk">{p.label}</span>
-                          <span className={`tpv${p.value == null ? " na" : ""}`}>{p.text}</span>
-                        </div>
-                      ))}
+                    {/* The same five cells on every card, in this order: Buyer, Country, Category, Value, Status.
+                        A cell the record leaves empty prints the screen's empty word, it is not dropped. */}
+                    {tenderCardCells(row).map((c) => (
+                      <div className="tpp" key={c.key}>
+                        <span className="tpk">{c.label}</span>
+                        <span className="tpv">{c.text}</span>
+                      </div>
+                    ))}
                   </div>
-                  {/* No assessment -> no fit row. A labelled control reading "not
-                      assessed" on every card is chrome for a feature that is not
-                      there; the header says it once, for the whole list. */}
-                  {assessed ? (
-                    <div className="fitbar">
-                      <span className="fitlab">{clientName} fit</span>
-                      {/* A tier word has no measurement; it draws at the tier's fixed width. */}
-                      <span className="fittrack">
-                        <i className={fc} style={{ width: scored ? fw : `${{ high: 85, mid: 55, low: 25 }[fc] ?? 0}%` }} />
-                      </span>
-                      <span className={`fitpct${scored ? "" : " grade"}`}>{fp}</span>
-                    </div>
-                  ) : null}
+                  {/* the client's fit row is on every card: the bar and the stored word, or an empty bar and a dash */}
+                  <div className="fitbar">
+                    <span className="fitlab">{clientName} fit</span>
+                    <span className="fittrack">
+                      <i className={fit.cls} style={{ width: fit.width }} />
+                    </span>
+                    <span className={`fitpct${fit.scored ? "" : " grade"}`}>{fit.word}</span>
+                  </div>
                   <Review src={row._src} />
                 </div>
               );

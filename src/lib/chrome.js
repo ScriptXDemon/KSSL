@@ -203,3 +203,41 @@ export const OVERLAP_KINDS = [
   { kind: "technology", aliases: ["tech"], label: "What an overlapping technology partner costs {client}",
     lead: "the partner behind a {client} capability is also inside {rival}, so the capability is a lead-time rather than a moat" },
 ];
+
+/* ---- Tender card and the Top opportunity tables ------------------------------------------------------------------- */
+/* What a tender card prints in a cell the record leaves empty: the value cell says the figure is not disclosed, every
+   other cell a dash. These are screen words, never a stored value. */
+export const TENDER_EMPTY = "—";
+export const TENDER_VALUE_EMPTY = "not disclosed";
+
+/* The tender card's cells, in order: [key of the stored parameter (tenderRow.TENDER_PARAMS), label]. */
+export const TENDER_CARD_CELLS = [
+  ["buyer", "Buyer"],
+  ["country", "Country"],
+  ["category", "Category"],
+  ["value", "Value"],
+  ["status", "Status"],
+];
+
+/* How many rows each Top opportunity table lists, and the headings, column titles and one-line notes above them.
+   {client} is the client's short name from the data (the empty string when the dataset names none). */
+export const COCKPIT_TENDER_ROWS = 10;
+export const COCKPIT_PROJECT_ROWS = 8;
+export const COCKPIT_MOVE_ROWS = 6;
+export function cockpitWords(client) {
+  const c = client || "";
+  return {
+    tendersHead: "Top tenders",
+    tendersCols: ["Rank", "Tender", "Decides", c ? `${c} fit` : "Fit", c ? `${c} model` : "Model", "Rival to beat", "Revenue"],
+    tendersNote: `ranked by how well ${c ? `a ${c}` : "a"} model fits, then the nearest closing date, then the larger stored value`,
+    tendersEmpty: "No open tender on record carries a stored fit yet.",
+    projectsHead: "Projects to win before they tender",
+    projectsCols: ["Rank", "Project", "Where it stands", c ? `${c} fit` : "Fit", c ? `${c} model` : "Model", "Rival to beat", "Revenue"],
+    projectsNote: "projects on record with no tender yet and a stored fit, ranked by fit, then how far along they are",
+    projectsEmpty: "No project on record carries a stored fit yet.",
+    movesHead: "Next moves",
+    movesCols: ["Due", "Action", "Tender"],
+    movesNote: "stored actions on open tenders, soonest first",
+    estimateNote: "revenue is a stored estimate",
+  };
+}
