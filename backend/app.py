@@ -41,11 +41,18 @@ app.add_middleware(
 )
 
 
+# serving tables the frontend reads straight from data.database (grep src for "serving.<table>")
+UI_SERVING_TABLES = ("technology_metric", "market_segment_assessment")
+
+
 def build_dataset(database):
     """The UI contract. Each area module fills its keys; nothing is defaulted beyond empty."""
-    # `database` (raw ui/serving rows) is sent: the 137Parallax UI reads labels, filter options and
-    # section visibility from it via uiText(). v2 dropped it for payload size; responses are gzipped.
-    d = {"database": database, "details": {}}
+    # `database` carries only what the UI reads via uiText(): every ui table (labels, filter options,
+    # section visibility) plus the serving tables in UI_SERVING_TABLES. The rest (raw layer, specs,
+    # sources) stays server-side; sending it all made the review payload > 500 MB.
+    sent = {"ui": database.get("ui", {}),
+            "serving": {t: database.get("serving", {}).get(t, []) for t in UI_SERVING_TABLES}}
+    d = {"database": sent, "details": {}}
     for area in AREAS:
         area.build(database, d)
     return d
@@ -70,7 +77,9 @@ def load_all_tables() -> dict[str, dict[str, list[dict[str, Any]]]]:
                     """
                     SELECT table_name FROM information_schema.tables
                     WHERE table_schema = %s AND table_type = 'BASE TABLE'
-                      AND table_name NOT IN ('fact_source', 'review_decision')
+                      AND table_name NOT IN ('fact_source', 'review_decision',
+                                             -- raw layer / bookkeeping: prompt inputs, never displayed
+                                             'tender_raw', 'source_document', 'news_candidate', 'prompt_run', 'spec_dictionary')
                     ORDER BY table_name
                     """,
                     (source,),
