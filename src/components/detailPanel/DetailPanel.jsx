@@ -10,7 +10,7 @@ import { useData } from "../../state/DataProvider";
 import { useAppState } from "../../state/AppState";
 import { productOwner } from "../../lib/productLink";
 import { Review } from "../review/Review";
-import { stanceWords, stanceOf, filterOptions } from "../../lib/uiText";
+import { STANCE_WORD as DIR_WORD, stanceOf, TENDER_WORD as tenderWord } from "../../lib/chrome";
 
 /* `badge` (optional): the ROW's own label for this signal, { word, cls }. A pillar that
    labels its rows by kind rather than by stance (Technology: ADOPTABLE, or nothing for a
@@ -28,9 +28,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
   }, [detail]);
 
   if (!detail) return null;
-  /* the stance words are ui.filter_option rows; a stance is threat or watch, anything else has none */
-  const DIR_WORD = stanceWords(data);
-  const tenderWord = (filterOptions(data, "market-feed").find((o) => o.code === "tenders") || {}).badge || "";
+  /* a stance is threat or watch, anything else has none */
   const dir = badge ? badge.cls || "none" : stanceOf(detail.dir) || "none";
   /* A TENDER IS NOT AN ARTICLE, AND detail.kind NEVER SAID SO.
      Market's overview opens on "Live Opportunities" -- 126 tender cards. A tender has
@@ -108,7 +106,7 @@ export default function DetailPanel({ detail, onClose, badge }) {
                 neutral "Tender" type label (QA: the title section must name the kind);
                 a signal keeps its coloured stance pill. */}
             {isTender ? (
-              tenderWord ? <span className="dirpill dir-tender">{tenderWord}</span> : null
+              <span className="dirpill dir-tender">{tenderWord}</span>
             ) : badge ? (
               badge.word ? <span className={`dirpill dir-${dir}`}>{badge.word}</span> : null
             ) : DIR_WORD[dir] ? (
@@ -144,9 +142,21 @@ export default function DetailPanel({ detail, onClose, badge }) {
             knows at a glance whether to worry, act, or note it. */}
         {!isTender && detail.ksslImpact ? (
           <div className={detail.ksslImpactKind ? `ctx-sec cd-kssl kssl-${detail.ksslImpactKind}` : "ctx-sec cd-kssl"}>
-            {/* the eyebrow is the stored impact_eyebrow of the signal's detail row (serving.competitive_signal_detail);
-                none stored, none drawn */}
-            {detail.eyebrow ? <span className="eyebrow">{detail.eyebrow}</span> : null}
+            {/* the stored impact_eyebrow of the signal's detail row (serving.competitive_signal_detail) leads; a
+                row that stores none is named by its kind. These name WHAT THE SIGNAL IS: the reader decides
+                whether to bid or adopt; the panel reports the facts. */}
+            <span className="eyebrow">
+              {detail.eyebrow ||
+                {
+                  threat: `Threat to ${clientShort()}`,
+                  demand: "Demand in a client line",
+                  "tech-advance": "Technology advance",
+                  "rival-advance": "Competitor advance",
+                  opportunity: "Demand in a client line",
+                  adoptable: "Technology advance",
+                }[detail.ksslImpactKind] ||
+                `How ${clientShort()} is impacted`}
+            </span>
             <div className="cd-prose">{detail.ksslImpact}</div>
           </div>
         ) : null}

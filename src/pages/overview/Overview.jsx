@@ -19,7 +19,6 @@ import {
   writeFeedPage,
   SEQ_LABEL,
   TILE_LABELS,
-  seqConfigFor,
 } from "../../lib/overview";
 
 /* sessionStorage, guarded: a private window throws on the property itself */
@@ -36,7 +35,7 @@ const pageStore = () => {
    exactly how the original's buildOverviewFeed(pillarKey) worked. */
 export default function Overview({
   pillarKey,
-  seqMode: seqModeIn,
+  seqMode,
   dirFilter,
   tile,
   filters,
@@ -48,10 +47,6 @@ export default function Overview({
   part,   // market only: "cockpit" = the tender tables (Market overview), "feed" = the signal cards (Global Requirements)
 }) {
   const { data } = useData();
-  /* the Technology overview's sequence menu, label and search placeholder are stored (seqConfigFor); a remembered
-     mode its stored menu does not offer falls to the first stored option */
-  const seqCfg = seqConfigFor(pillarKey, data);
-  const seqMode = seqCfg && seqCfg.options.length && !seqCfg.options.some((o) => o[0] === seqModeIn) ? seqCfg.first : seqModeIn;
   const { setScope, takePending } = useAppState();
   const [selected, setSelected] = useState(null);
   /* A detail the feed does not carry: a Top-tenders row can be a tender outside the Latest Tenders
@@ -355,7 +350,6 @@ export default function Overview({
           onFilter={onFilter}
           onSeq={onSeq}
           seqMode={seqMode}
-          {...(seqCfg ? { seqOptions: seqCfg.options, seqLabel: seqCfg.label, placeholder: seqCfg.placeholder } : {})}
           searchQuery={feedSearchQuery}
           onSearch={setFeedSearchQuery}
           counts={filterCounts}

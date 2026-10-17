@@ -5,7 +5,7 @@
    A definition may contain {rival} and {client}: joins of dataset values, filled in here. Only the colours
    are code: a neutral palette indexed by display order, so a colour means the same thing in the legend,
    the graph and the cards. No category, label or definition is written in this file. */
-import { stanceOf } from "./uiText.js";
+import { stanceOf } from "./chrome.js";
 
 
 /* line colour and fill, by position in the legend */

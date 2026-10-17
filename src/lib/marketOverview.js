@@ -9,7 +9,7 @@
    And `bucketTenders`' `t.dl <= 0` is TRUE for the served `null`, so raw rows bucket
    as 100% closed. Wired input is a correctness requirement, not a convention. */
 import { clientShort } from "./client.js";
-import { uiText } from "./uiText.js";
+import { MARKET_TILE_LABEL } from "./chrome.js";
 import { hasAmount, valueTotals, formatTotals } from "./tenderValue.js";
 import { facetOptionsByName } from "./countryFacet.js";
 import { bucketTenders, marketAttention } from "./overview.js";
@@ -138,10 +138,9 @@ export function hostOf(url) {
   }
 }
 
-/* The four tiles above the Market pages. Each one is counted from the rows on screen, bound by its
-   ui.market_metric metric_id (never by its label); its LABEL is that row's metric_label, and a tile whose row has
-   no label is not drawn. A measure the corpus does not carry prints "—" rather than 0. */
-export function marketMetrics(tenders, data) {
+/* The four tiles above the Market pages. Each one is counted from the rows on screen; a measure the corpus
+   does not carry prints "—" rather than 0. */
+export function marketMetrics(tenders) {
   const list = tenders || [];
   const { open, awarded, closed } = bucketTenders(list);
   const countries = new Set(list.map((t) => t.country).filter(Boolean));
@@ -179,9 +178,7 @@ export function marketMetrics(tenders, data) {
         : "no tender on record publishes an amount",
     },
   ];
-  return tiles
-    .map(({ id, ...t }) => ({ ...t, key: id, l: uiText(data, "ui.market_metric", { metric_id: id }, "metric_label") }))
-    .filter((t) => t.l);
+  return tiles.map(({ id, ...t }) => ({ ...t, key: id, l: MARKET_TILE_LABEL[id] }));
 }
 
 function topOf(list, field) {

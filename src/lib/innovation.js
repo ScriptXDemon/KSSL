@@ -8,16 +8,33 @@
  * : "AHEAD"`: every innovation opened under a green AHEAD, a verdict nobody gave,
  * above a Status row that correctly said "not assessed". */
 
+import { clientShort } from "./client.js";
+
 export const NOT_ASSESSED = "not assessed";
 export const NOT_STATED = "not stated";
 
 export const has = (v) => v != null && String(v).trim() !== "";
 
+/* maturity labels -- one map, covering every `mat` value in the dataset (lab / dev / prod / fielded). */
+export const MAT_LAB = {
+  lab: "Lab / research",
+  dev: "In development",
+  prod: "In production",
+  fielded: "Fielded / in service",
+};
+/* the client's position against a record: the stored code (`gap`) names the colour, this names the words */
+export const gapLab = (gap) => {
+  const c = clientShort();
+  return { behind: `${c} behind`, parity: `${c} at parity`, ahead: `${c} ahead` }[gap] || "";
+};
+
 /* The maturity and position WORDS are stored (serving.technology_innovation_status.maturity_label / position_label,
-   shipped as `matLabel` / `gapLabel`); the stored codes (`mat`, `gap`) are only the colour keys. A record with no
-   stored word shows its stored code, and one with neither shows nothing: the browser owns no vocabulary for them. */
-export const maturityWord = (iv) => (iv && has(iv.matLabel) ? String(iv.matLabel).trim() : iv && has(iv.mat) ? String(iv.mat) : "");
-export const positionWord = (iv) => (iv && has(iv.gapLabel) ? String(iv.gapLabel).trim() : iv && has(iv.gap) ? String(iv.gap) : "");
+   shipped as `matLabel` / `gapLabel`) and lead; a record with no stored word is named by its stored code through the
+   maps above (an unknown maturity code is shown as served, never mapped to something it is not); one with neither
+   shows nothing. */
+export const maturityWord = (iv) =>
+  iv && has(iv.matLabel) ? String(iv.matLabel).trim() : iv && has(iv.mat) ? MAT_LAB[iv.mat] || String(iv.mat) : "";
+export const positionWord = (iv) => (iv && has(iv.gapLabel) ? String(iv.gapLabel).trim() : iv && has(iv.gap) ? gapLab(iv.gap) : "");
 
 /* A missing maturity says so in words. */
 export function maturityLabel(iv) {

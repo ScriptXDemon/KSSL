@@ -16,7 +16,7 @@ import { canonicalizeLabels } from "./orgident.js";
 import { countryFlagDisc } from "./countryFlags.js";
 import { categoryDisc } from "./categorySymbols.js";
 import { buildCategories, verdictOf, impactText } from "./partnerCategories.js";
-import { stanceWords } from "./uiText.js";
+import { stanceWords } from "./chrome.js";
 
 /* THE CLIENT ROSTER AND A RIVAL'S PARTNER ROWS DO NOT SHARE A KEY SPACE.
    KSSL_PARTNERS is reference data and carries `plp_01`..`plp_03` with cid null; the rows
@@ -1779,7 +1779,7 @@ const PG_IMG_ONERROR =
       threat: ["#fdecea", "#b5341f", "#f3b8ae"],
       watch: ["#fdf4dc", "#8a6212", "#ecd28a"],
     };
-    const WORDS = stanceWords(d);   // the stored stance words (ui.filter_option, group stance)
+    const WORDS = stanceWords();   // the two stance words: threat, watch
     const pill = (text, [bg, fg, br]) =>
       `<span style="font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: ${bg}; color: ${fg}; border: 1px solid ${br}; padding: 3px 8px; border-radius: 4px; white-space: nowrap;">${esc(text)}</span>`;
     const chip = (text) =>
