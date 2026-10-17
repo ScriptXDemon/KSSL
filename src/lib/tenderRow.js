@@ -27,6 +27,8 @@
  * report, a test, or the next engineer can see which link of the chain fired.
  */
 import { formatDate } from "../utils/formatDate.js";
+import { TENDER_CARD_CELLS, TENDER_EMPTY, TENDER_VALUE_EMPTY } from "./chrome.js";
+import { fitOf } from "./tenderIntel.js";
 
 export const NOT_ON_RECORD = "not on record";
 
@@ -226,4 +228,34 @@ export function tenderSummary(t) {
     : " Value and quantity are not disclosed in the notice.";
 
   return `${lead}${fit}${closeClause}${recordClause}`;
+}
+
+/* THE TENDER CARD: the same five cells in the same order on every card (Buyer, Country, Category, Value, Status), then the
+   client's fit row. A cell the record leaves empty prints the screen's own empty word (chrome.js: "not disclosed" for the
+   value, a dash for every other cell) -- never a dropped cell, never a guessed value. */
+export function tenderCardCells(t) {
+  const byKey = {};
+  resolveTenderRow(t).params.forEach((p) => { byKey[p.key] = p; });
+  return TENDER_CARD_CELLS.map(([key, label]) => {
+    const p = byKey[key];
+    const empty = !p || p.value == null;
+    return { key, label, text: empty ? (key === "value" ? TENDER_VALUE_EMPTY : TENDER_EMPTY) : p.value, empty };
+  });
+}
+
+/* The fit row's bar and word. A stored percentage on the first matched product draws its own length; a stored grade
+   (strong / partial / weak, on the match or on the tender) draws the grade's fixed length and prints the word; no stored
+   fit draws an empty bar and a dash. */
+const GRADE_CLASS = { strong: "high", partial: "mid", weak: "low" };
+const GRADE_WIDTH = { high: 85, mid: 55, low: 25 };
+const pctClass = (n) => (n >= 75 ? "high" : n >= 50 ? "mid" : "low");
+export function tenderFitBar(t) {
+  const m0 = t && Array.isArray(t.matches) ? t.matches[0] : null;
+  const pct = m0 && /%/.test(m0.pct || "") ? parseFloat(String(m0.pct).replace(/[^\d.]/g, "")) : NaN;
+  if (!Number.isNaN(pct)) return { cls: pctClass(pct), width: `${Math.max(0, Math.min(100, pct))}%`, word: String(m0.pct), scored: true };
+  const grade = String((m0 && m0.fit) || fitOf(t) || "").trim().toLowerCase();
+  const cls = GRADE_CLASS[grade] || (GRADE_WIDTH[grade] ? grade : "");
+  if (!cls) return { cls: "", width: "0%", word: TENDER_EMPTY, scored: false };
+  const word = Object.keys(GRADE_CLASS).find((k) => GRADE_CLASS[k] === cls);
+  return { cls, width: `${GRADE_WIDTH[cls]}%`, word, scored: false };
 }
