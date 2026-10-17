@@ -79,12 +79,12 @@ export default function TenderCockpit({ onOpen }) {
         )}
       </div>
 
-      {projects.length ? (
-        <div className="ovt">
-          <div className="ovc-h">
-            <span className="eyebrow">{W.projectsHead}</span>
-            <span className="ovc-note">{W.projectsNote}{est(projects)}</span>
-          </div>
+      <div className="ovt">
+        <div className="ovc-h">
+          <span className="eyebrow">{W.projectsHead}</span>
+          <span className="ovc-note">{W.projectsNote}{est(projects)}</span>
+        </div>
+        {projects.length ? (
           <div className="ovt-scroll">
             <table>
               <thead>
@@ -113,8 +113,10 @@ export default function TenderCockpit({ onOpen }) {
               </tbody>
             </table>
           </div>
-        </div>
-      ) : null}
+        ) : (
+          <div className="empty-note">{W.projectsEmpty}</div>
+        )}
+      </div>
 
       {moves.length ? (
         <div className="ovt">

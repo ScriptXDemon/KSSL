@@ -7,8 +7,8 @@
 
    The Top opportunity tables are built in the browser from those stored fields by deterministic ordering only:
    a tender with a stored fit first, strong before partial before weak, then the nearest closing date, then the
-   larger stored value. A tender with no stored fit is not on the shortlist. Revenue is printed as stored or not at
-   all (the dash is the caller's). */
+   larger stored value. A tender or project with no stored fit is not listed. Revenue is printed as a stored revenue
+   estimate or not at all (the dash is the caller's); the buyer's tender value is never shown as revenue. */
 import { formatDate } from "../utils/formatDate.js";
 import { COCKPIT_TENDER_ROWS, COCKPIT_PROJECT_ROWS, COCKPIT_MOVE_ROWS } from "./chrome.js";
 
@@ -29,12 +29,14 @@ export const revenueOf = (t) => {
 const FIT_RANK = { strong: 3, partial: 2, weak: 1 };
 export const fitRank = (word) => FIT_RANK[String(word == null ? "" : word).trim().toLowerCase()] || 0;
 
-/* The revenue text as stored: the estimate (revenueEstimate, then expectedRevenue), else the stored tender value.
-   `estimate` is true only when it is a stored revenue estimate. Null text when the record holds none. */
+/* The revenue text as stored: the revenue estimate (revenueEstimate, then expectedRevenue, then the served midpoint
+   revenueMid). The buyer's tender value is NOT revenue and is never read here. `estimate` is true whenever a text is
+   returned; null text when the record stores no estimate. */
 export function revenueText(t) {
   if (!t) return { text: null, estimate: false };
   for (const k of ["revenueEstimate", "expectedRevenue"]) if (has(t[k])) return { text: String(t[k]).trim(), estimate: true };
-  if (has(t.value)) return { text: String(t.value).trim(), estimate: false };
+  const mid = revenueOf(t);
+  if (mid !== null) return { text: mid.toLocaleString("en-US"), estimate: true };
   return { text: null, estimate: false };
 }
 
@@ -87,8 +89,8 @@ export function topTenders(open, limit = COCKPIT_TENDER_ROWS) {
     });
 }
 
-/* PROJECTS TO WIN BEFORE THEY TENDER: the stored projects (data.projects), by stored fit when one is stored, then how
-   far along (stageRank), then the latest milestone date, then the name. The rival is the competitor the project
+/* PROJECTS TO WIN BEFORE THEY TENDER: the stored projects (data.projects) that carry a stored fit, by fit, then how
+   far along (stageRank), then the latest milestone date, then the name. A project with no stored fit is not listed. The rival is the competitor the project
    belongs to. A column the project does not store prints a dash. */
 const dayStamp = (d) => {
   const s = has(d) ? String(d) : "";
@@ -99,6 +101,7 @@ export function topProjects(projects, limit = COCKPIT_PROJECT_ROWS) {
   return (projects || [])
     .filter((p) => p && has(p.name))
     .map((p) => ({ p, fit: fitOf(p) }))
+    .filter((r) => fitRank(r.fit) > 0)
     .sort((a, b) =>
       fitRank(b.fit) - fitRank(a.fit) ||
       (Number(b.p.stageRank) || 0) - (Number(a.p.stageRank) || 0) ||
@@ -111,7 +114,7 @@ export function topProjects(projects, limit = COCKPIT_PROJECT_ROWS) {
         id: p.id, p, _src: p._src, title: p.name,
         where: [p.location, p.customer].filter(has).join(" · "), issuer: p.customer,
         stage: has(p.stageNote) ? String(p.stageNote).trim() : has(p.stage) ? String(p.stage).trim() : "",
-        fit: fitRank(fit) > 0 ? fit : null, model: modelOf(p),
+        fit, model: modelOf(p),
         rival: has(p.company) ? String(p.company).trim() : null,
         revenue: rev.text, estimate: rev.estimate,
       };

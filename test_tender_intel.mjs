@@ -37,10 +37,12 @@ for (const gone of ["ASSUME", "tenderIntel", "winWeighted", "decisionOf", "kindO
 
 // revenue is printed as stored, or not at all: the estimate, then the stored value; never computed from other fields
 assert.deepEqual(revenueText({}), { text: null, estimate: false });
-assert.deepEqual(revenueText({ valueAmount: 5e6, revenueMid: 4e6, clientFit: "strong" }), { text: null, estimate: false });
+assert.deepEqual(revenueText({ valueAmount: 5e6, clientFit: "strong" }), { text: null, estimate: false });
 assert.deepEqual(revenueText({ revenueEstimate: "USD 60-95 M", value: "USD 185 million" }), { text: "USD 60-95 M", estimate: true });
 assert.deepEqual(revenueText({ expectedRevenue: "EUR 3 M" }), { text: "EUR 3 M", estimate: true });
-assert.deepEqual(revenueText({ value: "USD 185 million" }), { text: "USD 185 million", estimate: false });
+// the buyer's stored tender value is not the client's revenue: a tender with a value but no revenue estimate has none
+assert.deepEqual(revenueText({ value: "USD 185 million", valueAmount: 185e6 }), { text: null, estimate: false });
+assert.deepEqual(revenueText({ revenueMid: 77500000 }), { text: "77,500,000", estimate: true });
 
 // fit words: only strong > partial > weak rank; any other word, or none, is not on the shortlist
 assert.deepEqual(["strong", "partial", "weak", "poor", "", null, undefined].map(fitRank), [3, 2, 1, 0, 0, 0, 0]);
@@ -73,11 +75,15 @@ assert.equal(topTenders(null).length, 0);
 /* revenue is the stored text only: a row with no stored figure has none, and nothing is computed from value or fit */
 const priced = topTenders([
   T("r1", { clientFit: "strong", revenueEstimate: "USD 60-95 M (share)", valueAmount: 185e6, value: "USD 185 million" }),
-  T("r2", { clientFit: "strong", valueAmount: 4e6, revenueMid: 2e6 }),
+  T("r2", { clientFit: "strong", valueAmount: 4e6, value: "USD 4 M" }),
 ]);
 assert.equal(priced.find((r) => r.id === "r1").revenue, "USD 60-95 M (share)");
 assert.equal(priced.find((r) => r.id === "r2").revenue, null, "no stored revenue text -> none, never computed from value or fit");
 assert.equal(priced.find((r) => r.id === "r2").estimate, false);
+
+const valued = topTenders([T("v1", { clientFit: "strong", value: "USD 185 million", valueAmount: 185e6 })])[0];
+assert.equal(valued.revenue, null, "a tender with a value but no revenue estimate shows no revenue");
+assert.equal(valued.estimate, false);
 
 /* decides is the stored closing date in the house format; none when there is none */
 assert.equal(rows[0].decides, "15 Nov 2026");
@@ -86,19 +92,22 @@ assert.equal(rows.find((r) => r.id === "s-nodate").decides, "");
 /* ---- the projects: the stored projects, by stored fit, then how far along, then the latest milestone ---- */
 const P = (id, o) => ({ id, name: `P${id}`, company: `Co${id}`, customer: "Cust", location: "Loc", stage: "Trials", stageRank: 1, ...o });
 const prows = topProjects([
-  P("a", { stageRank: 1, latest: { date: "2026-09-01" } }),
-  P("b", { stageRank: 3, latest: { date: "2026-01-01" } }),
-  P("c", { stageRank: 3, latest: { date: "2026-08-01" } }),
+  P("a", { stageRank: 1, latest: { date: "2026-09-01" }, clientFit: "weak" }),
+  P("b", { stageRank: 3, latest: { date: "2026-01-01" }, clientFit: "partial" }),
+  P("c", { stageRank: 3, latest: { date: "2026-08-01" }, clientFit: "partial" }),
+  P("unfitted", { stageRank: 9, latest: { date: "2026-10-01" } }),
   P("d", { stageRank: 0, clientFit: "partial" }),
   P("e", { stageRank: 0, clientFit: "strong", revenueEstimate: "USD 1 M" }),
   { id: "nameless", stageRank: 9 },
 ]);
-assert.deepEqual(prows.map((r) => r.id), ["e", "d", "c", "b", "a"]);
+assert.deepEqual(prows.map((r) => r.id), ["e", "c", "b", "d", "a"]);
 assert.equal(prows[0].revenue, "USD 1 M");
 assert.equal(prows[2].revenue, null);
-assert.equal(prows[2].fit, null);
+assert.equal(prows[2].fit, "partial");
 assert.equal(prows[2].model, null);
-assert.equal(prows[2].rival, "Coc", "the rival is the competitor the project belongs to");
+assert.ok(!prows.some((r) => r.id === "unfitted"), "a project with no stored fit is not listed");
+assert.deepEqual(topProjects([P("x", {}), P("y", { clientFit: "" })]), []);
+assert.equal(prows[2].rival, "Cob", "the rival is the competitor the project belongs to");
 assert.equal(prows[2].stage, "Trials");
 assert.equal(prows[2].where, "Loc · Cust");
 assert.equal(topProjects(null).length, 0);
@@ -195,9 +204,19 @@ const real = render({ client: { short: "KSSL" }, tenders: wireTendersWithRealDay
 assert.match(real, /Top tenders/);
 assert.match(real, /No open tender on record carries a stored fit yet\./);
 assert.ok(!/<tbody>/.test(real), "no row is invented when no tender carries a stored fit");
-assert.ok(!/Projects to win before they tender/.test(real), "no project rows, no project table");
-// a project with no stored fit, model or revenue still lists, with dashes: nothing computed for it
-const pOnly = render({ client: { short: "KSSL" }, tenders: [], projects: [P("z", { stageNote: "Contract signed." })] });
-assert.match(text(pOnly), /Pz\|.*Contract signed\.\|—\|—\|Coz\|—/);
+assert.match(real, /Projects to win before they tender/);
+assert.match(real, /No project on record carries a stored fit yet\./);
+assert.ok(!/revenue is a stored estimate/.test(real), "no estimate is claimed when none is shown");
+// an unfitted project is not listed (honest empty state); a fitted one lists, with dashes for what it does not store
+const pNone = render({ client: { short: "KSSL" }, tenders: [], projects: [P("z", { stageNote: "Contract signed." })] });
+assert.match(pNone, /No project on record carries a stored fit yet\./);
+assert.ok(!/Pz/.test(pNone));
+const pOnly = render({ client: { short: "KSSL" }, tenders: [], projects: [P("z", { stageNote: "Contract signed.", clientFit: "weak" })] });
+assert.match(text(pOnly), /Pz\|.*Contract signed\.\|weak\|—\|Coz\|—/);
+// a tender with a value but no revenue estimate: the revenue cell is a dash, and no estimate is claimed
+const vOnly = render({ client: { short: "KSSL" }, projects: [], tenders: wireTendersWithRealDays([T("v", { clientFit: "strong", value: "USD 5 million", valueAmount: 5e6, closingDate: "2027-01-01" })]) });
+assert.ok(!/USD 5 million/.test(vOnly), "the buyer's value is not shown as revenue");
+assert.match(text(vOnly), /Tv\|.*\|strong\|—\|—\|—\|/);
+assert.ok(!/revenue is a stored estimate/.test(vOnly));
 
 console.log("ok - fit and revenue are stored fields; the cockpit orders stored rows, invents no revenue, and lists no tender without a stored fit");
