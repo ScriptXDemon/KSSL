@@ -692,3 +692,5 @@
 .geo-rel-item .ri-act.local-production{background:rgba(181,52,31,.85)} .geo-rel-item .ri-act.licensed-production{background:rgba(181,52,31,.42)} .geo-rel-item .ri-act.export{background:rgba(154,106,8,.6)} .geo-rel-item .ri-act.sales-and-service{background:var(--l-bg-3)}
 .ri-actlab.local-production{color:#b5341f}.ri-actlab.licensed-production{color:#9a6a08}.ri-actlab.export{color:#9a6a08}.ri-actlab.sales-and-service{color:var(--l-txt-3)}
 .geo-mix-chip.local-production .mc-dot{background:rgba(181,52,31,.85)}.geo-mix-chip.licensed-production .mc-dot{background:rgba(181,52,31,.42)}.geo-mix-chip.export .mc-dot{background:rgba(154,106,8,.6)}.geo-mix-chip.sales-and-service .mc-dot{background:var(--l-bg-3)}
+/* Sourcing: where the company buys parts, materials or services */
+.geo-rel-item .ri-act.sourcing{background:rgba(61,127,191,.7)}.ri-actlab.sourcing{color:#3d7fbf}.geo-mix-chip.sourcing .mc-dot{background:rgba(61,127,191,.7)}

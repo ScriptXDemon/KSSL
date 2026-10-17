@@ -132,6 +132,13 @@ export const PROJECT_SEQ = [
   ["stage", "Furthest along"],
 ];
 export const PROJECT_SEQ_DEFAULT = "recent";
+/* the stored kssl_option of a project (what the client can do about it), as a phrase */
+export const PROJECT_OPTION_WORD = {
+  compete: "bid against it with a KSSL product",
+  partner: "partner with the competitor or its team",
+  supply: "supply a component the project needs",
+  none: "nothing in the portfolio fits",
+};
 
 /* ---- Market tiles (Tenders / Market Intelligence strip) ------------------------------------------------------------------ */
 export const MARKET_TILE_LABEL = {
@@ -179,7 +186,7 @@ export const PARTNER_CATEGORIES = [
     aliases: ["acquisition", "acq"],
     def: "{rival} owns, or has bought into, the other party (or the reverse)." },
   { key: "mou-strategic", group: "tech", label: "MoU / strategic", short: "MoU", overlapKind: "technology",
-    aliases: ["mou", "strategic"],
+    aliases: ["mou", "strategic", "teaming"],
     def: "A memorandum or strategic agreement: stated intent to cooperate, not yet a supply, licence or ownership contract." },
   { key: "key-account", group: "buyer", label: "Key account", short: "Account", overlapKind: "",
     aliases: ["account", "customer"],

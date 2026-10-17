@@ -46,6 +46,7 @@ def _with_unit(value, unit):
 
 def build_partners(database, competitors):
     evidence = by(table(database, "serving", "competitive_partnership_evidence"), "relationship_id")
+    client_partners = {text(r.get("client_partner_id")): r for r in table(database, "serving", "client_partner")}
     per_comp = defaultdict(list)
     for row in ordered(table(database, "serving", "competitive_partnership"), "partner_name", "relationship_id"):
         cid = text(row.get("competitor_id"))
@@ -54,6 +55,11 @@ def build_partners(database, competitors):
             continue
         first_url = next((e.get("source_url") for e in ordered(evidence.get(rid, []), "card_number") if e.get("source_url")), None)
         partner_id = text(row.get("partner_id"))
+        # the tie as a timeline: its evidence cards, oldest first (each card is one dated step; v3 writes step_type)
+        steps = [{"date": e.get("as_of_date"), "step": e.get("step_type"), "label": e.get("relationship_label"), "text": e.get("evidence_text"),
+                  "publisher": e.get("source_publisher"), "url": e.get("source_url")}
+                 for e in sorted(evidence.get(rid, []), key=lambda e: (text(e.get("as_of_date")) or "9999", e.get("card_number") or 0))]
+        kp = client_partners.get(text(row.get("overlap_client_partner_id")))
         per_comp[cid].append({
             "id": rid,
             "cid": partner_id if partner_id in competitors else None,
@@ -67,7 +73,14 @@ def build_partners(database, competitors):
             "confidence": row.get("relationship_confidence"),
             "srcnote": row.get("source_note"),
             "verdict": row.get("client_verdict"),      # as stored (threat / watch / ...): the UI shows only threat and watch
-            "impact": row.get("client_impact"),        # the stored read of the tie for the client
+            "impact": first_nonempty(row, "kssl_read", "client_impact"),   # the stored read of the tie for the client
+            "status": row.get("status"),
+            "valueComp": row.get("value_to_competitor"),
+            "valuePartner": row.get("value_to_partner"),
+            "overlap": ({"kind": row.get("overlap_kind"), "component": row.get("overlap_component"), "effect": row.get("overlap_effect"),
+                         "clientPartner": kp.get("partner_name") if kp else None, "clientPartnerId": text(row.get("overlap_client_partner_id")) or None}
+                        if row.get("overlap_kind") or kp else None),
+            "steps": steps,
             "src": first_url,
             "_src": src("competitive_partnership", "relationship_id", row),
         })
@@ -162,6 +175,11 @@ def build_projects(database, competitors):
     specs = by(table(database, "serving", "competitive_project_specification"), "project_id")
     timeline = by(table(database, "serving", "competitive_project_timeline"), "project_id")
     sources = by(table(database, "serving", "competitive_project_source"), "project_id")
+    # a project is a story: its dated, sourced steps (what changed at each), planned steps included
+    steps_of = defaultdict(list)
+    for st in ordered(table(database, "serving", "story_step"), "step_no"):
+        steps_of[text(st.get("story_id"))].append({"date": st.get("step_date"), "type": st.get("step_type"), "line": st.get("one_line"),
+                                                   "changed": st.get("changed"), "url": st.get("source_url"), "label": st.get("label_after")})
     projects = []
     for row in ordered(table(database, "serving", "competitive_project"), "display_order", "project_id"):
         pid = text(first_nonempty(row, "project_id", "id"))
@@ -190,6 +208,8 @@ def build_projects(database, competitors):
             "latest": {"date": row.get("latest_milestone_date"), "label": row.get("latest_milestone")},
             "overview": [row.get("what_the_project_is")] if row.get("what_the_project_is") else [],
             "assessment": {"stance": row.get("assessment_stance"), "read": read},
+            "ksslOption": row.get("kssl_option"),
+            "steps": steps_of.get(text(row.get("story_id")), []),
             "sources": [{"label": first_nonempty(s, "source_label", "source_domain"), "url": s.get("source_url")}
                         for s in sources.get(pid, [])],
             "researchedAsOf": row.get("researched_as_of"),
@@ -263,6 +283,8 @@ def build_geo(database, competitors):
                 "qty": p.get("quantity"),
                 "stage": row.get("presence_status"),
                 "note": p.get("record_note"),
+                "customer": p.get("customer_name"),
+                "localPartner": p.get("local_partner"),
                 "srcnote": srcs[0]["label"] if srcs else None,
                 "srcs": srcs,
                 "geo_news": [{"title": n.get("headline"), "url": n.get("article_url"), "date": n.get("published_date"),
@@ -278,6 +300,38 @@ def build_geo(database, competitors):
     countries = sorted(set(locations.values()), key=str.lower)
     act_label = {a: a for a in activities}  # identity map over the stored activity words
     return {k: dict(v) for k, v in geo_data.items()}, geo_presence, geo_comps, countries, act_label
+
+
+def build_geo_analysis(database, competitors):
+    """geoAnalysis: country -> layer-2 findings (overlap, anomaly, white space) as stored. A stated reason carries its codes; with none
+    stated the question to ask and the labelled analyst hypothesis come through, never a reason."""
+    names = {}
+    for row in table(database, "serving", "competitive_geo_location"):
+        lid, name = text(row.get("location_id")), first_nonempty(row, "country_name", "map_label")
+        if lid and name:
+            names[lid] = name
+    kssl = {text(r.get("client_product_id")): r.get("product_name") for r in table(database, "serving", "client_product")}
+    out = defaultdict(list)
+    for row in ordered(table(database, "serving", "competitive_geo_analysis"), "display_order", "analysis_id"):
+        country = names.get(text(row.get("location_id")))
+        if not country:
+            continue
+        cid = text(row.get("competitor_id"))
+        out[country].append({
+            "id": text(row.get("analysis_id")),
+            "kind": row.get("kind"),
+            "cid": cid or None,
+            "comp": (competitors.get(cid) or {}).get("name"),
+            "ksslProduct": kssl.get(text(row.get("kssl_product_id"))),
+            "finding": row.get("finding"),
+            "reasons": list(row.get("stated_reasons") or []),
+            "reasonState": row.get("reason_state"),
+            "hypothesis": row.get("hypothesis"),
+            "toFindOut": row.get("to_find_out"),
+            "url": row.get("source_url"),
+            "_src": src("competitive_geo_analysis", "analysis_id", row),
+        })
+    return dict(out)
 
 
 # --------------------------------------------------------------------------- Patents
@@ -333,7 +387,7 @@ def build(database, d):
     compsyn, traceids, fieldsyn = build_synthesis(database)
     d.update({
         "geoData": geo_data, "geoPresence": geo_presence, "geoComps": geo_comps,
-        "geoCountries": geo_countries, "actLabel": act_label,
+        "geoCountries": geo_countries, "actLabel": act_label, "geoAnalysis": build_geo_analysis(database, competitors),
         "projects": projects, "projectsConfig": projects_config,
         "PATENTS": build_patents(database, competitors),
         "KSSL_PARTNERS": build_client_partners(database, competitors),

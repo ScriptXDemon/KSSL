@@ -5,7 +5,7 @@ import { useData } from "../../state/DataProvider";
 import { rosterOf } from "../../lib/profile";
 import { competitorFullName } from "../../lib/companyNames";
 import FeedFilters from "../../components/subHead/FeedFilters.jsx";
-import { stanceOf, stanceWords, PROJECT_FILTERS, PROJECT_SEQ, PROJECT_SEQ_DEFAULT } from "../../lib/chrome";
+import { stanceOf, stanceWords, PROJECT_FILTERS, PROJECT_SEQ, PROJECT_SEQ_DEFAULT, PROJECT_OPTION_WORD } from "../../lib/chrome";
 import { projectFeed, sortableSeq, latestWhen, day } from "../../lib/projects";
 import { srcChips } from "../../lib/html";
 import { formatDate } from "../../utils/formatDate";
@@ -78,6 +78,21 @@ function ProjectPanel({ p, steps, regionLabel, words, onClose }) {
         </Sec>
 
         <Sec title="Timeline">
+          {Array.isArray(p.steps) && p.steps.length ? (
+            /* a project is a story: dated steps, each with what changed and where it was reported */
+            <ol className="pj-time">
+              {p.steps.filter((t) => t.type !== "label_change").map((t, i) => (
+                <li className={t.type === "planned" || day(t.date) > TODAY ? "next" : ""} key={i}>
+                  <span className="pj-d">{/^\d/.test(t.date) ? formatDate(t.date) : t.date}</span>
+                  <span className="pj-e">
+                    {t.line}{t.type === "planned" || day(t.date) > TODAY ? " (expected)" : ""}
+                    {t.changed ? <span className="pj-note"> {t.changed}</span> : null}
+                    {t.url ? <span dangerouslySetInnerHTML={{ __html: " " + srcChips([{ label: "Source", url: t.url }]) }} /> : null}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
           <ol className="pj-time">
             {p.timeline.map((e, i) => (
               <li className={e.expected || day(e.date) > TODAY ? "next" : ""} key={i}>
@@ -86,6 +101,7 @@ function ProjectPanel({ p, steps, regionLabel, words, onClose }) {
               </li>
             ))}
           </ol>
+          )}
           {p.researchedAsOf ? <div className="pj-note">Researched to {formatDate(p.researchedAsOf)}.</div> : null}
         </Sec>
 
@@ -93,6 +109,7 @@ function ProjectPanel({ p, steps, regionLabel, words, onClose }) {
           {p.assessment.read.length ? p.assessment.read.map((t, i) => (
             <div className="cd-prose" key={i} style={i ? { marginTop: "8px" } : undefined}>{t}</div>
           )) : <div className="cd-prose">No assessment on record.</div>}
+          {p.ksslOption && p.ksslOption !== "unknown" ? <div className="pj-note">What {clientShort() || "the client"} can do: {PROJECT_OPTION_WORD[p.ksslOption] || p.ksslOption}.</div> : null}
           {clientShort() ? <div className="pj-note">The analyst's read for {clientShort()}, from the dataset's record of this item.</div> : null}
         </Sec>
 

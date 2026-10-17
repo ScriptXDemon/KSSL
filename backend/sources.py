@@ -34,6 +34,8 @@ PRIMARY_HOST_PATTERN = re.compile(
 PRIMARY = [
     # defence ministries / procurement agencies not on a gov suffix
     "bmvg.de", "bundeswehr.de", "baainbw.de", "defense.gouv.fr", "dapa.go.kr",
+    # government tender portals on a plain suffix
+    "canadabuys.canada.ca", "canada.ca", "find-tender.service.gov.uk",
     # stock exchanges and regulators (filings)
     "bseindia.com", "nseindia.com", "sec.gov", "sebi.gov.in", "londonstockexchange.com",
     "dart.fss.or.kr", "kind.krx.co.kr", "hkexnews.hk", "asx.com.au",

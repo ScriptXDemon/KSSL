@@ -1836,6 +1836,28 @@ const PG_IMG_ONERROR =
       h += `<div style="padding: 12px 14px; background: #f7f6f3; border: 1px solid #e2e0d8; border-radius: 6px;">${label(`What it means for ${esc(NO)}`)}` +
         `<div style="font-size: 13px; color: #161614; line-height: 1.6;">${impact ? esc(impact) : "No read on record for this tie."}</div></div>`;
 
+      // what each side gets (stored value_to_competitor / value_to_partner: "tag: one line")
+      if (real(r.valueComp) || real(r.valuePartner)) {
+        const line = (who, v) => real(v) ? `<div style="font-size: 12.5px; line-height: 1.55;"><b>${esc(who)}</b>: ${esc(v)}</div>` : "";
+        h += `<div>${label("What each side gets")}${line(c.name, r.valueComp)}${line(partnerName, r.valuePartner)}</div>`;
+      }
+      // overlap with the client's own partners and suppliers (stored by the partnership prompt, matched by name in code)
+      if (r.overlap && real(r.overlap.kind) && r.overlap.kind !== "none" && r.overlap.kind !== "unknown") {
+        const o = r.overlap;
+        const head = o.kind === "same_component" ? `Same component: ${NO} and ${c.name} both get it from ${partnerName}`
+          : o.kind === "same_partner_other_scope" ? `${partnerName} also works with ${NO}, on something else`
+          : `This tie is in a ${NO} market`;
+        h += `<div style="padding: 12px 14px; background: #fdf4dc; border: 1px solid #ecd28a; border-radius: 6px;">${label(`Overlap with ${esc(NO)}'s own partners`)}` +
+          `<div style="font-size: 13px; line-height: 1.6;"><b>${esc(head)}</b></div>` +
+          (real(o.component) ? `<div style="font-size: 12.5px; line-height: 1.55; margin-top: 4px;">${esc(o.component)}</div>` : "") +
+          (real(o.effect) && o.effect !== "unknown" ? `<div style="font-size: 12px; color: #6b6a63; margin-top: 4px;">Effect for ${esc(NO)}: ${esc(o.effect)}</div>` : "") + `</div>`;
+      }
+      // the tie as a timeline: each evidence card is one dated step
+      if (Array.isArray(r.steps) && r.steps.length > 1) {
+        h += `<div>${label("Timeline of the tie")}<ol style="margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55;">` +
+          r.steps.map((t) => `<li><b>${esc(t.date || "")}</b> ${esc(t.label || "")}${t.step ? ` <span style="color:#6b6a63">(${esc(String(t.step).replace(/_/g, " "))})</span>` : ""}</li>`).join("") + `</ol></div>`;
+      }
+
       h += `<div style="display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 12px;">` +
         facts.map(([k, v]) => `<span style="color: #6b6a63;">${esc(k)}</span><span style="color: #161614; font-weight: 600;">${esc(v)}</span>`).join("") +
         `</div>`;

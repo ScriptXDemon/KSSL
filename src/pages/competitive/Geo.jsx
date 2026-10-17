@@ -290,6 +290,22 @@ export default function Geo() {
   /* the activity word of a footprint row, as stored */
   const actOf = (p) => escAll(geo.actLabel[p.c]);
 
+  /* layer 2 of the footprint: overlaps, anomalies, white space for one country, as stored (data.geoAnalysis). A reason shows only when a source
+     states it; with none, the question to ask and the analyst hypothesis (greyed, labelled) come instead. */
+  const KIND_WORD = { anomaly: "Anomaly", overlap: "Overlap", whitespace: "White space" };
+  const analysisHtml = (country) => {
+    const rows = (data.geoAnalysis || {})[country] || [];
+    if (!rows.length) return "";
+    return `<div class="geo-d-sec"><span class="eyebrow">Analysis</span>` + rows.map((a) => {
+      const reasons = (a.reasons || []).map((x) => escAll(String(x).replace(/_/g, " "))).join(", ");
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--l-bg-2);font-size:12.5px;line-height:1.5">` +
+        `<b>${escAll(KIND_WORD[a.kind] || a.kind)}</b>${a.comp ? ` · ${escAll(a.comp)}` : ""}${a.ksslProduct ? ` · vs ${escAll(a.ksslProduct)}` : ""}<br>${escAll(a.finding)}` +
+        (a.reasonState === "stated" && reasons ? `<br><span style="color:var(--l-txt-3)">Stated reason:</span> ${reasons}${a.url ? ` ${srcChips([{ label: "Source", url: a.url }])}` : ""}` : "") +
+        (a.reasonState === "not_stated" ? `<br><span style="color:var(--l-txt-3)">Reason not stated in any source.</span>${a.toFindOut ? ` Ask: ${escAll(a.toFindOut)}` : ""}` : "") +
+        (a.hypothesis ? `<br><span style="color:var(--l-txt-3);font-style:italic">${escAll(a.hypothesis)} (analyst hypothesis, no source)</span>` : "") + `</div>`;
+    }).join("") + `</div>`;
+  };
+
   const relList = () => {
     if (pair) {
       // `pair` is rehydrated from localStorage: a company dropped from a later
@@ -335,7 +351,7 @@ export default function Geo() {
     }
     if (resolved.kind === "competitors") {
       const cs = geo.compsInCountry(resolved.country);
-      return cs
+      return analysisHtml(resolved.country) + cs
         .map((c) => {
           const rows = geo.productsFor(c.id, resolved.country);
           const ov = geo.geoOverlap(c.id, resolved.country);
@@ -355,6 +371,8 @@ export default function Geo() {
       ["Activity", geo.actLabel[p.c]],
       ["Quantity", p.qty],
       ...(p.val && p.val !== p.qty ? [["Value", p.val]] : []),
+      ...(p.customer ? [["Customer", p.customer]] : []),
+      ...(p.localPartner ? [["Local partner", p.localPartner]] : []),
       ["Stage", p.stage],
       ["Since", p.since],
     ];

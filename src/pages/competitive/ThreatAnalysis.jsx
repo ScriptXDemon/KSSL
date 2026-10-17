@@ -199,6 +199,7 @@ export default function ThreatAnalysis() {
                   </div>
                   <div className="cm-title">{m.title}</div>
                   {m.description ? <div className="cm-desc">{m.description}</div> : null}
+                  {m.changeNote ? <div className="cm-desc"><b>What changed: </b>{m.changeNote}</div> : null}
                   <Review src={m._src} />
                 </div>
               </div>
@@ -254,6 +255,25 @@ export default function ThreatAnalysis() {
                 <span className="eyebrow">What happened</span>
                 <div className="cd-prose">{open.description || "Not on record"}</div>
               </div>
+              {open.changeNote ? (
+                <div className="ctx-sec">
+                  <span className="eyebrow">What changed since the previous move</span>
+                  <div className="cd-prose">{open.changeNote}</div>
+                </div>
+              ) : null}
+              {Array.isArray(open.steps) && open.steps.length > 1 ? (
+                <div className="ctx-sec">
+                  <span className="eyebrow">Story so far</span>
+                  <ol className="pj-time">
+                    {open.steps.filter((t) => t.type !== "label_change").map((t, i) => (
+                      <li key={i}>
+                        <span className="pj-d">{formatDate(t.date)}</span>
+                        <span className="pj-e">{t.line}{t.changed ? ` (${t.changed})` : ""}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
               <div className="ctx-sec">
                 <span className="eyebrow">Analysis{clientName ? ` · what it means for ${clientName}` : ""}</span>
                 <div className="cd-prose">{meaning || "Not assessed."}</div>

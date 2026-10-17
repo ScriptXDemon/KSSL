@@ -67,6 +67,7 @@ def build_tenders(database):
     reqs = group(table(database, s, "market_tender_requirement"), "tender_id")
     sources = group(table(database, s, "market_tender_source"), "tender_id")
     moves = group(table(database, s, "market_next_move"), "tender_id")
+    elig = group(table(database, s, "market_tender_eligibility"), "tender_id")
 
     tenders = []
     for row in table(database, s, "market_tender"):
@@ -116,6 +117,7 @@ def build_tenders(database):
                 "company": c.get("competitor_name"),
                 "products": clean([first_nonempty(c, "competitor_product_display", "competitor_products_text")]),
                 "fit": c.get("fit_label"),
+                "basis": c.get("basis"),
                 "why": c.get("fit_rationale"),
                 "_src": src("market_tender_competitor_fit", "competitor_fit_id", c.get("competitor_fit_id")),
             }
@@ -167,6 +169,22 @@ def build_tenders(database):
             "competitorFit": competitor_fit,
             "actions": actions,
             "milestone": first_nonempty(window, "milestone_text") or row.get("latest_milestone"),
+            # prompt rebuild v2 (scores are anchored 1-5 judgements; the label is computed by code, rule version p1)
+            "pursue": fit.get("pursue_label"),
+            "attractiveness": fit.get("attractiveness"),
+            "ability": fit.get("ability"),
+            "valueScore": fit.get("value_score"),
+            "strategicScore": fit.get("strategic_score"),
+            "timeToAward": fit.get("time_to_award"),
+            "fitPercent": fit.get("fit_score"),
+            "eligibility": [
+                {"item": e.get("item"), "state": e.get("state"), "fixable": e.get("fixable"), "note": e.get("note"),
+                 "_src": src("market_tender_eligibility", "eligibility_id", e.get("eligibility_id"))}
+                for e in ordered(elig.get(tid, []), "display_order")
+            ],
+            "awardedTo": row.get("awarded_to"),
+            "awardDate": row.get("award_date"),
+            "awardValue": row.get("award_value_text"),
         })
     return tenders
 
@@ -407,6 +425,11 @@ def build_innovations(database):
     inno_sources = group(table(database, s, "technology_innovation_source"), "innovation_id")
     sources = {text(x.get("source_id")): x for x in table(database, s, "technology_source")}
 
+    # maturity_level 1-5 -> the chip class the page already uses (lab / dev / prod / fielded), from ui.code_label (technology_innovation.maturity_level)
+    mat_class = {text(c.get("code")): c.get("tag_class") for c in table(database, "ui", "code_label")
+                 if c.get("table_name") == "technology_innovation" and c.get("column_name") == "maturity_level"}
+    milestones = group(table(database, s, "technology_innovation_milestone"), "innovation_id")
+
     grouped = defaultdict(list)
     for row in ordered(table(database, s, "technology_innovation"), "sequence_no"):
         if text(row.get("status")) == "candidate":     # innovation_discovery's thin rows: shown once innovation_detail fills them
@@ -430,7 +453,12 @@ def build_innovations(database):
             "_src": src("technology_innovation", "innovation_id", iid),
             "t": row.get("title"),
             "s": row.get("list_description"),
-            "mat": row.get("maturity"),
+            "mat": mat_class.get(text(row.get("maturity_level"))) or row.get("maturity"),
+            "matLevel": row.get("maturity_level"),
+            "kind": row.get("technology_kind"),
+            "stance": row.get("stance"),
+            "milestones": [{"date": m.get("step_date"), "step": m.get("step_type"), "note": m.get("note"), "url": m.get("source_url")}
+                           for m in ordered(milestones.get(iid, []), "step_date")],
             "matLabel": st.get("maturity_label"),
             "gap": row.get("client_position"),
             "gapLabel": st.get("position_label"),

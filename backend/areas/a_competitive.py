@@ -178,6 +178,7 @@ def build_news(database, competitors):
             "_src": src("competitive_news_article", "article_id", row.get("article_id")),
         })
     lenses = by_key(table(database, "serving", "competitive_competitor_moment_analysis"), "moment_id")
+    moment_steps = by_key(table(database, "serving", "story_step"), "story_id")
     for row in table(database, "serving", "competitive_competitor_moment"):
         cid = text(row.get("competitor_id"))
         mid = text(row.get("moment_id"))
@@ -196,6 +197,13 @@ def build_news(database, competitors):
             "analysis": row.get("kssl_analysis"),
             "country": row.get("country_name"),
             "card": mid,
+            "changeNote": row.get("change_note"),
+            "signalId": text(row.get("signal_id")) or None,
+            "program": row.get("program_name"),
+            # the steps of the story this move belongs to (dated, sourced), the same thread the signal shows
+            "steps": [{"date": t.get("step_date"), "type": t.get("step_type"), "line": t.get("one_line"), "changed": t.get("changed"),
+                       "url": t.get("source_url")}
+                      for t in ordered(moment_steps.get(text(row.get("story_id")), []), "step_no")] if row.get("story_id") else [],
             "lenses": [{"view": a.get("view_name"), "text": a.get("analysis_text")}
                        for a in ordered(lenses.get(mid, []), "display_order")],
             "_src": src("competitive_competitor_moment", "moment_id", mid),

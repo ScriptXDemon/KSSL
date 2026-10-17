@@ -110,6 +110,9 @@ def build_matchups(database):
         mid = text(row.get("matchup_id"))
         if not mid:
             continue
+        # like-for-like only, and only what can be compared: a pair with no comparable spec and no verdict text is not shown
+        if not (row.get("comparable_spec_count") or 0) and not row.get("verdict"):
+            continue
         category = row.get("category_code")
         if category not in (None, ""):
             categories[slug(category)] = category
