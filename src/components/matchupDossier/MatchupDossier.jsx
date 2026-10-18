@@ -159,7 +159,7 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
                   {(m.advComp || []).map((a, i) => (
                     <div className="adv-item" key={i}>
                       <span className="mk">▲</span>
-                      <span dangerouslySetInnerHTML={{ __html: advantageText(a) }} />
+                      <span>{advantageText(a)}</span>
                     </div>
                   ))}
                   {(m.advCompQ || []).map((a, i) => (
@@ -182,7 +182,7 @@ export default function MatchupDossier({ m, data, gapModel, onClose, onJumpToTen
                   {(m.advBf || []).map((a, i) => (
                     <div className="adv-item" key={i}>
                       <span className="mk">▲</span>
-                      <span dangerouslySetInnerHTML={{ __html: advantageText(a) }} />
+                      <span>{advantageText(a)}</span>
                     </div>
                   ))}
                   {(m.advBfQ || []).map((a, i) => (

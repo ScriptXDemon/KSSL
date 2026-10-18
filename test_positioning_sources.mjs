@@ -53,8 +53,9 @@ ck("every chip on a line is removed, not just the first", !/adv-src/.test(advant
 
 // --- the panels are actually wired to the switch, not just the helper -------------
 const dossier = readFileSync(new URL("./src/components/matchupDossier/MatchupDossier.jsx", import.meta.url), "utf8");
-ck("Advantages renders through advantageText, not raw html",
-   !/__html:\s*a\s*\}/.test(dossier) && /__html:\s*advantageText\(a\)/.test(dossier));
+// red-team 2026-10-18: rendered as TEXT ({advantageText(a)}), never injected as HTML
+ck("Advantages renders through advantageText, as text not raw html",
+   !/__html:\s*a\s*\}/.test(dossier) && !/__html:\s*advantageText/.test(dossier) && /\{advantageText\(a\)\}/.test(dossier));
 // The imported dossier has no Competitor Detail "Sources" row, and the served matchups carry no `srcs` (ruling R8: the
 // matchup sources panel is not ported). Hold both facts, and hold the rendered panels to them on every fixture matchup.
 import { specPanelHtml } from "./src/lib/specs.js";

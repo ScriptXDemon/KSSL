@@ -234,7 +234,8 @@ One row per field the Cummins frontend reads (or, for globals Cummins ships and 
 | matchups | specs[].p, cp, kp (provenance 's') | specs.js | not-shipped | no column; source dots omitted |
 | matchups | specs[].group, win, gap, state | (KSSL v2 only) | existing | spec_group, better_side, gap_value, comparability_state - kept on the row for the edge-basis and parity chips |
 | matchups | advBf[] / advComp[] | MatchupDossier.jsx, reports.js | existing | serving.competitive_matchup_advantage.advantage_text where side='client' / 'competitor' |
-| matchups | advBfQ / advCompQ (qualitative) | MatchupDossier.jsx | not-shipped | no separate qualitative list; all advantages ship in advBf/advComp |
+| matchups | advBf[] / advComp[] kind | MatchupDossier.jsx | existing | only competitive_matchup_advantage rows with kind='compared' (▲, both figures named) |
+| matchups | advBfQ / advCompQ (qualitative) | MatchupDossier.jsx | existing | competitive_matchup_advantage rows with kind='stated' (◆, a capability that side's own rows state); db/setup/20_matchup_advantage_kind.sql, matchup.yml v4 |
 | matchups | det, srcs, news_image, product_news, gen, ks_thin, bfBy, revenue_filter | reports.js (det "Provenance"), (rest unread or optional) | not-shipped | serving.competitive_matchup_source is available as srcs [{label,url}] if the dossier shows sources (SHOW_POSITIONING_SOURCES is false) |
 | matchups | _cp (rival product id) | geo.js (pairOfProduct) | remove-genset | used only by the geo kVA compare popup |
 | matchups | gap strip (matchupGapHtml, gapModel) | MatchupDossier.jsx, specs.js, Tenders.jsx, Innovation.jsx | hidden:gap-analysis | derived model; not shipped |

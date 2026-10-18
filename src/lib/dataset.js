@@ -61,8 +61,19 @@ function hasDay(s) {
 
    URLs benefit too: a query string carrying `&amp;` is a broken link, not a styling
    nit. */
+/* Stored text is TEXT: the pipeline writes no markup (0 tags in the served store, red-team 2026-10-18), but portal
+   titles and headlines are copied verbatim from outside, and ~25 render sites inject strings as HTML. So anything
+   tag-shaped (closed or not) is dropped at the one entry point; the UI's own markup is built after this. */
+const TAG_LIKE = /<\/?[a-zA-Z!][^>]*(>|$)/g;
+export function noMarkup(s) {
+  return s.indexOf("<") < 0 ? s : s.replace(TAG_LIKE, "");
+}
+
 function decodeAmp(v) {
-  if (typeof v === "string") return v.indexOf("&amp;") < 0 ? v : v.split("&amp;").join("&");
+  if (typeof v === "string") {
+    const t = noMarkup(v);
+    return t.indexOf("&amp;") < 0 ? t : t.split("&amp;").join("&");
+  }
   if (Array.isArray(v)) return v.map(decodeAmp);
   if (v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype) {
     const out = {};
