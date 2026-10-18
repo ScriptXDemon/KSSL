@@ -162,9 +162,14 @@ dropped; else NULL) and `signal.yml` maps it; the harvester reads date-classed e
 `brahmos-in-media/N` pages are the articles' own reprint pages (not listings): 53 brahmos + 1 geaerospace dated from their
 `Date:` label. **Now 392 of 474 dated.**
 
-Still undated (82), left NULL on purpose ("date not known", nothing guessed): 38 knds.com releases (no per-article date
-on the page; its page-data `publishedAt` is the site settings' date), 11 signals with no source URL, and pages that state
-no date or could not be fetched.
+knds.com (2026-10-18): the article pages carry no date, but each LISTING card does ("14 October 2026", Strapi
+`publicationDate`). `scripts/knds_listing_dates.mjs` opens knds.com/en/press-releases (and /en/news), presses
+"Load more" until all cards are loaded and maps article URL -> card date: 36 of the 38 knds signals dated (NULLs only).
+The 2 left are /en/news posts, whose listing shows no date. **Now 428 of 474 dated.** The harvester should do the same
+for knds (listing date by URL) so new knds articles arrive dated.
+
+Still undated (46), left NULL on purpose ("date not known", nothing guessed): 2 knds.com news posts, 11 signals with no
+source URL, and pages that state no date or could not be fetched.
 
 Open question: 60 dated cards are older than a year (all 53 brahmos pieces date 2006-2025: archive reprints). With the
 card date now the publication date they read as years old; an age cut on the overview (or a lower sequence) is a
