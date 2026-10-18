@@ -139,3 +139,29 @@ Frontend (`src/components/detailPanel/DetailPanel.jsx`): the signal panel's "Sto
 look (`.pj-time`: dot rail, formatted date, event line, change note in grey, source chip); steps whose stored type is
 "Label change" (a stance moving, not an event) are not listed; "planned" steps read "(expected)". **No table change.**
 Note: story steps with no date print "date not stated" (`story_step` rows without `step_date`); the prompt should date them.
+
+## 2026-10-18 · Card date = the article's publication date (DB change, approved by the user)
+
+Problem: competitive cards showed `competitive_signal.event_date` (the date of the event the prompt read in the article),
+not the article's publication date; 81 cards had no date, 56 more showed a date other than the publication date.
+
+Done:
+1. **Schema** `db/setup/15_signal_published_date.sql`: `competitive_signal.published_date date` in staging and serving
+   (applied to local `kssl_staging` / `kssl_serving`; wired into `db/make_databases.sh` and `deploy/deploy_vps.sh`).
+   Approve copies it with the card.
+2. **Backfill** (local staging): 281 from the article's stored record (`source_document.published_at`, matched on
+   `competitive_signal_detail.source_url`); 57 more from the article page's own date markers
+   (`scripts/backfill_published_dates.py`: JSON-LD datePublished/dateCreated, published-time meta, a publish `<time>`
+   or date-classed element, URL date; future / pre-2000 dates ignored; only NULLs written). Now 338 of 474 dated.
+3. **Backend** (`backend/areas/a_competitive.py`): card `ago` = `published_date`; the event date ships as `eventDate`.
+
+Still undated (136), left NULL on purpose ("date not known", nothing guessed):
+- 51 signals whose `source_url` is a brahmos.com "BrahMos in media" listing page, not the article -> the signal prompt
+  should store the article URL;
+- 38 knds.com releases (the page carries no per-article date; its page-data `publishedAt` is the site settings' date);
+- the rest: pages that state no date or could not be fetched.
+
+Still to do (other lane): the loader (`prompts/loader.py`) should set `published_date` from `source_document.published_at`
+when it writes a signal, and the harvester should read the date markers above when it stores a page (hanwha.com's
+`<span class="date">`, JSON-LD `dateCreated`), so new signals arrive dated. Already-approved live cards show as
+"changed" in review until re-approved with the new column.

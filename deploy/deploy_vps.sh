@@ -24,7 +24,7 @@ echo "== build + up"
 
 echo "== serving schema"
 # 11_foundations comes from the parallel workstream and may still be untracked locally; applied if present
-for f in db/setup/08_competitor_text_columns.sql db/setup/11_foundations.sql db/setup/09_ui_port_tables.sql; do
+for f in db/setup/08_competitor_text_columns.sql db/setup/11_foundations.sql db/setup/09_ui_port_tables.sql db/setup/15_signal_published_date.sql; do
   if [ -f "$f" ]; then echo "   $f"; "${SSH[@]}" "$PSQL_VPS -d kssl_serving" < "$f"; else echo "   skip $f (not here)"; fi
 done
 for db in kssl_serving kssl_staging; do

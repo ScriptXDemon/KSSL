@@ -290,7 +290,10 @@ def build_signals(database, competitors, details):
             "companyId": company_id or None,
             "meta": row.get("category"),
             "tags": row.get("category"),
-            "ago": row.get("event_date"),
+            # the card date is the article's publication date (db/setup/15_signal_published_date.sql); the date of the
+            # event it reports is a different fact, shipped beside it. No publication date -> no card date.
+            "ago": row.get("published_date"),
+            "eventDate": row.get("event_date"),
             "sowhat": row.get("summary"),
             "url": url,
             "image": row.get("thumbnail_url"),
