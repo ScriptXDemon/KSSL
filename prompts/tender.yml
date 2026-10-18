@@ -27,8 +27,10 @@ subject:
            r.raw_id, r.source_api, CASE WHEN r.raw_id IS NULL THEN s.source_url END AS fetch_url
     FROM staging.market_tender_source s
     JOIN staging.market_tender t ON t.tender_id = s.tender_id
-    LEFT JOIN staging.tender_raw r ON r.tender_id = s.tender_id
+    LEFT JOIN LATERAL (SELECT * FROM staging.tender_raw x WHERE x.tender_id = s.tender_id
+                       ORDER BY x.published_at DESC NULLS LAST LIMIT 1) r ON true      -- a merged tender: its latest notice
     WHERE s.source_url IS NOT NULL AND t.url_kind IN ('notice', 'award')
+      AND s.is_primary IS NOT FALSE          -- one run per tender: a merged re-publication / corrigendum is a secondary source
       AND (r.raw_id IS NULL OR 'kssl_relevant' = ANY(r.defence_tags))
       AND NOT (t.status = 'closed' AND coalesce(t.closing_date, t.published_date, current_date) < current_date - 365)
     ORDER BY

@@ -77,6 +77,10 @@ task: |
   subsidiaries, and never {{client.name}}. Write partner_name as the partner organisation's own name; never copy a line of the
   COMPETITORS list. At most 15 partners, strongest evidence first. None found: "records": [] and "skip_reason".
 
+  OVERLAP CHECK. For every organisation on the CLIENT PARTNERS list, look in the DOCUMENTS and search the web for a tie between it and
+  {{subject.display_name}} (a joint venture, supply, licence, MoU or teaming). A tie you find is listed like any other partner, with
+  overlap_partner set. This is how the dashboard shows that a partner of {{client.name}} also works with a rival.
+
   PARTNER NAMES. {{client.name}}'s dashboard detects a partner shared with {{client.name}} by exact name. If the organisation (same
   legal entity or same named unit, also under an alias) is in the KNOWN PARTNER rows, use that name character for character. If it
   is one of COMPETITORS, use its display name. Otherwise use the name the organisation uses for itself in English, without
@@ -84,7 +88,7 @@ task: |
 
   Per partner, one record, table competitive_partnership:
    - partner_name: as above
-   - partner_type: the first of these that applies, written exactly:
+   - partner_type: the first of these that applies, written exactly (a Teaming or MoU for a named programme is not "Other"):
        Joint venture        the two own a joint company
        Acquisition          one acquired the other or a unit of it
        Technology / ToT     a licence, transfer of technology, co-development or integration agreement
@@ -130,10 +134,11 @@ task: |
    - scope: the scope of the tie as stated in this source
    - confidence: official | corroborated | single_source, by the same rule, for this tie
    - source_note: short factual note on this source
-   - basis_for_type: the verbatim sentence supporting relationship_label and partner_type (max 300)
+   - basis_for_type: the verbatim sentence supporting relationship_label and partner_type (at most 280 characters; cut it at a clause)
    - source_article_title: the page or article title as published
    - source_publisher: the publisher's name
-   - source_type: Official source (company, government, armed forces, regulator) or News article
+   - source_type: exactly one of these two words: "Official source" (the company, the partner, a government, armed forces or a regulator)
+     or "News article" (an editorial outlet or trade press). Write nothing else in this field.
    - source_url: the article URL
    - as_of_date: date of the event the source reports, else its publication date
   Do not output competitive_partnership_relationship_detail; the loader builds it.
@@ -177,11 +182,11 @@ output:
       relationship_confidence: {required: true, enum: [official, corroborated, single_source]}
       source_note: {}
       as_of_date: {type: date}
-      value_to_competitor: {judgement: true, max: 200, plain: warn}
-      value_to_partner: {judgement: true, max: 200, plain: warn}
-      kssl_read: {judgement: true, max: 300, plain: warn}
+      value_to_competitor: {judgement: true, max: 200, plain: warn, trim: true}
+      value_to_partner: {judgement: true, max: 200, plain: warn, trim: true}
+      kssl_read: {judgement: true, max: 300, plain: warn, trim: true}
       overlap_kind: {judgement: true, enum: [same_component, same_partner_other_scope, kssl_market, none, unknown], unknown_when_empty: client_partners}
-      overlap_component: {max: 160, plain: warn}
+      overlap_component: {max: 160, plain: warn, trim: true}
       overlap_effect: {judgement: true, enum: [risk, advantage, both, unknown]}
     loader:
       relationship_id: new_id
@@ -196,6 +201,7 @@ output:
                   basis_for_type, source_article_title, source_publisher, source_type, source_url, as_of_date]
         required: [evidence_type, evidence_text, source_url]
         max: {relationship_label: 40, basis_for_type: 300}
+        trim: [relationship_label]
         enum:
           step_type: [mou, agreement, jv_formed, first_product, order, delivery, ended]
           evidence_type: [Agreement, Contract, Joint venture, Delivery, Co-development, Statement]
@@ -222,4 +228,5 @@ output:
       # image_state is not filled (images are hidden)
 
 derive:
+  - sources_filter          # drop what rests on a blocked source (wiki, blog, forum, social media, wire, aggregator)
   - partnership_overlap          # overlap_client_partner_id from the name match; drops an overlap the CLIENT PARTNERS list does not support

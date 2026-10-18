@@ -73,6 +73,7 @@ INDEPENDENT = [
     "euro-sd.com", "defence-xpress.com", "militarytimes.com", "defense-aerospace.com",
     "asianmilitaryreview.com", "defenceweb.co.za",
     # added after the 2026-10-16 news audit (vetted from drop counts; each carried relevant stories)
+    "israeldefense.co.il",                      # user 2026-10-18: credible trade press
     # Korea business / defence / electronics press
     "mk.co.kr", "businesskorea.co.kr", "en.sedaily.com", "asiae.co.kr", "thelec.net",   # mk.co.kr covers pulse.mk.co.kr
     "mbiz.heraldcorp.com", "mt.co.kr", "ajupress.com", "donga.com", "fntimes.com",
@@ -89,6 +90,7 @@ INDEPENDENT = [
 #   idrw.org           -- BLOCKED ("blog"): largely rewrites other outlets' stories with
 #                         speculative commentary, no named editorial standards.
 #   ajaishukla.com     -- BLOCKED ("blog"): a personal blog (Broadsword), not an outlet.
+#   indiandefensenews.in -- BLOCKED ("blog", 2026-10-18): a Blogger blog (generator 'blogger', blogger.com feeds) that rewrites other outlets.
 #                         Owner decision: no source on a "blog" domain is ever loaded or cited; the
 #                         loaders drop such sources (is_blocked) and db/purge_blog_sources.py cleaned the data.
 #   defence-xpress.com -- listed: Ukrainian defence-analysis outlet with an editorial
@@ -103,7 +105,8 @@ INDEPENDENT = [
 BLOCKED = {
     "wiki": ["wikipedia.org", "wikimedia.org", "wikiwand.com", "wikia.com", "wikia.org", "wikidata.org", "wikitree.com",
              "fandom.com"],
-    "blog": ["ajaishukla.com", "idrw.org"],
+    "blog": ["ajaishukla.com", "idrw.org", "indiandefensenews.in"],
+    "commentary / aggregator": ["vpk.name", "19fortyfive.com", "defenseworld.net", "military.africa"],   # user 2026-10-18: never a source
     "forum / q&a": ["reddit.com", "quora.com", "defence.in", "defenceforumindia.com",
                     "pakdefense.com", "militaryforum.com", "stackexchange.com"],
     "social media": ["twitter.com", "x.com", "facebook.com", "instagram.com",
@@ -186,10 +189,14 @@ def is_wiki(url: str) -> bool:
         return True
     return "/wiki/" in (urlsplit(url).path or "").lower() + "/"
 
+PURGED = ("blog", "commentary / aggregator")   # owner decisions: never stored or cited, and purged from data already stored
+
+
 def is_blog(url: str) -> bool:
-    """A source on one of the permanently blocked blog domains (BLOCKED["blog"], subdomains included)."""
+    """A source on a permanently blocked domain the owner ruled out (BLOCKED["blog"] and BLOCKED["commentary / aggregator"],
+    subdomains included): never loaded, and db/purge_blog_sources.py removes what is already stored."""
     host = host_of(url or "")
-    return bool(host) and any(_matches(host, d) for d in BLOCKED["blog"])
+    return bool(host) and any(_matches(host, d) for k in PURGED for d in BLOCKED[k])
 
 
 def is_blocked(url: str) -> bool:

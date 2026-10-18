@@ -34,7 +34,12 @@ system: |
   8. References. Refer to other records by NAME in "ref_*" fields, exactly as written in the
      context lists (competitors, products, categories). Never invent ids.
   9. Scope. Fill only the fields the task lists. No extra fields, tables or commentary.
-  10. Output. Reply with ONE JSON object in the envelope below. No markdown fences, no prose.
+  10. Wording. In every sentence and title you write, use words, never a field name, column name or
+      code (sells_in_buyer_country, sniper_rifle, sam_medium, need_stated): write "sales in the buyer's
+      country are not on record", "sniper rifle", "medium-range surface-to-air missile", "need stated".
+      Titles are in English; a foreign programme or product name stays only as a name. A title reads
+      as a finished headline: it never ends on a preposition or conjunction, and a number keeps its noun.
+  11. Output. Reply with ONE JSON object in the envelope below. No markdown fences, no prose.
 
   ENVELOPE
   {

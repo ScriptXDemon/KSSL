@@ -266,7 +266,10 @@ export const NOT_COLLECTED = {
 export function sourcedRows(c, field) {
   const v = c && c[field];
   if (!Array.isArray(v)) return [];
-  return v.filter((r) => r && r.value && r.url && r.line);
+  /* `line` (the quoted sentence) is written by the old corpus fill only; rows loaded from the
+     client's Excel (leaders, facilities) carry name + source url and no quote, so the url is
+     the requirement. */
+  return v.filter((r) => r && r.value && r.url);
 }
 
 /* `updates` is an HTML STRING on ten companies and an always-EMPTY ARRAY on the other
@@ -411,7 +414,8 @@ export function buildProfile(d, cid) {
     leadership,
     support_leadership: c.support_leadership || [],
     facilities: facilitiesRows,
-    sales: salesRows,
+    /* the Excel writes one {text, fy} object, not rows; Profile's firstFigure reads both shapes */
+    sales: salesRows.length ? salesRows : (c.sales && !Array.isArray(c.sales) ? c.sales : salesRows),
     sources,
     sections,
   };

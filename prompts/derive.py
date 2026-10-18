@@ -249,16 +249,18 @@ def renumber_signals(cur, ctx: dict) -> None:
 # The model scores and states the modifiers; CODE decides the label, so the same scores always give the same label. Each rule has a
 # version that is stored on the row it labelled (rule_version), so a rule change can be re-derived without a model call.
 
-RULE_VERSIONS = {"signal": "s1", "pursue": "p1", "tech": "t1"}
-IMPACT_DIMENSIONS = ("orders_revenue", "market_standing", "supply_chain", "technology_gap", "partnerships", "policy_export")
+RULE_VERSIONS = {"signal": "s2", "pursue": "p1", "tech": "t2"}   # t2 (2026-10-18): tech has threat / watch only, no fav
+IMPACT_DIMENSIONS = ("orders_revenue", "market_standing", "supply_chain", "technology_gap", "partnerships", "policy_export", "funding")
 DIMENSION_WORD = {"orders_revenue": "Orders", "market_standing": "Market standing", "supply_chain": "Supply chain",
-                  "technology_gap": "Technology", "partnerships": "Partnerships", "policy_export": "Policy"}
-MARKET_FREE_DIMS = ("supply_chain", "partnerships", "policy_export")     # the effect does not need a KSSL market
+                  "technology_gap": "Technology", "partnerships": "Partnerships", "policy_export": "Policy", "funding": "Funding"}
+MARKET_FREE_DIMS = ("supply_chain", "partnerships", "policy_export", "funding")   # the effect does not need a KSSL market
 SUBTYPE_FREE_DIMS = ("supply_chain", "partnerships")                     # ... nor a like-for-like product
 NEAR_TERM = ("lt_1y", "1_3y")
 TECH_RIVAL_CLASSES = ("competitor_advance", "threat_to_position")
 PURSUE_LEAN = {"pursue": "go", "position": "maybe", "monitor": "watch", "pass": "pass"}
 MOMENT_GRADE = {"threat": "high", "watch": "watch", "fav": "opportunity"}   # ui.competitive_competitor_moment_level codes
+REQUIREMENT_STATUS = {"need_stated": "monitored", "approved_funded": "monitored", "rfi": "open", "rfp_tender": "open", "downselect_prototype": "open",
+                      "production_award": "closed", "delivered": "closed", "cancelled": "closed"}   # the old three-word status, from the stage
 STALE_MONTHS = {"need_stated": 9, "approved_funded": 9, "rfi": 9, "rfp_tender": 3}
 
 
@@ -290,18 +292,32 @@ def impact_max(scores: dict) -> tuple:
     return top, first, (rest[0][0] if rest else None)
 
 
+def effective_time_to_effect(probability, time_to_effect) -> str:
+    """A done event (probability 5: contract signed, delivery made, induction completed, unit or plant opened) affects KSSL now, so an
+    empty or 'unknown' time to effect becomes lt_1y. A later effect date the source states (1_3y, gt_3y) is kept. Other cases unchanged."""
+    t = _word(time_to_effect)
+    if score(probability) == 5 and t in ("", "unknown"):
+        return "lt_1y"
+    return t or "unknown"
+
+
 def signal_label(probability, impact, time_to_effect, in_client_market, subtype_match, impact_dimension, direction=None) -> str:
-    """threat / watch / fav for a competitive signal (A.1.1). Any unknown or missing input fails the test it feeds: watch.
-        fav    = direction favourable and probability >= 4      (checked first: a rival's loss is never a threat)
-        threat = probability >= 4 and impact >= 4 and time_to_effect in (lt_1y, 1_3y)
-                 and (in_client_market = yes or dimension in (supply_chain, partnerships, policy_export))
+    """threat / watch / none for a competitive signal (rule s2, the user's spec 2026-10-18). Any unknown or missing input fails the
+    test it feeds.
+        none   = a done event (probability 5) with impact 1-2, or a favourable move that is done: it has materialised and is no
+                 threat, so it is not a watch either (stored, not shown on the overview)
+        threat = direction not favourable and probability >= 4 and impact >= 4 and time_to_effect in (lt_1y, 1_3y)
+                 and (in_client_market = yes or dimension in (supply_chain, partnerships, policy_export, funding))
                  and (subtype_match in (same, adjacent) or dimension in (supply_chain, partnerships))
-        watch  = everything else"""
+        watch  = everything else: not yet materialised, or materialised with impact 3+ that may still become significant.
+    There is no fav label: the spec has threat and watch only (a rival's loss is never a threat)."""
     p, i = score(probability), score(impact)
     dim = _word(impact_dimension)
-    if _word(direction) == "favourable" and p is not None and p >= 4:
-        return "fav"
-    if (p is not None and p >= 4 and i is not None and i >= 4 and _word(time_to_effect) in NEAR_TERM
+    time_to_effect = effective_time_to_effect(probability, time_to_effect)
+    favourable = _word(direction) == "favourable"
+    if p == 5 and (favourable or (i is not None and i <= 2)):
+        return "none"
+    if (not favourable and p is not None and p >= 4 and i is not None and i >= 4 and _word(time_to_effect) in NEAR_TERM
             and (_word(in_client_market) == "yes" or dim in MARKET_FREE_DIMS)
             and (_word(subtype_match) in ("same", "adjacent") or dim in SUBTYPE_FREE_DIMS)):
         return "threat"
@@ -329,15 +345,12 @@ def horizon_from_maturity(maturity) -> str:
 
 
 def tech_direction(classification, relevance, maturity) -> str:
-    """threat / fav / watch for a technology article (A.3.1):
+    """threat / watch for a technology article (A.3.1; rule t2, the user's spec 2026-10-18: threat and watch only, no fav):
         threat = classification in (competitor_advance, threat_to_position) and relevance >= 4 and maturity >= 3
-        fav    = classification adoptable and relevance >= 3
-        watch  = everything else, including a missing score"""
+        watch  = everything else, adoptable included (the feed shows adoptable cards by classification), and a missing score"""
     c, r, m = _word(classification), score(relevance), score(maturity)
     if c in TECH_RIVAL_CLASSES and r is not None and r >= 4 and m is not None and m >= 3:
         return "threat"
-    if c == "adoptable" and r is not None and r >= 3:
-        return "fav"
     return "watch"
 
 
@@ -551,6 +564,9 @@ def signal_label_hook(cur, ctx: dict) -> None:
             if not r.get("classification"):                 # no scores and no label from the model: the safe default
                 cur.execute("UPDATE staging.competitive_signal SET classification = 'watch', rule_version = %s WHERE signal_id = %s",
                             (RULE_VERSIONS["signal"], r["signal_id"]))
+                cur.execute("INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, quote, retrieved_at) VALUES "
+                            "('competitive_signal', %s, 'classification', 'judgement', 'judgement', %s, now())",
+                            (str(r["signal_id"]), "watch by rule: the card has no probability and no impact score, so it cannot be a threat."))
                 ctx["warnings"].append(f"signal_label: {sid} has no scores: labelled watch")
             else:
                 ctx["notes"].append(f"signal_label: {sid}: no scores, label left as written ({r.get('classification')})")
@@ -558,12 +574,57 @@ def signal_label_hook(cur, ctx: dict) -> None:
         impact, d1, d2 = impact_max(dims)
         if impact is None:                                  # no dimension scored: keep a stored impact, if any
             impact, d1, d2 = r.get("impact"), r.get("impact_dimension"), r.get("impact_dimension_2")
+        tte = effective_time_to_effect(r.get("probability"), r.get("time_to_effect"))
+        if tte == "lt_1y" and _word(r.get("time_to_effect")) in ("", "unknown"):
+            cur.execute("UPDATE staging.competitive_signal SET time_to_effect = %s WHERE signal_id = %s", (tte, r["signal_id"]))
+            cur.execute("DELETE FROM staging.fact_source WHERE table_name = 'competitive_signal' AND row_id = %s AND column_name = 'time_to_effect' AND source_url = 'judgement'",
+                        (str(r["signal_id"]),))
+            cur.execute("INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, quote, retrieved_at) VALUES "
+                        "('competitive_signal', %s, 'time_to_effect', 'judgement', 'judgement', %s, now())",
+                        (str(r["signal_id"]), "lt_1y by rule: the event is done (probability 5), so it already affects the market; the article states no later effect date."))
+            ctx["notes"].append(f"signal_label: {sid}: time_to_effect {r.get('time_to_effect')!r} -> lt_1y (done event)")
+            r["time_to_effect"] = tte
         label = signal_label(r.get("probability"), impact, r.get("time_to_effect"), r.get("in_client_market"), r.get("subtype_match"), d1, r.get("direction"))
         cur.execute("""UPDATE staging.competitive_signal SET impact = %s, impact_dimension = %s, impact_dimension_2 = %s, classification = %s, rule_version = %s
                        WHERE signal_id = %s""", (impact, d1, d2, label, RULE_VERSIONS["signal"], r["signal_id"]))
         cur.execute("UPDATE staging.competitive_signal_detail SET glance_impact = %s WHERE signal_id = %s", (glance_impact(impact, d1), r["signal_id"]))
         ctx["notes"].append(f"signal_label: {sid}: {label} (p={r.get('probability')}, impact={impact} {d1}, {r.get('time_to_effect')}, "
                             f"market={r.get('in_client_market')}, subtype={r.get('subtype_match')}, direction={r.get('direction')})")
+
+
+def client_name(cur) -> str:
+    """client_account.client_name (what the prompts call {{client.name}}); text that names the client is built from it, never typed."""
+    cur.execute("SELECT client_name FROM staging.client_account ORDER BY client_id LIMIT 1")
+    r = cur.fetchone()
+    name = (r["client_name"] if isinstance(r, dict) else r[0]) if r else None
+    if not name:
+        raise RuntimeError("staging.client_account has no client_name: load the client first")
+    return name
+
+
+def drop_signal(cur, sid) -> None:
+    """Delete one competitive_signal with its detail, evidence and their fact_source rows."""
+    cur.execute("SELECT evidence_id FROM staging.competitive_signal_evidence WHERE signal_id::text = %s", (str(sid),))
+    ev = [str(r["evidence_id"]) for r in cur.fetchall()]
+    cur.execute("DELETE FROM staging.fact_source WHERE (table_name IN ('competitive_signal', 'competitive_signal_detail') AND row_id = %s)"
+                " OR (table_name = 'competitive_signal_evidence' AND row_id = ANY(%s))", (str(sid), ev))
+    for t in ("competitive_signal_evidence", "competitive_signal_detail", "competitive_signal"):
+        cur.execute(f"DELETE FROM staging.{t} WHERE signal_id::text = %s", (str(sid),))
+
+
+@hook("signal_dedupe")
+def signal_dedupe(cur, ctx: dict) -> None:
+    """One article, one company, one signal: an article queued once per competitor it names can come back twice for the same
+    company. A signal of this run whose article already has a signal for the same company (from another subject) is dropped."""
+    for sid in ids(ctx, "competitive_signal"):
+        cur.execute("""SELECT s2.signal_id FROM staging.competitive_signal s JOIN staging.competitive_signal_detail d ON d.signal_id = s.signal_id
+                       JOIN staging.competitive_signal_detail d2 ON d2.source_url = d.source_url AND d2.signal_id <> d.signal_id
+                       JOIN staging.competitive_signal s2 ON s2.signal_id = d2.signal_id AND s2.company_id = s.company_id
+                       WHERE s.signal_id::text = %s LIMIT 1""", (str(sid),))
+        r = cur.fetchone()
+        if r:
+            drop_signal(cur, sid)
+            ctx["notes"].append(f"signal_dedupe: {sid} dropped: its article already has signal {r['signal_id']} for the same company")
 
 
 @hook("moment_grade")
@@ -661,8 +722,8 @@ def requirement_state_hook(cur, ctx: dict) -> None:
     for rid in ids(ctx, "market_global_requirement"):
         r = _row(cur, "market_global_requirement", "requirement_id", rid)
         if r is not None:
-            cur.execute("UPDATE staging.market_global_requirement SET status_state = %s WHERE requirement_id = %s",
-                        (requirement_state(r.get("stage"), r.get("last_confirmed"), ctx["today"]), r["requirement_id"]))
+            cur.execute("UPDATE staging.market_global_requirement SET status_state = %s, status = coalesce(%s, status) WHERE requirement_id = %s",
+                        (requirement_state(r.get("stage"), r.get("last_confirmed"), ctx["today"]), REQUIREMENT_STATUS.get(_word(r.get("stage"))), r["requirement_id"]))
 
 
 @hook("pursue_label")
@@ -694,10 +755,17 @@ def pursue_label_hook(cur, ctx: dict) -> None:
             att = attractiveness(a.get("value_score"), a.get("strategic_score"))
             fit_pct = a.get("fit_score")
             abl = ability(a.get("fit_grade"), None if fit_pct is None else float(fit_pct), es["fixable_not_met"], es["hard_bar"], strong, incumbent, bool(country & names))
+            if abl is not None and fit_pct is None and _word(a.get("fit_grade")) == "partial":
+                abl = min(abl, 3)          # no checkable requirement line (fewer than 3): the fit is a product-kind match only, so never "pursue"
             label = pursue_label(a.get("fit_grade"), att, abl, es["all_fixable"], es["hard_bar"])
+            over = kind == "tender" and _word(t.get("status")) in ("awarded", "closed")      # the bid is over: no pursue / position advice, lean_code closed
+            if over:
+                label = None
             cur.execute(f"UPDATE staging.{table} SET attractiveness = %s, ability = %s, pursue_label = %s, rule_version = %s WHERE {idcol} = %s",
                         (att, abl, label, RULE_VERSIONS["pursue"], a[idcol]))
-            if kind == "tender" and label:
+            if over:
+                cur.execute("UPDATE staging.market_tender SET lean_code = 'closed' WHERE tender_id = %s", (a["tender_id"],))
+            elif kind == "tender" and label:
                 cur.execute("UPDATE staging.market_tender SET lean_code = %s WHERE tender_id = %s", (PURSUE_LEAN[label], a["tender_id"]))
             ctx["notes"].append(f"pursue_label: {table} {aid}: {label} (attractiveness={att}, ability={abl}, fit={a.get('fit_grade')})")
 
@@ -729,7 +797,10 @@ def award_to_signal(cur, ctx: dict) -> None:
         sc = award_signal_scores(g["fit_grade"] if g else None, client_market_state(cur, t.get("country_name"), t.get("country_code")))
         label = signal_label(sc["probability"], sc["impact"], sc["time_to_effect"], sc["in_client_market"], sc["subtype_match"], sc["impact_dimension"], sc["direction"])
         sid = str(uuid.uuid5(uuid.NAMESPACE_URL, f"kssl-derive|award_to_signal|{tid}"))
-        day = t.get("award_date") or ctx["today"]
+        day = t.get("award_date")
+        if not day:                                       # the run date is not the award date: no stated date, no signal
+            ctx["notes"].append(f"award_to_signal: tender {tid}: the notice states no award date; no signal")
+            continue
         title = f"{comp['display_name']} wins: {t['title']}"[:300]
         summary = f"{comp['display_name']} was awarded this tender" + (f" ({t['award_value_text']})" if t.get("award_value_text") else "") + "."
         cur.execute("DELETE FROM staging.competitive_signal_detail WHERE signal_id = %s", (sid,))
@@ -743,9 +814,18 @@ def award_to_signal(cur, ctx: dict) -> None:
         cur.execute("""INSERT INTO staging.competitive_signal_detail (signal_id, drawer_title, what_article_says, provenance, source_name, source_url,
                            glance_who, glance_move, glance_where, glance_impact, glance_third_party, glance_when)
                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (sid, title, summary, f"award_to_signal: market_tender {tid}", t.get("issuer_display") or "Tender award notice", t.get("source_url"),
+                    (sid, title, summary, f"award_to_signal: market_tender {tid}", t.get("issuer_display") or None, t.get("source_url"),
                      comp["display_name"][:40], "Contract", (t.get("country_name") or "")[:40] or None, glance_impact(sc["impact"], sc["impact_dimension"]),
                      (t.get("buyer_name") or "")[:60] or None, f"{day.day} {day:%b %Y}"))
+        # the scores are a rule, not a reading: each one carries its reason (Trace shows it), like signal_label's done-event rule
+        cur.execute("DELETE FROM staging.fact_source WHERE table_name = 'competitive_signal' AND row_id = %s", (sid,))
+        assessed = sc["subtype_match"] == "same"
+        for col, why in (("probability", "5 by rule: the notice reports the contract as awarded (done)."),
+                         ("impact_orders_revenue", f"{sc['impact']} by rule: {'the client assessed this tender as a strong or partial fit' if assessed else 'the client did not assess this tender as a fit'}."),
+                         ("time_to_effect", "lt_1y by rule: the award itself is the effect."),
+                         ("subtype_match", "same by rule: the client assessed a like-for-like product for this tender." if assessed else "unknown by rule: no client product was assessed for this tender.")):
+            cur.execute("INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, quote, retrieved_at) VALUES "
+                        "('competitive_signal', %s, %s, 'judgement', 'judgement', %s, now())", (sid, col, why))
         row = _row(cur, "competitive_signal", "signal_id", sid)
         story.link_card(cur, "competitive_signal", row, {"story_country": t.get("country_name"), "story_kind": "order"}, warnings=ctx["warnings"])
         ctx["notes"].append(f"award_to_signal: tender {tid} -> signal {sid}: {label}")
@@ -779,6 +859,53 @@ def tender_source_facts(cur, ctx: dict) -> None:
             if t.get(col) not in (None, "") and col not in have:
                 cur.execute("INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, quote, retrieved_at) "
                             "VALUES ('market_tender', %s, %s, %s, %s, %s, now())", (str(t["tender_id"]), col, url, tier, quote))
+
+
+DOC_FACT_COLS = {   # table -> (key column, the stored fact columns the model fills from the document)
+    "market_global_requirement": ("requirement_id", ("title", "buyer_name", "country_name", "region", "description", "stage", "stage_date", "last_confirmed", "deadline", "value_text")),
+    "market_global_requirement_specification": ("requirement_spec_id", ("spec_label", "spec_value")),
+    "market_global_requirement_rival": ("rival_id", ("basis", "note")),
+    "market_opportunity": ("opportunity_id", ("title", "opportunity_kind", "buyer_name", "contractor_name", "description", "scope_text", "location_text", "stage",
+                                               "current_status", "latest_milestone", "as_of_date")),
+    "market_opportunity_update": ("update_id", ("update_type", "update_date", "headline", "narrative")),
+}
+
+
+@hook("doc_source_facts")
+def doc_source_facts(cur, ctx: dict) -> None:
+    """Every stored fact column the model filled from the run's document without its own _sources gets a fact_source row that names the document
+    (url of the subject, from the raw layer's stored text). The quote says so and is not a quotation. Judgements keep their own reason rows. No AI."""
+    from backend.sources import classify
+    url = (ctx.get("subject_row") or {}).get("article_url")
+    if not url:
+        return
+    tier = classify(url, ()) or "unlisted"
+    for table, (keycol, cols) in DOC_FACT_COLS.items():
+        for rid in ids(ctx, table):
+            r = _row(cur, table, keycol, rid)
+            if r is None:
+                continue
+            cur.execute("SELECT column_name FROM staging.fact_source WHERE table_name = %s AND row_id = %s", (table, str(rid)))
+            have = {x["column_name"] for x in cur.fetchall()}
+            for col in cols:
+                if r.get(col) not in (None, "") and col not in have:
+                    cur.execute("INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, quote, retrieved_at) "
+                                "VALUES (%s, %s, %s, %s, %s, %s, now())", (table, str(rid), col, url, tier, "stated in the stored text of this document"))
+
+
+@hook("top_opportunity_finalize")
+def top_opportunity_finalize(cur, ctx: dict) -> None:
+    """After the top_opportunity prompt wrote its text rows: code decides the list. Ranks (backend/market_rollups.top_candidates / project_candidates),
+    fit, model, status and revenue text come from the stored rows; the model's `decides`, `rival_to_beat` and `where_it_stands` are kept for
+    rows the code ranked; a row the model missed gets a code default; a row the code did not rank is dropped. Next moves and the four metric tiles are
+    written by code. No AI beyond the text the prompt wrote."""
+    import sys as _sys
+    from pathlib import Path as _P
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+    from backend import market_rollups as mr
+    n = mr.write_top(cur, keep_text=True)
+    mr.metrics(cur)
+    ctx["notes"].append(f"top_opportunity_finalize: {n['tenders']} tenders, {n['projects']} projects ranked by code; next moves and metrics rewritten")
 
 
 def rebuild_filter_options(cur, pillars=("competitive", "technology", "market"), data: str = "staging", ui: str = "staging_ui", live: bool = False) -> dict:
@@ -840,11 +967,11 @@ def selftest() -> None:
     base = dict(probability=5, impact=5, time_to_effect="1_3y", in_client_market="yes", subtype_match="same", impact_dimension="orders_revenue")
     assert S(**base) == "threat"
     assert S(**{**base, "probability": 4, "impact": 4, "time_to_effect": "lt_1y", "subtype_match": "adjacent"}) == "threat"          # the boundary
-    for k, v in (("probability", 3), ("impact", 3), ("time_to_effect", "gt_3y"), ("time_to_effect", "unknown"), ("in_client_market", "no"),
+    for k, v in (("probability", 3), ("impact", 3), ("time_to_effect", "gt_3y"), ("in_client_market", "no"),
                  ("in_client_market", "unknown"), ("subtype_match", "none"), ("subtype_match", "unknown")):
         assert S(**{**base, k: v}) == "watch", (k, v)                                                                                   # one failed test -> watch
     for k in base:                                                                                                                      # a missing input -> watch
-        if k != "impact_dimension":                                       # (the dimension only grants exemptions; a missing one is just "no exemption")
+        if k not in ("impact_dimension", "time_to_effect"):                                       # (the dimension only grants exemptions; a missing one is just "no exemption")
             assert S(**{**base, k: None}) == "watch", k
     assert S(**{**base, "impact_dimension": None}) == "threat"
     assert S(**{**base, "probability": 4.5}) == "watch" and S(**{**base, "impact": True}) == "watch" and S(**{**base, "impact": "high"}) == "watch"
@@ -852,15 +979,22 @@ def selftest() -> None:
     # dimensions that need no KSSL market: supply_chain, partnerships, policy_export
     for dim in ("supply_chain", "partnerships"):                                                                                         # ... and no like-for-like product
         assert S(5, 5, "1_3y", "no", "none", dim) == "threat" and S(5, 5, "1_3y", "unknown", "unknown", dim) == "threat", dim
-        assert S(5, 5, "gt_3y", "no", "none", dim) == "watch" and S(5, 4, "unknown", "yes", "same", dim) == "watch"                     # time still counts
+        assert S(5, 5, "gt_3y", "no", "none", dim) == "watch" and S(4, 4, "unknown", "yes", "same", dim) == "watch"                     # time still counts (a done event, probability 5, counts as lt_1y)
     assert S(5, 5, "1_3y", "no", "none", "policy_export") == "watch"                                                                    # policy needs a like-for-like product
     assert S(5, 5, "1_3y", "no", "adjacent", "policy_export") == "threat" and S(5, 5, "1_3y", None, "same", "policy_export") == "threat"
     assert S(5, 5, "1_3y", "no", "same", "orders_revenue") == "watch" and S(5, 5, "1_3y", "no", "same", "technology_gap") == "watch"     # outside KSSL's markets
     assert S(5, 5, "1_3y", "yes", "none", "technology_gap") == "watch" and S(5, 5, "1_3y", "yes", "none", "market_standing") == "watch"  # indirect
     assert S(5, 5, "1_3y", "yes", "same", None) == "threat" and S(5, 5, "1_3y", "no", "none", None) == "watch"                          # no dimension: no exemption
-    # fav: a favourable event of probability >= 4, never a threat; lower probability stays watch
-    assert S(**{**base, "direction": "favourable"}) == "fav" and S(4, 1, None, None, None, None, "favourable") == "fav"
-    assert S(**{**base, "direction": "favourable", "probability": 3}) == "watch" and S(3, 5, "1_3y", "yes", "same", "orders_revenue", "favourable") == "watch"
+    # s2: no fav. A favourable move is never a threat: done -> none, not done -> watch
+    assert S(**{**base, "direction": "favourable"}) == ("none" if base["probability"] == 5 else "watch")
+    assert S(5, 1, None, None, None, None, "favourable") == "none" and S(4, 5, "lt_1y", "yes", "same", "orders_revenue", "favourable") == "watch"
+    assert S(3, 5, "1_3y", "yes", "same", "orders_revenue", "favourable") == "watch"
+    # s2: a done event (probability 5) with impact 1-2 has materialised and is no threat -> none; impact 3+ or not done -> watch
+    assert S(5, 2, "lt_1y", "yes", "same", "orders_revenue") == "none" and S(5, 1, None, None, None, None) == "none"
+    assert S(5, 3, "lt_1y", "no", "same", "orders_revenue") == "watch" and S(4, 1, "lt_1y", "yes", "same", "orders_revenue") == "watch"
+    assert S(5, None, "lt_1y", "yes", "same", "orders_revenue") == "watch"                                                              # unknown impact: not proven low
+    # funding needs no KSSL market (capital is not tied to a country), but a like-for-like line
+    assert S(5, 5, "lt_1y", "no", "same", "funding") == "threat" and S(5, 5, "lt_1y", "no", "none", "funding") == "watch"
     assert S(**{**base, "direction": "adverse"}) == "threat" and S(**{**base, "direction": "unknown"}) == "threat" and S(**{**base, "direction": None}) == "threat"
     assert S(None, None, None, None, None, None) == "watch" and S(*[None] * 7) == "watch"
     # -- impact_max: maximum, its dimension (listed order breaks a tie), a second dimension only at 4 or more
@@ -880,7 +1014,7 @@ def selftest() -> None:
     T = tech_direction
     assert T("competitor_advance", 5, 3) == "threat" and T("threat_to_position", 4, 5) == "threat" and T("competitor_advance", 4, 3) == "threat"
     assert T("competitor_advance", 3, 5) == "watch" and T("competitor_advance", 5, 2) == "watch" and T("industry_trend", 5, 5) == "watch"
-    assert T("adoptable", 3, 1) == "fav" and T("adoptable", 5, 5) == "fav" and T("adoptable", 2, 5) == "watch" and T("Adoptable", "4", 2) == "fav"
+    assert T("adoptable", 3, 1) == "watch" and T("adoptable", 5, 5) == "watch" and T("adoptable", 2, 5) == "watch" and T("Adoptable", "4", 2) == "watch"   # t2: no fav
     assert T("competitor_advance", None, 5) == "watch" and T("competitor_advance", 5, None) == "watch" and T(None, None, None) == "watch" and T("adoptable", None, None) == "watch"
     # -- market: attractiveness, ability, eligibility, pursue_label
     assert [attractiveness(a, b) for a, b in ((4, 4), (4, 3), (3, 2), (2, 2), (5, None), (None, 2), (None, None), (1, 2), (5, 4))] == [4, 4, 3, 2, 5, 2, None, 2, 5]
@@ -924,6 +1058,10 @@ def selftest() -> None:
     assert signal_label(a1["probability"], a1["impact"], a1["time_to_effect"], a1["in_client_market"], a1["subtype_match"], a1["impact_dimension"], a1["direction"]) == "threat"
     a2 = award_signal_scores(None, "yes")
     assert (a2["impact"], a2["subtype_match"]) == (3, "unknown") and signal_label(5, a2["impact"], "lt_1y", "yes", "unknown", "orders_revenue") == "watch"
+    assert S(**{**base, "probability": 4, "time_to_effect": "unknown"}) == "watch"          # not done and no date: still watch
+    assert effective_time_to_effect(5, "unknown") == "lt_1y" and effective_time_to_effect(5, None) == "lt_1y" and effective_time_to_effect(5, "gt_3y") == "gt_3y"
+    assert effective_time_to_effect(4, "unknown") == "unknown" and effective_time_to_effect(None, None) == "unknown" and effective_time_to_effect(3, "1_3y") == "1_3y"
+    assert signal_label(5, 4, "unknown", "yes", "same", "orders_revenue") == "threat" and signal_label(4, 4, "unknown", "yes", "same", "orders_revenue") == "watch"
     assert award_signal_scores("partial", "unknown")["impact"] == 4 and signal_label(5, 4, "lt_1y", "unknown", "same", "orders_revenue") == "watch"
     # -- option rows: counts, labels, ordering, ids
     rows = option_rows("competitive_filter_option", "classification", [("watch", None, 6), ("threat", None, 1), ("fav", None, 0), (None, None, 4), ("", None, 2)],
@@ -1069,8 +1207,9 @@ def selftest_db() -> None:
         conn.close()
 
 
-from prompts import derive_tech  # noqa: E402,F401  (technology-pillar hooks: tech_glance, innovation_gate, innovation_stance, patent_trend, technology_metric)
+from prompts import derive_tech, tech_rollups, tech_innovation_rules  # noqa: E402,F401  (technology-pillar hooks: tech_glance, innovation_gate, innovation_stance, patent_trend, technology_metric)
 from prompts import derive_comp  # noqa: E402,F401  (competitive research hooks: partnership_overlap, project_story, geo_match_code)
+from prompts import derive_synth  # noqa: E402,F401  (synthesis hooks: synthesis_finish, field_support, swot_counts)
 
 if __name__ == "__main__":
     import sys

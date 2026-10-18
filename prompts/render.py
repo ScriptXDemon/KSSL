@@ -58,6 +58,7 @@ def load_prompt(prompt_id: str) -> dict:
     out = {"model": shared.get("model"), "web_search": bool(shared.get("web_search")), "system": shared.get("system", "")}
     out.update(spec)
     out["version"] = str(spec.get("version", "1"))
+    out["model"] = os.environ.get("KSSL_MODEL") or out["model"]        # model trial (prompt_run.model records which one ran)
     out["context_blocks"] = shared.get("context_blocks", {})
     return out
 
@@ -99,7 +100,8 @@ def client_row(cur) -> dict:
 # An empty result renders as NONE_ON_RECORD, and the prompts must then answer "unknown" (never guess from general knowledge).
 
 PORTFOLIO_MAX_CHARS = 10_000       # client_portfolio: ~82 products; specs per product drop 3 -> 2 -> 1 -> 0 until it fits
-NAME_CAP = 84                      # a product name is cut here (the full name stays in the database)
+NAME_CAP = 160                     # names are listed whole (longest KSSL name 143): the loader resolves ref_client_product by exact name,
+                                   # and a cut name ('...') dropped fit rows (market lane 2026-10-18)
 MARKETS_MAX_ROWS = 40              # client_markets: countries
 PARTNERS_MAX_ROWS = 40             # client_partners: partners
 PARTNER_LINE_CAP = 360             # characters per partner line
@@ -561,7 +563,9 @@ def documents(cur, spec: dict, subject: dict) -> tuple[str, list[str]]:
     docs = spec["subject"].get("documents") or []
     parts, urls, failures = [], [], []
     raw_urls: set = set()                           # urls the raw layer already gave: a later `from: url` entry for the same url is not fetched
-    has_other = any(d.get("from") != "url" for d in docs)
+    articles = [d for d in docs if d.get("from") in ("url", "source_document", "tender_raw")]
+    got_article = False                             # a prompt that reads articles needs at least one readable one (2026-10-18: 13 signal
+                                                    # runs went to the model with only "could not be read" notes)
     for d in docs:
         src = d.get("from")
         if src == "url":
@@ -576,23 +580,25 @@ def documents(cur, spec: dict, subject: dict) -> tuple[str, list[str]]:
                 continue
             urls.append(final)                       # logged; the header keeps the url the task names
             parts.append(f"[SOURCE {url}]\n{text}")
+            got_article = True
         elif src == "sql":
-            parts.append(f"[ROWS]\n{sql_document(cur, d['query'], subject)}")
+            parts.append(f"[ROWS]\n{sql_document(cur, d['query'], subject, d.get('cap', 24_000))}")
         elif src == "source_document":              # the raw layer's stored text (prompts/raw_docs.py); [] = nothing usable, the next entry is tried
             from prompts import raw_docs
             blocks = raw_docs.resolve(cur, d, subject)
             raw_urls.update(b.url for b in blocks)
             parts += [f"[SOURCE {b.url}]\n{b.text}" for b in blocks]
+            got_article = got_article or bool(blocks)
         elif src == "tender_raw":                   # the stored API record of a tender notice (prompts/tender_docs.py); "" = no raw row, the next entry is tried
             from prompts import tender_docs
             text = tender_docs.resolve(cur, d, subject)
             if text:
                 parts.append(f"[SOURCE {subject.get(d.get('url_field', 'source_url'))}]\n{text}")
+                got_article = True
         else:
             raise PromptError(f"subject.documents: unknown 'from: {src}' (use url, sql, source_document or tender_raw)")
-    n_url = sum(1 for d in docs if d.get("from") == "url" and subject.get(d["field"]) and str(subject.get(d["field"])) not in raw_urls)
-    if failures and not has_other and len(failures) == n_url:
-        raise DocumentError("; ".join(failures))
+    if articles and not got_article:                # never pay for a model call on notes alone
+        raise DocumentError("; ".join(failures) or "no readable document (no stored text and no url)")
     return ("\n\n".join(parts) if parts else NONE_ON_RECORD), urls
 
 

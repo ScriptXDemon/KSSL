@@ -29,7 +29,7 @@ and the repository is public: the default reports folder db/excel_reports/ is gi
 products: sheet 'All Products' (the per-company tabs only repeat it, 'Unverified' is not loaded) -> competitive_product (one row
 per competitor + product), competitive_product_specification (one row per line of 'Technical Specifications') and the matching
 staging.fact_source rows.  Companies map to existing competitors through PRODUCT_COMPANY_MAP (an unmapped company stops the load;
-competitors are never created).  Description / Collaboration / Production & Licensing Notes have no column and are not loaded.
+competitors are never created).  Description goes to the description column (also: the 'descriptions' command); Collaboration / Production & Licensing Notes are not loaded.
 Idempotent in ONE transaction: for the competitors in the sheet, the products this loader created earlier (product_id =
 uuid5 of competitor + name) are deleted with their specs + fact_source and re-inserted; a product that existed before with the same
 normalised name keeps its id (its specs are replaced); other products are never touched.
@@ -41,7 +41,7 @@ same normalised name (CLIENT_KEEP_ALIASES, else the existing name as a whole-wor
 new products get a deterministic 63-bit id (prompts.loader.make_id).  The specs, sources and fact_source of the products in the sheet (and of products
 this loader created earlier that are no longer in the sheet) are deleted and re-inserted; other client products are never touched.
   - client_product: product_name, category (verbatim), source_id (first source), created_at / updated_at; product_family / subcategory / technology / status stay
-    NULL (the sheet has no such columns).  Description / Collaboration / Production & Licensing Notes have no column and are not loaded.
+    NULL (the sheet has no such columns).  Description goes to the description column (also: the 'descriptions' command); Collaboration / Production & Licensing Notes are not loaded.
   - client_product_source: one row per distinct URL of 'Source(s)'; the matching line of 'Source Type' gives source_type; source_label = publisher (from the host) + type.
   - client_product_specification: one row per line of 'Technical Specifications' ('Label: value', same parser and unit rule as products; no-data lines skipped).
     A trailing '[S2]' / '[S1,S3]' on a line is a footnote to the 1-based line of 'Source(s)' that states the value: it is removed from the value, the FIRST
@@ -555,6 +555,14 @@ def existing_competitors(cur) -> dict[str, str]:
     return {r["display_name"]: r["cid"] for r in cur.fetchall()}
 
 
+def _requalify(conn) -> None:
+    """Competitors, products or client data changed: re-test which competitors qualify (same product line AND same market)
+    before the load commits (user decision 2026-10-18: the UI shows only qualifying competitors)."""
+    import psycopg2.extras
+    from prompts.derive_comp import qualify_competitors
+    qualify_competitors(conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor))
+
+
 def apply_plan(conn, plan: Plan, dry_run: bool) -> dict:
     from backend.sources import classify
     cur = conn.cursor()
@@ -595,6 +603,7 @@ def apply_plan(conn, plan: Plan, dry_run: bool) -> dict:
     if dry_run:
         conn.rollback()
     else:
+        _requalify(conn)
         conn.commit()
     return res
 
@@ -898,6 +907,7 @@ def apply_company_plan(conn, plan: dict, dry_run: bool) -> dict:
     if dry_run:
         conn.rollback()
     else:
+        _requalify(conn)
         conn.commit()
     return {"inserted": inserted, "updated": updated, "deleted_facts": deleted_facts, "facts": nfacts, "tiers": dict(tiers), "cross": cross}
 
@@ -1228,10 +1238,12 @@ def apply_products_plan(conn, plan: dict, dry_run: bool) -> dict:
                 facts.append(("competitive_product_specification", s["spec_id"], "spec_value", u, t, s["quote"]))
     execute_values(cur, "INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, publisher, quote, retrieved_at) VALUES %s",
                    facts, template="(%s, %s, %s, %s, %s, NULL, %s, now())", page_size=5000)
+    res["descriptions"] = write_descriptions(cur, prods)
     res.update(products=len(prods), specs=len(spec_rows), facts=len(facts), tiers=dict(tiers), facts_product=sum(len(g["urls"]) for g in prods))
     if dry_run:
         conn.rollback()
     else:
+        _requalify(conn)
         conn.commit()
     return res
 
@@ -1352,6 +1364,60 @@ CLIENT_KEEP_ALIASES: dict[str, str] = {}
 CLIENT_LIMITS = {"product_name": 255, "category": 128, "spec_name": 150, "unit": 32, "source_label": 255}
 CLIENT_PRIMARY_DOMAINS = ("kssl.in", "bharatforge.com", "kalyanigroup.com")
 SRC_MARK = re.compile(r"\s*\[S(\d+(?:\s*[,;]\s*S?\d+)*)\]")
+
+
+def description_text(cell) -> str | None:
+    """A Description cell as plain text: one bullet per line (inline bullets split too), [S#] source marks dropped, repeats once."""
+    lines = (SRC_MARK.sub("", b).strip() for part in str(cell or "").split("•") for b in split_bullets(part))
+    return "\n".join(dict.fromkeys(l for l in lines if l)) or None
+
+
+def write_descriptions(cur, prods: list[dict], client: bool = False) -> int:
+    """description of every planned product from its sheet row(s) (merged rows: their lines in sheet order); returns how many got one."""
+    from psycopg2.extras import execute_batch
+    rows = [(description_text("\n".join(str(r["Description"] or "") for r in g.get("rows") or [g["row"]])), g["product_id"]) for g in prods]
+    sql = ("UPDATE staging.client_product SET description = %s WHERE client_product_id = %s" if client
+           else "UPDATE staging.competitive_product SET description = %s WHERE product_id = %s")
+    execute_batch(cur, sql, rows, page_size=1000)
+    return sum(1 for d, _ in rows if d)
+
+
+def cmd_descriptions(args) -> int:
+    """Descriptions only (no spec, source or product row is replaced, so specs added by prompts stay): the competitor workbook, or with
+    --client the client's own portfolio workbook. Same sheet and product matching as 'products' / 'client-products'."""
+    from prompts import batch
+    rows = product_rows(read_sheets(Path(args.file), wanted=(SHEET_PRODUCTS,))[SHEET_PRODUCTS])
+    conn = batch.connect_db(args.db)
+    try:
+        cur = conn.cursor()
+        if args.client:
+            names = sorted({r["Company"] for r in rows})
+            cur.execute("SELECT client_id, client_name, brand_name, legal_name FROM staging.client_account")
+            hit = [r for r in cur.fetchall() if len(names) == 1 and names[0].casefold() in {str(r[k] or "").casefold() for k in ("client_name", "brand_name", "legal_name")}]
+            if len(hit) != 1:
+                raise SystemExit(f"the sheet must hold ONE company that matches one staging.client_account row, found {names}")
+            client = {"client_id": hit[0]["client_id"], "name": hit[0]["client_name"]}
+            cur.execute("SELECT client_product_id, product_name FROM staging.client_product WHERE client_id = %s", (client["client_id"],))
+            plan = build_client_plan(rows, client, cur.fetchall())
+            prods = [g for g in plan["products"] if g["mode"] == "kept"]              # a product not loaded yet gets its text with client-products
+        else:
+            cur.execute("SELECT competitor_id::text AS id, display_name, origin_country AS country FROM staging.competitive_competitor")
+            comps = {r["display_name"]: {"id": r["id"], "display_name": r["display_name"], "country": r["country"]} for r in cur.fetchall()}
+            cur.execute("SELECT product_id::text AS product_id, competitor_id::text AS competitor_id, product_name FROM staging.competitive_product")
+            have = cur.fetchall()
+            plan = build_products_plan(rows, comps, have)
+            ids = {str(e["product_id"]) for e in have}
+            prods = [g for g in plan["products"] if g["product_id"] in ids]
+        n = write_descriptions(cur, prods, client=args.client)
+        (conn.rollback if args.dry_run else conn.commit)()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    print(("DRY RUN (rolled back)" if args.dry_run else "LOADED") + f": {n} of {len(prods)} existing products got a description "
+          f"({len(rows)} sheet rows; products not in the database are left to the full loader)")
+    return 0
 BULLET_START = re.compile("^[\\s•�·*]+|^-\\s+")
 GROUP_RULES = (
     ("Mobility", re.compile(r"\b(road|speed|engine|power|weight|mass|gradient|gradeability|drive)\b", re.I)),
@@ -1580,10 +1646,12 @@ def apply_client_plan(conn, plan: dict, client: dict, dry_run: bool) -> dict:
                 facts.append(("client_product_specification", str(s["specification_id"]), "value_text", u, tier_of(u), s["quote"]))
     execute_values(cur, "INSERT INTO staging.fact_source (table_name, row_id, column_name, source_url, source_tier, publisher, quote, retrieved_at) VALUES %s",
                    facts, template="(%s, %s, %s, %s, %s, NULL, %s, now())", page_size=5000)
+    res["descriptions"] = write_descriptions(cur, prods, client=True)
     res.update(products=len(prods), specs=len(spec_rows), sources=sum(len(g["sources"]) for g in prods), facts=len(facts), tiers=dict(tiers))
     if dry_run:
         conn.rollback()
     else:
+        _requalify(conn)
         conn.commit()
     return res
 
@@ -1893,6 +1961,7 @@ def _selftest() -> None:
         raise AssertionError("a footnote beyond the original Source(s) lines must still stop the load")
     except ValueError:
         pass
+    assert description_text("• Role: rocket • Two [S1].\n• Two.\n- Three") == "Role: rocket\nTwo.\nThree" and description_text(None) is None
     print("excel_load selftest ok")
 
 
@@ -1921,6 +1990,11 @@ def main(argv=None) -> int:
     kp.add_argument("--db", choices=["local", "vps"], default="local")
     kp.add_argument("--dry-run", action="store_true")
     kp.add_argument("--reports", default=str(DEFAULT_REPORTS), help="reports folder (default db/excel_reports/, gitignored)")
+    dp = sub.add_parser("descriptions", help="only the Description column -> competitive_product.description (or client_product with --client)")
+    dp.add_argument("--file", required=True)
+    dp.add_argument("--client", action="store_true", help="the client's own portfolio workbook")
+    dp.add_argument("--db", choices=["local", "vps"], default="local")
+    dp.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
     if args.selftest:
         _selftest()
@@ -1933,6 +2007,8 @@ def main(argv=None) -> int:
         return cmd_products(args)
     if args.cmd == "client-products":
         return cmd_client_products(args)
+    if args.cmd == "descriptions":
+        return cmd_descriptions(args)
     ap.print_help()
     return 2
 

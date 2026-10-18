@@ -1,11 +1,15 @@
 id: signal
 title: Competitive signal from a news article
-version: 2
+version: 4
 fills: [competitive_signal, competitive_signal_detail, competitive_signal_evidence, competitive_product_news]
 shows_on: Competitive Overview cards (risk matrix) + signal drawer + Products timeline
 cadence: daily                   # routine: run for every new article since the last run
+rerun_on_version: false   # a new version applies to new articles only; an article read by v1-v3 is not paid for again (2026-10-18)
 # model / web_search: inherit from _shared.yml (the article is the only document)
 #
+# v4 (user spec 2026-10-18, rule s2): a seventh impact dimension, funding (the spec's "increase in funding" indicator; new signals
+#    only, the stored ones keep six); titles read as finished headlines. Code: a done event (probability 5) with impact 1-2 gets
+#    the label none (kept, not shown); there is no fav label any more (threat and watch only).
 # v2 (prompt rebuild, Phase 3a; docs/audit_v2/PROMPT_LOGIC_FABLE_REVIEW.md A.1.1, A.1.2, A.1.4, F.1, F.4):
 #  - the model SCORES (probability, time to effect, six impact dimensions, sub-type match, KSSL market, direction); it writes NO label.
 #    derive.signal_label computes impact, dimension, threat / watch / fav and the "Orders . high" glance field from the scores.
@@ -73,7 +77,9 @@ task: |
 
   record competitive_signal (values):
    - ref_competitor: the competitor that acts, exactly as in COMPETITORS
-   - title: the event as a headline, max 120 characters, in the article's words
+   - title: the event as a headline, max 120 characters, in the article's words. It must read as a finished headline: never end
+     on a preposition or conjunction ("... the programme KSSL and AM General bid for"), and keep a number's noun
+     ("option for 12 more", not "option for 12")
    - summary: JUDGEMENT. Two short plain sentences, each 20 words or fewer, max 300 characters in all: what happened, then the one
      thing that matters for {{client.name}}. A sentence over 32 words rejects the whole card, so count: if a sentence
      carries names, a value and a place, split it in two. Never put a list of companies in the summary.
@@ -92,8 +98,12 @@ task: |
    - time_to_effect: JUDGEMENT. When the effect reaches {{client.name}}, from stated delivery, production or service dates only.
      Count from the next stated step (first deliveries, a production contract, a plant start), not from the end of the programme.
      lt_1y | 1_3y | gt_3y | unknown ("soon" is unknown)
+     DONE EVENTS AFFECT NOW: when the event is already done (contract signed, delivery made, induction completed, unit deployed, plant or
+     capacity opened, probability 5), answer lt_1y, unless the article states a later date from which the effect starts (then 1_3y or gt_3y).
+     Never answer unknown for a done event. Use unknown only when the event is not done and no date is stated. (The loader also sets
+     lt_1y for a done event that comes back unknown.)
    - impact_orders_revenue, impact_market_standing, impact_supply_chain, impact_technology_gap, impact_partnerships,
-     impact_policy_export: JUDGEMENT, each 1-5, always all six. Anchors:
+     impact_policy_export, impact_funding: JUDGEMENT, each 1-5, always all seven. Anchors:
        orders_revenue   5 a tender or customer where {{client.name}} is bidding or is the incumbent is decided or shifted
                         4 a customer or market of {{client.name}} buys a like-for-like product from the rival
                         3 the rival wins a like-for-like order in a country listed in CLIENT MARKETS
@@ -116,6 +126,11 @@ task: |
        policy_export    5 a rule or approval that blocks {{client.name}} or favours the rival in a {{client.name}} market
                         4 the rival gets export approval to a {{client.name}} market   3 policy change that affects the category
                         2 general policy news   1 none
+       funding          5 the rival raises capital or gets state funding stated for a like-for-like line, or for capacity that
+                        serves a {{client.name}} market (equity round, IPO, grant, budget line for its programme)
+                        4 a large raise or state funding for the rival's defence business, not tied to a line
+                        3 a raise for a line close to a {{client.name}} line   2 general corporate finance (bond, refinancing,
+                        credit line)   1 none. Orders and revenue from sales are orders_revenue, not funding.
      Be strict. Most events score 1 in most dimensions. A score above 2 needs a named link between the article and a product,
      country, partner or customer in the blocks below. No link in the blocks = 1 or 2.
    - subtype_match: JUDGEMENT. Is the rival product of the same kind as a {{client.name}} product? Find the rival product's
@@ -145,7 +160,7 @@ task: |
 
   children of competitive_signal:
    competitive_signal_detail (exactly one):
-   - drawer_title: the headline for the drawer, max 140 characters
+   - drawer_title: the headline for the drawer, max 140 characters; a finished headline under the same rule as title
    - AT A GLANCE, six short fields. A word or a short phrase each, never a sentence, never a summary:
        glance_who: the rival's name, max 40 characters
        glance_move: one of Order | Contract | Selection | Delivery | Induction | Trial | Launch | JV | MoU | Acquisition |
@@ -165,9 +180,12 @@ task: |
      "{{client.name}} should".
    - _sources: for what_article_says, the verbatim sentence and the URL. _reason for impact_eyebrow and why_it_matters.
    competitive_signal_evidence (7-10 rows in two groups):
-   - key_point, 3 to 6 rows. Each is one fact worth remembering: a number with its unit, a name that is not in the title, a date,
-     or a condition ("option for", "subject to", "if"). One sentence of 20 words or fewer. Never repeat the title or the summary;
-     a row that does is dropped. Fewer than 3 new facts is a failure: read the article again.
+   - key_point, 3 to 6 rows. Each is one fact about THE EVENT in this article: who is involved, what is bought or done, the value,
+     the quantity, the dates (signature, delivery, start, end), the place, and the next step or a condition ("option for", "subject to",
+     "if"). Facts about the company's history, the product's background, past wars or general trivia are NOT key points, unless the
+     event itself depends on them. One sentence of 20 words or fewer. Never repeat the title or the summary; a row that does is
+     dropped. Fewer than 3 event facts is a failure: read the article again. Order: value and quantity first, then dates, then parties
+     and place, then next step or condition.
        label: 1-3 words ("Value", "Option", "Local assembly")
        value: the sentence
        quote: the verbatim sentence from the article that states it
@@ -219,7 +237,7 @@ task: |
      "summary": "Veland's army signed for 24 NV-155 truck-mounted 155 mm guns, with deliveries from 2028. {{client.name}} offered the MArG 155/52 in the same competition.",
      "event_date": "2026-10-09", "ref_category": "Artillery", "direction": "adverse", "probability": 5, "time_to_effect": "1_3y",
      "impact_orders_revenue": 5, "impact_market_standing": 4, "impact_supply_chain": 1, "impact_technology_gap": 2,
-     "impact_partnerships": 1, "impact_policy_export": 2, "subtype_match": "same", "in_client_market": "yes",
+     "impact_partnerships": 1, "impact_policy_export": 2, "impact_funding": 1, "subtype_match": "same", "in_client_market": "yes",
      "story_ref": "T3f9a12c0", "story_kind": "order", "story_country": "Veland", "story_product": "NV-155",
      "_reason": {"probability": "5: the contract is signed (anchor: done).",
                  "impact_orders_revenue": "5: {{client.name}} offered the MArG 155/52 in this competition (CLIENT MARKETS: Veland) and the rival was chosen.",
@@ -294,10 +312,12 @@ output:                          # what the loader accepts; anything else is rej
       impact_technology_gap: {required: true, judgement: true, type: number, enum: [1, 2, 3, 4, 5]}
       impact_partnerships: {required: true, judgement: true, type: number, enum: [1, 2, 3, 4, 5]}
       impact_policy_export: {required: true, judgement: true, type: number, enum: [1, 2, 3, 4, 5]}
+      impact_funding: {required: true, judgement: true, type: number, enum: [1, 2, 3, 4, 5]}
     loader:                      # columns the loader fills (bookkeeping, not data)
       sequence_no: rank_by_event_date_desc
-      classification: derive.signal_label      # threat / watch / fav from the scores, by code
+      classification: derive.signal_label      # threat / watch / none from the scores, by code (rule s2: no fav)
       thumbnail_url: article_image_url         # the article's image: no model involved
+      published_date: article_published_date   # the card date: the article's publication date (harvested record), not the event date
     children:
       competitive_signal_detail:
         columns: [drawer_title, glance_who, glance_move, glance_where, glance_third_party, glance_when, impact_eyebrow, what_article_says, why_it_matters]
@@ -330,4 +350,4 @@ output:                          # what the loader accepts; anything else is rej
       published_date: subject.published_date
       category: subject.category
 
-derive: [signal_label, product_news_merge, story_link]
+derive: [signal_dedupe, signal_label, product_news_merge, story_link]

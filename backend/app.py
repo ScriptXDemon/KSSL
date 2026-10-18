@@ -60,6 +60,8 @@ def build_dataset(database):
     # `database` carries only what the UI reads via uiText(): every ui table (labels, filter options,
     # section visibility) plus the serving tables in UI_SERVING_TABLES. The rest (raw layer, specs,
     # sources) stays server-side; sending it all made the review payload > 500 MB.
+    # only competitors that qualify (same product line AND same market) reach the UI; the database keeps them all
+    database = a_competitive.visible_database(database)
     sent = {"ui": database.get("ui", {}),
             "serving": {t: database.get("serving", {}).get(t, []) for t in UI_SERVING_TABLES}}
     d = {"database": sent, "details": {}}

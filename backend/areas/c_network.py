@@ -87,6 +87,9 @@ def build_partners(database, competitors):
     return per_comp
 
 
+_CLIENT_REL = {"licensor": "licensing", "mou-teaming": "mou"}
+
+
 def build_client_partners(database, competitors):
     rels = by(table(database, "serving", "client_partner_relationship"), "client_partner_id")
     names = {}
@@ -108,10 +111,14 @@ def build_client_partners(database, competitors):
             "label": pname,
             "cid": names.get(str(pname).strip().lower()) if pname else None,
             "ptype": row.get("partner_type"),
-            "rel": slug(row.get("partner_type")) or None,
+            # the client's six partner types (client_partner_research) keyed onto the legend's keys / aliases (chrome.js
+            # PARTNER_CATEGORIES): "licensor" and "mou-teaming" are not legend keys, so the overlap read lost their kind
+            "rel": _CLIENT_REL.get(slug(row.get("partner_type")), slug(row.get("partner_type"))) or None,
             "country": row.get("country"),
             "note": first_rel.get("description"),
-            "role": row.get("strategic_role"),
+            # what the client does with the partner: client_partner_research writes relationship_scope; strategic_role
+            # (an Excel column) wins when the client's own list fills it
+            "role": first_nonempty(row, "strategic_role", "relationship_scope"),
             "status": row.get("relationship_status"),
             "date": row.get("relationship_start_date"),
             "as_of": row.get("relationship_start_date"),
@@ -250,9 +257,9 @@ def build_geo(database, competitors):
         client = row.get("company_role") == "client"
         company_id = text(row.get("client_id") if client else first_nonempty(row, "competitor_id", "client_id"))
         country = locations.get(text(row.get("location_id")))
-        if not company_id or not country:
-            continue
         pid = text(row.get("presence_id"))
+        if not company_id or not country or not products.get(pid):   # a presence with no product row left has nothing to show
+            continue
         geo_presence.append({
             "id": pid,
             "comp": row.get("company_name"),
@@ -349,7 +356,7 @@ def build_patents(database, competitors):
         assignee = (competitors.get(cid) or {}).get("name")
         total += 1
         rec = {
-            "no": first_nonempty(f, "publication_number", "filing_id"),
+            "no": f.get("publication_number"),        # never the internal filing_id: no published number, no number shown
             "title": f.get("title"),
             "assignee": assignee,
             "comp_id": cid or None,

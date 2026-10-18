@@ -4,6 +4,7 @@ version: 2
 fills: [technology_overview_article, technology_overview_fact, technology_overview_key_point, technology_overview_company, technology_overview_source, technology_source, technology_company]
 shows_on: "Technology Overview feed (card, badge, filters) and article drawer (at a glance, what the article says, key points, sources)"
 cadence: weekly
+rerun_on_version: false   # one run per document: a new version applies to new documents only (2026-10-18)
 # v2 (prompt rebuild, step 4; docs/audit_v2/PROMPT_LOGIC_FABLE_REVIEW.md A.3.1, F.3). Same pattern as signal v2:
 #  - the model SCORES maturity (1-5) and relevance (1-5), picks the classification (4 classes), states a horizon only from dates in the
 #    article and a KSSL position only when a spec row exists; it writes NO direction label. derive.tech_direction computes threat / watch / fav
@@ -30,12 +31,21 @@ subject:
       FROM staging.source_document s
       WHERE s.url IS NOT NULL AND length(s.body_text) BETWEEN 600 AND 20000 AND s.published_at >= current_date - 300
         AND COALESCE(s.title, '') !~* '(latest .* news|updates|archives?\s*-|\| news$|^news$)'
+        -- 2026-10-18 credible sources only: no blogs / copy aggregators (indiandefensenews.in is a Blogger blog; the others rehost stories)
+        AND s.url !~* '^https?://([a-z0-9-]+\.)*(indiandefensenews\.in|thedefensenews\.com|militaryleak\.com|globaldefensecorp\.com|opex360\.com|blogspot\.com|wordpress\.com|medium\.com|substack\.com|idrw\.org|ajaishukla\.com|wikipedia\.org)(/|$)'
     )
-    SELECT d.doc_id, d.headline, d.article_url, d.publisher, d.published_date, current_date AS today
-    FROM d
-    WHERE d.routed OR (d.dom AND (d.tdom OR d.tev OR d.p_tech >= 0.5))
-    ORDER BY (CASE WHEN d.routed OR (d.dom AND d.tdom AND d.tev) THEN 1 WHEN d.dom AND d.tdom THEN 2 ELSE 3 END),
-             d.published_date DESC NULLS LAST, d.doc_id
+    , c AS (
+      SELECT d.*, (CASE WHEN d.routed AND d.dom AND d.tdom THEN 1 WHEN d.routed AND d.dom THEN 2 WHEN d.dom AND d.tdom AND d.tev THEN 3
+                        WHEN d.routed THEN 4 ELSE 5 END) AS tier,
+             lower(regexp_replace(left(COALESCE(d.headline, ''), 60), '[^A-Za-z0-9]', '', 'g')) AS tkey
+      FROM d WHERE (d.routed OR (d.dom AND d.tdom AND d.tev))
+        AND COALESCE(d.headline, '') !~* '(fighter|f-35|f-16|f-22|f-15|aircraft|jet |airliner|bomber|helicopter|submarine|frigate|destroyer|aircraft carrier|warship|satellite|space|missile defen[cs]e|hypersonic|nuclear|ballistic missile)'
+    ), r AS (   -- one document per headline (the same story from two outlets is carded once)
+      SELECT c.*, row_number() OVER (PARTITION BY c.tkey ORDER BY c.tier, c.published_date DESC NULLS LAST, c.doc_id) AS rn FROM c
+    )
+    SELECT r.doc_id, r.headline, r.article_url, r.publisher, r.published_date, current_date AS today
+    FROM r WHERE r.rn = 1 OR length(r.tkey) < 20
+    ORDER BY r.tier, r.published_date DESC NULLS LAST, r.doc_id
   documents:
     - from: source_document
       field: article_url
@@ -67,7 +77,7 @@ task: |
   STEP 2 - one record, table technology_overview_article, with its children.
 
   record technology_overview_article (values):
-   - title: the development as a headline, max 120 characters, in the article's words, full names not acronyms
+   - title: the development as a headline, max 100 characters (count them; a longer title rejects the card), in the article's words, full names not acronyms
    - card_summary: JUDGEMENT. Two short plain sentences, each 20 words or fewer, max 300 characters in all: what was developed
      or tested, then the one thing it changes in that category. A sentence over 32 words rejects the whole card.
    - article_says: 3-6 plain sentences, max 900 characters, only what the article states: who, what, how much, when, where.
@@ -102,14 +112,14 @@ task: |
    - client_position: JUDGEMENT. behind | parity | ahead | unknown. Allowed other than unknown ONLY when CLIENT PORTFOLIO states a
      figure for spec_touched on the product you named AND the article states a comparable figure. behind = the article's figure is
      better; ahead = {{client.name}}'s is better; parity = within a few percent. Otherwise unknown.
-   - client_narrative: JUDGEMENT. 2-4 plain sentences. Name the {{client.name}} product or line it touches and say how: could it
+   - client_narrative: JUDGEMENT. 2-4 plain sentences, EACH 20 words or fewer (one over 32 words rejects the card; split long ones). Name the {{client.name}} product or line it touches and say how: could it
      fit that product, does it rival it, which spec moves. Give the {{client.name}} figure when CLIENT PORTFOLIO states one. Say plainly
      what is unknown ("The article gives no accuracy figure."). If nothing is touched, write exactly: "No <product> product line is
      touched; kept because <reason>." where <reason> names the technology and the category. Do not recommend actions. Never
      write "{{client.name}} should".
    - article_date: the date of the development as the article states it; else the published date (say so in _precision)
    - ref_category: one CATEGORIES name, exactly as written
-   - glance_what (transient, not stored): the technology in 8 words or fewer, max 60 characters, e.g. "Ramjet-assisted 155 mm shell, 85 km"
+   - glance_what (transient, not stored): the technology in 8 words or fewer, MAX 55 characters (count them), e.g. "Ramjet-assisted 155 mm shell, 85 km"
    - story_thread (transient, not stored): the technology or programme this development is a step of, 1-4 words, max 40 characters,
      e.g. "K9 wheeled howitzer". The same thread name is used for later developments of the same technology by the same developer.
    - _reason (one sentence for EVERY judgement above, including card_summary and client_narrative, each naming the anchor or

@@ -38,6 +38,10 @@ function writePulse(k, v) {
    memory, cleared on a pillar change. See lib/viewState. */
 import * as viewState from "../../lib/viewState";
 import { Review } from "../../components/review/Review.jsx";
+
+/* Catalogue category order (user 2026-10-18): alphabetical, the catch-all "Other" (and "—" = no category) last. */
+const LAST_CATS = ["Other", "—"];
+const catOrder = (a, b) => (LAST_CATS.indexOf(a) - LAST_CATS.indexOf(b)) || String(a).localeCompare(String(b));
 const cleanCompanyName = (rawName) => {
   if (!rawName) return "";
   let name = unescapeEntities(String(rawName)).split("(")[0].split("-")[0].trim();
@@ -382,7 +386,7 @@ export default function Products() {
     [companyRoster],
   );
   const sidebarCategories = useMemo(
-    () => facetOptionsByName(companyRoster, (c) => c.categories || []),
+    () => facetOptionsByName(companyRoster, (c) => c.categories || []).sort((a, b) => catOrder(a.v, b.v)),
     [companyRoster],
   );
 
@@ -476,7 +480,10 @@ export default function Products() {
           category: formatCategoryTitle((mu && mu.cat) || obj.category),
           source: obj.source || "",
           sourceUrl: obj.source_url || "",
+          description: obj.description || "",
+          status: obj.status || "",
           specs: obj.specs && typeof obj.specs === "object" ? obj.specs : {},
+          features: obj.features && typeof obj.features === "object" ? obj.features : {},
           specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
           tier: obj.tier || null,
           reason: mu ? mu.reason || "" : "",
@@ -553,7 +560,10 @@ export default function Products() {
             /* A product's OWN sourced spec sheet (from the audited master dataset) --
                this is the product's own figures, not a KSSL comparison, so no matchup
                is needed. Empty stays empty; nothing is invented. */
+            description: obj.description || "",
+            status: obj.status || "",
             specs: obj.specs && typeof obj.specs === "object" ? obj.specs : {},
+            features: obj.features && typeof obj.features === "object" ? obj.features : {},
             specSources: Array.isArray(obj.sources) ? obj.sources : (obj.source_url ? [obj.source_url] : []),
             tier: obj.tier || null,
             reason: "",
@@ -581,7 +591,7 @@ export default function Products() {
   // Product categories for selected company
   const categories = useMemo(() => {
     const set = new Set(companyProducts.map((p) => p.category).filter(Boolean));
-    return ["all", ...Array.from(set)];
+    return ["all", ...Array.from(set).sort(catOrder)];
   }, [companyProducts]);
 
   // Filter products by search and category
@@ -605,7 +615,7 @@ export default function Products() {
   // Group filtered products by Category
   const groupedProducts = useMemo(() => {
     const groups = {};
-    filteredCompanyProducts.forEach((p) => {
+    [...filteredCompanyProducts].sort((a, b) => catOrder(a.category || "—", b.category || "—")).forEach((p) => {
       /* British spelling, as formatCategoryTitle's own default -- this literal was the
          one American one left, so a product with no band grouped under "Defense
          Systems" beside "Defence Systems" headings everywhere else (FE 18). */
@@ -711,10 +721,14 @@ export default function Products() {
         title: `${selectedCompany.name} - ${selectedProduct.name}`,
         subtitle: `${selectedProduct.category} · product technical specification`,
         sections: [
+          ...(selectedProduct.description ? [{ h: "Description", rows: selectedProduct.description.split("\n").filter(Boolean) }] : []),
           {
             h: "Technical specifications",
-            rows: specRows.length ? specRows : [`No specifications are held for ${selectedProduct.name}.`],
+            rows: specRows.length ? specRows : [`No measured figures are held for ${selectedProduct.name}.`],
           },
+          ...(Object.keys(selectedProduct.features || {}).length
+            ? [{ h: "Features and capabilities", rows: Object.entries(selectedProduct.features).map(([k, v]) => [k, String(v)]) }]
+            : []),
           {
             h: `Latest news naming ${selectedProduct.name} (${productNewsArticles.length})`,
             rows: newsRows.length ? newsRows : ["No sourced article names this product."],
@@ -919,6 +933,7 @@ export default function Products() {
                 <div>
                   <h3 style={{ fontSize: "20px", fontWeight: "700", color: "#ffffff", margin: 0 }}>
                     {selectedCompany.name} - {selectedProduct.name}
+                    {selectedProduct.status ? ` (${selectedProduct.status})` : ""}
                   </h3>
                   <Review src={selectedProduct._src} />
                 </div>
@@ -945,7 +960,33 @@ export default function Products() {
               </div>
 
 
-              {/* 1. TECHNICAL SPECIFICATIONS */}
+              {/* 1. DESCRIPTION (the product spec workbook's Description column, one line per point) */}
+              {selectedProduct.description ? (
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "var(--mono)",
+                      fontSize: "12px",
+                      letterSpacing: ".1em",
+                      textTransform: "uppercase",
+                      color: "var(--d-txt)",
+                      fontWeight: "700",
+                      marginBottom: "14px",
+                      paddingBottom: "8px",
+                      borderBottom: "1px solid var(--d-line)",
+                    }}
+                  >
+                    Description
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {selectedProduct.description.split("\n").filter(Boolean).map((line, i) => (
+                      <li key={i} style={{ fontSize: "13px", lineHeight: 1.55, color: "var(--d-txt)" }}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {/* 2. TECHNICAL SPECIFICATIONS */}
               <div>
                 <div
                   style={{
@@ -992,10 +1033,45 @@ export default function Products() {
                       </span>
                     </div>
                   ))}
+                  {/* no measured figure on record (the product's stated features, if any, are listed below) */}
+                  {!Object.keys((selectedProduct && selectedProduct.specs) || {}).length ? (
+                    <div style={{ padding: "12px 18px", fontSize: "13px", color: "var(--d-txt-3)" }}>
+                      No measured figures on record for this product.
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
-              {/* 2. PROGRAMS */}
+              {/* 2b. FEATURES AND CAPABILITIES: the descriptive spec rows (the backend splits them from the measured figures) */}
+              {Object.keys(selectedProduct.features || {}).length ? (
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "var(--mono)",
+                      fontSize: "12px",
+                      letterSpacing: ".1em",
+                      textTransform: "uppercase",
+                      color: "var(--d-txt)",
+                      fontWeight: "700",
+                      marginBottom: "14px",
+                      paddingBottom: "8px",
+                      borderBottom: "1px solid var(--d-line)",
+                    }}
+                  >
+                    Features and capabilities
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {Object.entries(selectedProduct.features).map(([label, val]) => (
+                      <li key={label} style={{ fontSize: "13px", lineHeight: 1.55, color: "var(--d-txt)" }}>
+                        <span style={{ color: "var(--d-txt-3)", fontWeight: 600 }}>{label}: </span>{val}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {/* 3. PROGRAMS: only when the product has one */}
+              {selectedProduct && selectedProduct.programs && selectedProduct.programs.length > 0 && (
               <div>
                 <div
                   style={{
@@ -1014,7 +1090,7 @@ export default function Products() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  {((selectedProduct && selectedProduct.programs) || []).map((prog, idx) => (
+                  {selectedProduct.programs.map((prog, idx) => (
                     <div
                       key={idx}
                       style={{
@@ -1031,7 +1107,7 @@ export default function Products() {
                         <span style={{ fontSize: "14px", fontWeight: "700", color: "#ffffff" }}>
                           {prog.title}
                         </span>
-                        <span
+                        {prog.status && <span
                           style={{
                             fontFamily: "var(--mono)",
                             fontSize: "10.5px",
@@ -1045,10 +1121,10 @@ export default function Products() {
                           }}
                         >
                           {prog.status}
-                        </span>
+                        </span>}
                       </div>
                       <div style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "var(--d-txt-3)" }}>
-                        {prog.authority} · {prog.date}
+                        {[prog.authority, prog.date].filter(Boolean).join(" · ")}
                       </div>
                       <div style={{ fontSize: "12.5px", color: "var(--d-txt-2)", lineHeight: "1.5", marginTop: "2px" }}>
                         {prog.description}
@@ -1057,6 +1133,7 @@ export default function Products() {
                   ))}
                 </div>
               </div>
+              )}
 
               {/* 3. PRODUCT COMPARISON: only when the dataset has a matchup to compare against */}
               {getProductComparison(selectedProduct, selectedCompany, data) && (
@@ -1356,7 +1433,7 @@ export default function Products() {
                           <div className="pc-head">
                             <span className="pc-tag">{p.category || "—"}</span>
                           </div>
-                          <div className="pc-name" title={p.name}>{p.name}</div>
+                          <div className="pc-name" title={p.name}>{p.name}{p.status ? ` (${p.status})` : ""}</div>
                           <dl className="pc-specs">
                             {cardSpecs(p).map(([k, v]) => (
                               <div className="pc-spec" key={k}>

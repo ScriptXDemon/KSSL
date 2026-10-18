@@ -113,7 +113,8 @@ export function tenureText(from, to, now = new Date().getFullYear()) {
 function LeaderPage({ leader, companyName, companyArticles, onBack }) {
   const exp = leader.experience || [];
   const edu = leader.education || [];
-  const current = exp.find((e) => isPresent(e.to)) || null;
+  /* a row is "current" only when it has a start date and no end; Excel rows carry neither (one sentence in `text`) */
+  const current = exp.find((e) => e.from && isPresent(e.to)) || null;
 
   return (
     <div className="cp-person">
@@ -127,7 +128,7 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
           <Review src={leader._src} />
           <div className="cp-person-now">
             {leader.role}
-            <span className="cp-person-at"> · {current ? current.company : companyName}</span>
+            <span className="cp-person-at"> · {(current && current.company) || companyName}</span>
           </div>
         </div>
       </div>
@@ -142,10 +143,10 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
               <div className="cp-person-row" key={`${e.company}-${e.role}-${i}`}>
                 <span className="cp-person-dot" />
                 <div className="cp-person-row-main">
-                  <span className="cp-person-role">{e.role}</span>
-                  <span className="cp-person-org">{e.company}</span>
+                  <span className="cp-person-role">{e.role || e.text}</span>
+                  {e.company ? <span className="cp-person-org">{e.company}</span> : null}
                 </div>
-                <span className="cp-person-when">{tenureText(e.from, e.to)}</span>
+                {e.from || e.to ? <span className="cp-person-when">{tenureText(e.from, e.to)}</span> : null}
               </div>
             ))}
           </div>
@@ -162,8 +163,8 @@ function LeaderPage({ leader, companyName, companyArticles, onBack }) {
               <div className="cp-person-row" key={`${e.institution}-${i}`}>
                 <span className="cp-person-dot" />
                 <div className="cp-person-row-main">
-                  <span className="cp-person-role">{e.degree}</span>
-                  <span className="cp-person-org">{e.institution}</span>
+                  <span className="cp-person-role">{e.degree || e.text}</span>
+                  {e.institution ? <span className="cp-person-org">{e.institution}</span> : null}
                 </div>
                 {e.from || e.to ? <span className="cp-person-when">{tenureText(e.from, e.to).split(" · ")[0]}</span> : null}
               </div>
@@ -452,7 +453,8 @@ export default function Profile() {
       source: r.url,
       photo: r.photo || null,
       photoSource: r.photo_source || null,
-      bioSource: r.bio_source || null,
+      // Excel leader records carry their own source url per row; the first one stands for the section
+      bioSource: r.bio_source || [...(r.experience || []), ...(r.education || [])].map((x) => x && x.url).find(Boolean) || null,
       experience: Array.isArray(r.experience) ? r.experience : [],
       education: Array.isArray(r.education) ? r.education : [],
     }));

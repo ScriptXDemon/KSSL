@@ -231,6 +231,7 @@ class Loader:
         self._names: set | None = None
         self.owned = self._owned_tables()
         self.allowed = self._all_tables()
+        self.keep_previous: dict = {}        # table -> SQL condition (prompt file `keep_previous`): such a previous row survives a re-run
 
     # ---------------------------------------------------------------- spec helpers
     def _all_tables(self) -> set:
@@ -370,6 +371,21 @@ class Loader:
         self._image = img
         return img
 
+    def article_published(self):
+        """Publication date of the subject article: the harvested record (source_document.published_at) for its url, else the
+        subject's own published_date (the news job's date). A date in the future is dropped. None = "date not known"."""
+        url = next((self.subject.get(k) for k in ("article_url", "url", "source_url") if self.subject.get(k)), None)
+        d = None
+        if url:
+            self.cur.execute("""SELECT published_at FROM staging.source_document WHERE url = %s AND published_at IS NOT NULL
+                                ORDER BY published_at LIMIT 1""", (str(url),))
+            r = self.cur.fetchone()
+            d = r["published_at"] if r else None
+        d = d or self.subject.get("published_date")
+        if isinstance(d, datetime):
+            d = d.date()
+        return d if isinstance(d, date) and d <= date.today() else None
+
     def competitor_products_in_category(self, competitor_id):
         cat = self.subject.get("category_text") or self.subject.get("category_name")
         if competitor_id is None or not cat:
@@ -428,7 +444,7 @@ class Loader:
             r = r.parent
         if ref == "ref_product":
             return next((x.resolved["ref_competitor"]["id"] for x in chain if "ref_competitor" in x.resolved), self.subject.get("competitor_id"))
-        if ref == "ref_signal":
+        if ref in ("ref_signal", "ref_partnership"):
             return self.subject.get("competitor_id")
         if ref == "ref_client_spec":
             return next((x.resolved["ref_client_product"]["id"] for x in chain if "ref_client_product" in x.resolved),
@@ -675,12 +691,29 @@ class Loader:
         self.cur.execute("DELETE FROM staging.fact_source WHERE table_name = %s AND row_id = %s", (table, str(key)))
         self.cur.execute(f"DELETE FROM staging.{table} WHERE {GRAPH[table][0]}::text = %s", (str(key),))
 
+    def _kept(self, table: str, key) -> bool:
+        """A previous row that matches its table's keep_previous condition, or a child of such a row, is not deleted by a re-run
+        (innovation_discovery: an innovation that innovation_detail has finished is no longer the discovery run's to replace)."""
+        cond = self.keep_previous.get(table)
+        if cond:
+            self.cur.execute(f"SELECT 1 FROM staging.{table} WHERE {GRAPH[table][0]}::text = %s AND ({cond})", (str(key),))
+            if self.cur.fetchone():
+                return True
+        for fk, parent in GRAPH[table][2]:
+            pcond = self.keep_previous.get(parent)
+            if pcond:
+                self.cur.execute(f"SELECT 1 FROM staging.{parent} WHERE {GRAPH[parent][0]}::text = "
+                                 f"(SELECT {fk}::text FROM staging.{table} WHERE {GRAPH[table][0]}::text = %s) AND ({pcond})", (str(key),))
+                if self.cur.fetchone():
+                    return True
+        return False
+
     def delete_previous(self, previous: list) -> int:
         """The rows the last run of this subject wrote (prompt_run.loaded), except subject-owned ones."""
         n = 0
         for p in previous or []:
             t, i = p["table"], p["id"]
-            if t in self.owned or t not in GRAPH:
+            if t in self.owned or t not in GRAPH or self._kept(t, i):
                 continue
             if p.get("card", True):
                 n += self.delete_bundle(t, i)
@@ -707,7 +740,7 @@ class Loader:
                                  [*sets.values(), str(key)])
             out.rows += 1
             self._facts(row)
-            lab = row.transient.get("category_label")
+            lab = row.transient.get("category_label") or row.cols.get("category_label")     # the filing now has the column: the ref lands in cols
             self.labels.append({"filing_id": str(key), "category_label": lab})
             return
         if row.mode == "extend":
@@ -923,7 +956,8 @@ def _selftest() -> None:
     assert len(parsed) >= 15, sorted(parsed)
     sig = parsed["signal"]["competitive_signal"]
     assert sig.card and sig.refs == {"ref_category": "category", "ref_competitor": "company_id"}
-    assert sig.loader == {"sequence_no": "rank_by_event_date_desc", "classification": "derive.signal_label", "thumbnail_url": "article_image_url"}
+    assert sig.loader == {"sequence_no": "rank_by_event_date_desc", "classification": "derive.signal_label", "thumbnail_url": "article_image_url",
+                          "published_date": "article_published_date"}
     ev = sig.children["competitive_signal_evidence"]
     assert ev.loader == {"evidence_id": "new_id", "display_order": "index", "source_url": "subject.article_url"} and ev.columns["evidence_group"]["required"]
     assert ev.count["min"] == 3 and ev.dedupe["against"] == ["title", "summary"] and set(sig.transient) == {"story_ref", "story_kind", "story_country", "story_product"}
@@ -935,21 +969,19 @@ def _selftest() -> None:
         except ValueError:
             pass
     pm = parsed["moment"]["competitive_competitor_moment"]
-    assert pm.columns["grade"]["enum_from"] == "context.moment_levels"
+    assert pm.columns["grade"]["enum"] == ["high", "watch"]          # moment v4: threat / watch only (rule s2)
     part = parsed["partnership"]["competitive_partnership"]
     assert "competitive_partnership_relationship_detail" in part.loader_children and part.children["competitive_partnership_evidence"]
     assert parsed["partnership"]["competitive_partnership_relationship_detail"].loader_only
     geo = parsed["geo"]["competitive_geo_company_presence"]
     gp = geo.children["competitive_geo_product"]
-    assert set(gp.children) == {"competitive_geo_source", "competitive_geo_product_news", "competitive_geo_product_match"}
-    assert gp.columns["product_range"]["from_ref"] == "ref_category"
-    spec_rules = gp.children["competitive_geo_product_match"].children["competitive_geo_product_specification"]
-    assert set(spec_rules.refs) == {"ref_client_spec", "ref_competitor_spec"}
+    assert set(gp.children) == {"competitive_geo_source", "competitive_geo_product_news"}      # geo v3: layer 1 only; the match rows are built by derive.geo_match_code
+    assert gp.columns["product_range"]["from_ref"] == "ref_category" and "customer_name" in gp.columns and "local_partner" in gp.columns
     assert parsed["tender_assessment"]["market_tender_fit_assessment"].children["market_tender_product_match"].children[
         "market_tender_product_match_line"].transient["check"]["enum"] == ["met", "not_met", "unknown"]
     assert parsed["patent_classification"]["competitive_patent_filing"].update_only
     assert parsed["patent_classification"]["competitive_patent_filing"].transient["category_label"]["from_ref"] == "ref_category"
-    assert parsed["top_opportunity"]["market_next_move"].replace == "all_rows"
+    assert parsed["top_opportunity"]["market_top_opportunity_tender"].replace == "all_rows"
     assert parsed["innovation_discovery"]["technology_innovation"].children["technology_innovation_source"].creates["technology_source"]["url"] == "transient.source_url"
     assert parsed["innovation_detail"]["technology_innovation"].loader_children["technology_innovation_analysis"].loader_only
     assert parsed["innovation_detail"]["technology_innovation"].loader_children["technology_innovation_analysis"].rows[0]["section_code"] == "background"
@@ -963,7 +995,7 @@ def _selftest() -> None:
                  "code_label.competitive_signal.in_client_market": ["yes", "no", "unknown"],
                  "code_label.competitive_product_news.news_type": ["programme_order", "delivery_induction"], "empty.client_markets": False}
     sig_scores = {"direction": "Adverse", "time_to_effect": "1_3y", "subtype_match": "same", "in_client_market": "yes",
-                  **{f"impact_{d}": 1 for d in ("orders_revenue", "market_standing", "supply_chain", "technology_gap", "partnerships", "policy_export")}}
+                  **{f"impact_{d}": 1 for d in ("orders_revenue", "market_standing", "supply_chain", "technology_gap", "partnerships", "policy_export", "funding")}}
     good = {"prompt_id": "signal", "subject": "s", "skip_reason": None, "records": [{
         "table": "competitive_signal",
         "values": {"title": "L&T wins order", "summary": "S.", **sig_scores, "probability": 5, "event_date": "2026-09-30",
@@ -1022,7 +1054,11 @@ def _selftest() -> None:
     assert "not allowed" in validate({"prompt_id": "partnership", "records": [{"table": "competitive_partnership_relationship_detail", "values": {}}]},
                                      "partnership", parsed["partnership"]).rejected[0]            # loader_only: never from the model
 
-    # -- enum_from: context block codes (left of " = ") and ui columns
+    # -- enum_from: context block codes (left of " = ") and ui columns (moment v4 has a fixed enum now, so a fixture keeps the old shape)
+    import copy
+    mo_out = copy.deepcopy(render.load_prompt("moment")["output"])
+    mo_out["competitive_competitor_moment"]["columns"]["grade"] = {"judgement": True, "enum_from": "context.moment_levels"}
+    parsed["moment"] = parse_output(mo_out)
     mom = lambda g: {"title": "T", "what_happened": "W", "movement_date": "2026-09-01", "source_url": "https://x/a", "grade": g}
     en = {"context.moment_levels": ["high", "watch", "opportunity"]}
     ok = validate({"prompt_id": "moment", "records": [{"table": "competitive_competitor_moment", "values": mom("HIGH")}]}, "moment", parsed["moment"], en)
@@ -1048,9 +1084,9 @@ def _selftest() -> None:
     assert "check" not in pm_rec.children[0].values
 
     # -- sources: an input row (no url) is kept with its quote
-    sv = validate({"prompt_id": "matchup", "records": [{"table": "competitive_matchup", "values": {
-        "verdict": "v", "_sources": {"verdict": [{"url": None, "quote": "CLIENT SPEC: Range 41 km"}]}}}]}, "matchup", parsed["matchup"])
-    assert sv.recs[0].sources["verdict"] == [{"url": None, "quote": "CLIENT SPEC: Range 41 km"}]
+    sv = validate({"prompt_id": "moment", "records": [{"table": "competitive_competitor_moment", "values": {
+        **mom("watch"), "_sources": {"title": [{"url": None, "quote": "SIGNAL: Range 41 km"}]}}}]}, "moment", parsed["moment"], en)
+    assert sv.recs[0].sources["title"] == [{"url": None, "quote": "SIGNAL: Range 41 km"}]
 
     # -- vocabulary: every token form
     class FakeL:
@@ -1221,8 +1257,8 @@ def _selftest() -> None:
     # -- routine: recurring (entity-keyed) vs event-keyed prompts, dependency order, quote check
     from prompts import run as R
     sp = {pid: render.load_prompt(pid) for pid in render.prompt_ids()}
-    assert [pid for pid, x in sp.items() if not R.recurring(x)] == sorted(
-        pid for pid, x in sp.items() if x["subject"]["key"] in ("article_id", "source_id") or x.get("handler")), "event prompts"
+    assert sorted(pid for pid, x in sp.items() if not R.recurring(x)) == sorted(
+        pid for pid, x in sp.items() if x["subject"]["key"] in R.EVENT_KEYS or x.get("handler")), "event prompts"
     assert R.recurring(sp["moment"]) and R.recurring(sp["partnership"]) and not R.recurring(sp["signal"]) and not R.recurring(sp["tender"])
     assert R.recurring(dict(sp["signal"], recurring=True)) and not R.recurring(dict(sp["moment"], recurring=False))
     order = R.ordered_ids()
@@ -1386,6 +1422,16 @@ def _selftest_rules() -> None:
     assert img({"image_url": "https://i.test/a.jpg", "article_url": "https://x.test/a"}) == "https://i.test/a.jpg"
     assert img({"article_url": "https://x.test/a"}, {"image_url": "https://i.test/b.jpg"}) == "https://i.test/b.jpg"
     assert img({"article_url": "https://x.test/a"}, None) is None and img({}, None) is None
+
+    # published_date: loader token article_published_date -> harvested record's date, else the subject's, never a future date
+    def pub(subject, row=None):
+        x = Loader.__new__(Loader)
+        x.subject, x.cur = subject, C1(row)
+        return x.article_published()
+
+    assert pub({"article_url": "https://x.test/a", "published_date": date(2026, 9, 2)}, {"published_at": date(2026, 9, 1)}) == date(2026, 9, 1)
+    assert pub({"article_url": "https://x.test/a", "published_date": date(2026, 9, 2)}, None) == date(2026, 9, 2)
+    assert pub({"article_url": "https://x.test/a"}, {"published_at": date(2999, 1, 1)}) is None and pub({}, None) is None
 
 
 def spec_block(v) -> str:

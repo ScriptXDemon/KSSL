@@ -307,10 +307,10 @@
      across the full width. The gloss cannot live inside the 110px key column -- it would
      stack five words deep and shove the value away from the label it belongs to. */
   .cd-frow{display:flex;flex-direction:column;padding:8px 0;border-bottom:1px solid var(--l-bg-2);box-sizing:border-box;width:100%}
-  .cd-fline{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;width:100%}
+  .cd-fline{display:flex;justify-content:space-between;align-items:baseline;gap:16px;width:100%}
   .cd-frow:last-child{border-bottom:none}
-  .cd-fk{color:var(--l-txt-3);font-size:12px;width:110px;flex-shrink:0;word-break:break-word}
-  .cd-fv{font-family:var(--mono);color:var(--l-txt);font-size:11px;text-align:right;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere}
+  .cd-fk{color:var(--l-txt-3);font-size:12px;flex:0 0 auto;max-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cd-fv{font-family:var(--mono);color:var(--l-txt);font-size:11px;text-align:right;margin-left:auto;flex:1 1 auto;min-width:0;overflow-wrap:anywhere;text-wrap:pretty}
 
   /* positioning compare bars */
   .pos-row{margin-bottom:13px}

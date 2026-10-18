@@ -133,7 +133,6 @@ def build_tenders(database):
             })
 
         actions = [{"do": m.get("action_text"), "due": m.get("due_date")} for m in ordered(moves.get(tid, []), "sequence")]
-        lo, hi = fit.get("revenue_estimate_min"), fit.get("revenue_estimate_max")
         kssl_fit = first_nonempty(row, "kssl_fit") or fit.get("kssl_fit")
         revenue_text = first_nonempty(row, "expected_revenue_text") or fit.get("revenue_estimate_text")
         quantity = row.get("quantity")
@@ -163,7 +162,6 @@ def build_tenders(database):
             "clientFit": kssl_fit,
             "revenueEstimate": revenue_text,
             "expectedRevenue": revenue_text,
-            "revenueMid": (lo + hi) / 2 if lo is not None and hi is not None else None,
             "lean": row.get("lean_code"),
             "leanTxt": row.get("lean_text"),
             "competitorFit": competitor_fit,

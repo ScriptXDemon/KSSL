@@ -76,7 +76,7 @@ class TableRules:
         return not (self.loader_only)
 
 
-RULE_KEYS = ("required", "max", "enum", "enum_from", "type", "judgement", "from_ref", "plain", "unknown_when_empty")
+RULE_KEYS = ("required", "max", "enum", "enum_from", "type", "judgement", "from_ref", "plain", "unknown_when_empty", "trim")
 PLAIN_MODES = ("warn", "strict", "off")
 
 # Hard limits of the fixed at-a-glance fields (Fable A.1.2): applied when a prompt does not set its own `max` / `enum`.
@@ -101,6 +101,8 @@ def _rule_maps(spec: dict, into: dict) -> dict:
         into.setdefault(n, {})["required"] = True
     for n in spec.get("judgement") or []:
         into.setdefault(n, {})["judgement"] = True
+    for n in spec.get("trim") or []:
+        into.setdefault(n, {})["trim"] = True
     for rule in ("enum", "max", "type", "from_ref", "enum_from"):
         for n, v in (spec.get(rule) or {}).items():
             into.setdefault(n, {})[rule] = v
@@ -295,7 +297,12 @@ def _check_value(col: str, v: Any, rule: dict, enums: dict) -> Any:
     except ValueError as e:
         raise RowRejected(f"{col}: {e}") from None
     if rule.get("max") and isinstance(v, str) and len(v) > int(rule["max"]):
-        raise RowRejected(f"{col} is {len(v)} characters, max {rule['max']}")
+        if rule.get("trim"):                       # `trim: true`: a short descriptive field is cut at the last sentence end / word that fits, not rejected
+            cut = v[: int(rule["max"])]
+            end = max(cut.rfind(". "), cut.rfind("; "))
+            v = (cut[: end + 1] if end >= int(int(rule["max"]) * 0.5) else cut.rsplit(" ", 1)[0]).rstrip(" ,;:-")
+        else:
+            raise RowRejected(f"{col} is {len(v)} characters, max {rule['max']}")
     return v
 
 
@@ -404,6 +411,14 @@ def validate_rec(raw: dict, rules: TableRules, path: str, warn: list, rejected: 
         values, kids = raw, raw.get("children") or {}
     if not isinstance(values, dict):
         raise RowRejected("values is not an object")
+    if rules.children and isinstance(kids, dict):
+        # a model that writes a child table's rows as a plain key of the parent (instead of under "children") is read as meant: this was the
+        # geo prompt's nesting trap (products carried "competitive_geo_source": [...] and were all rejected)
+        moved = {k: v for k, v in values.items() if k in rules.children and isinstance(v, list)}
+        if moved:
+            values = {k: v for k, v in values.items() if k not in moved}
+            kids = {**moved, **kids}
+            warn.append(f"{path}: child rows written as columns ({', '.join(moved)}) were moved under children")
     refs_in = rules.refs
     for k in values:
         if k in META_KEYS or k == "children":
@@ -443,7 +458,13 @@ def validate_rec(raw: dict, rules: TableRules, path: str, warn: list, rejected: 
             v = _check_value(r, values.get(r), {}, enums)
             if v is not None:
                 refs[r] = (r, str(v))
-    reasons = {c: r.strip() for c, r in (values.get("_reason") or {}).items() if isinstance(r, str) and r.strip()}
+    raw_reason = values.get("_reason")
+    if not isinstance(raw_reason, dict):         # a model that answers "_reason": "text": kept for the record's one judgement column, else ignored
+        one = [c for c, r in rules.columns.items() if r.get("judgement") and c in out]
+        if raw_reason:
+            warn.append(f"{path}._reason is not an object" + ("; used for " + one[0] if isinstance(raw_reason, str) and len(one) == 1 else "; ignored"))
+        raw_reason = {one[0]: raw_reason} if isinstance(raw_reason, str) and len(one) == 1 else {}
+    reasons = {c: r.strip() for c, r in raw_reason.items() if isinstance(r, str) and r.strip()}
     sources = _sources(values.get("_sources"), path, warn)
     for col, rule in {**rules.columns, **rules.transient}.items():
         key = rule.get("from_ref") or col
@@ -482,8 +503,13 @@ def validate_rec(raw: dict, rules: TableRules, path: str, warn: list, rejected: 
 def validate(env: dict, prompt_id: str, output: dict, enums: dict | None = None) -> Validated:
     """Envelope -> Validated. Raises EnvelopeError when the envelope itself is unusable."""
     enums = enums or {}
+    wrong_id = None
     if env.get("prompt_id") != prompt_id:
-        raise EnvelopeError(f"prompt_id is {env.get('prompt_id')!r}, expected {prompt_id!r}")
+        got = str(env.get("prompt_id") or "")
+        if got in output or any(got.startswith(n) for n in (prompt_id, *output)):   # a table name of this prompt, or the id / a table
+            wrong_id = got                          # name with a suffix ("competitive_project_IDV", $1.39 lost 2026-10-18): harmless, noted
+        else:
+            raise EnvelopeError(f"prompt_id is {env.get('prompt_id')!r}, expected {prompt_id!r}")
     skip = env.get("skip_reason")
     skip = skip.strip() if isinstance(skip, str) and skip.strip() else None
     recs_in = env.get("records")
@@ -493,6 +519,8 @@ def validate(env: dict, prompt_id: str, output: dict, enums: dict | None = None)
         raise EnvelopeError("records is not a list")
     v = Validated(skip, [], not_found=[str(x) for x in env.get("not_found") or []],
                   conflicts=env.get("conflicts") if isinstance(env.get("conflicts"), list) else [])
+    if wrong_id:
+        v.warnings.append(f"prompt_id was {wrong_id!r} (a table name), accepted as {prompt_id!r}")
     if skip and recs_in:
         v.warnings.append("skip_reason given together with records: records used")
     for i, raw in enumerate(recs_in):

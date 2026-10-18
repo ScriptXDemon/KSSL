@@ -9,7 +9,7 @@ never a guessed value. Judgement fields that MAPPING marks not-shipped are not s
 ui.section_visibility (parallax read, strategic positioning, swot, stock) are served; the UI gates them.
 
 Enumerations the UI expects (stored values, compared case-insensitively; anything else is shown as stored):
-  competitive_signal.classification / competitive_competitor.threat_level : threat | watch | fav
+  competitive_signal.classification : threat | watch | none (rule s2: none is not shipped); competitive_competitor.threat_level : threat | watch | fav
   competitive_signal_evidence.evidence_group : fact (At a glance rows: label/value, quote = tooltip)
                                                | key_point (Key points bullet = value)
                                                | source (extra source chip: label + source_url)
@@ -20,6 +20,7 @@ Enumerations the UI expects (stored values, compared case-insensitively; anythin
   competitive_competitor_swot.swot_type      : strength | weakness (opportunity / threat rows are not read)
 """
 
+import re
 from collections import defaultdict
 from typing import Any
 
@@ -144,6 +145,9 @@ def build_competitors(database):
             "company_size": first_nonempty(row, "employee_count_text", "employee_count"),
             "sales": _sales(row),
             "revenue_filter": row.get("revenue_tier"),
+            # spec test by code (prompts/derive_comp.py qualify_competitors): same product line AND same market
+            "qualifies": row.get("qualifies"),
+            "qualificationReason": row.get("qualification_reason"),
             "global_locations": [l.get("location_name") for l in locations.get(cid, []) if l.get("location_name")],
             "ticker": tickers.get(cid),
             "leadership": leaders.get(cid, []),
@@ -228,7 +232,89 @@ def evidence_parts(rows):
 
 
 GLANCE = (("glance_who", "Who"), ("glance_move", "Move"), ("glance_where", "Where"),
-          ("glance_impact", "Impact on KSSL"), ("glance_third_party", "Third party"), ("glance_when", "When"))
+          ("glance_impact", "Impact on {client}"), ("glance_third_party", "Third party"), ("glance_when", "When"))
+
+
+def visible_database(database: dict) -> dict:
+    """The tables the dataset is built from, with every competitor that does not qualify taken out (user decision 2026-10-18: the UI
+    shows only competitors with competitive_competitor.qualifies = true, plus the client; NULL = not testable = hidden too). The
+    database keeps every row: this is a view, and a competitor that starts to qualify appears on the next dataset.
+    Removed: rows that name a hidden competitor by id (competitor_id, or company_id of a signal), every row hanging off a removed row
+    (review.GRAPH child -> parent links, transitively: products, specs, matchups, signals, partnerships, projects, patents, stories,
+    moves ...), rival rows that name one by name (tender competitor fit, opportunity rivals), technology companies of that name and
+    the articles they lead; a rival_to_beat / rival_display / selected_competitor_id naming one is emptied."""
+    from backend.review import ALT_KEY, GRAPH
+    from prompts.derive_comp import norm_org
+
+    serving, ui = database.get("serving", {}), database.get("ui", {})
+    comps = serving.get("competitive_competitor", [])
+    hidden = {text(r.get("competitor_id")) for r in comps if r.get("qualifies") is not True}
+    if not hidden:
+        return database
+    names = {norm_org(r.get(k)) for r in comps if text(r.get("competitor_id")) in hidden
+             for k in ("display_name", "short_name", "legal_name") if r.get(k)} - {""}
+    # + every name the news job matches for the company (db/news_aliases.csv: search name, aliases, conditional acronyms such as
+    # "HII"), so a technology company stored as "HII" is the same company as "Huntington Ingalls Industries"
+    from backend.news import subject_for
+    for r in comps:
+        if text(r.get("competitor_id")) in hidden:
+            sub = subject_for(text(r.get("competitor_id")), r.get("display_name") or "", r.get("legal_name") or "", r.get("short_name") or "")
+            names |= {norm_org(n) for n in (*sub.names, *(a for a, _ in sub.cond))} - {""}
+    # an alias shared with a company that IS shown is ambiguous ("KNDS" = KNDS Germany, but also "Nexter (KNDS France)"): not used
+    shown = set()
+    for r in comps:
+        if text(r.get("competitor_id")) not in hidden:
+            for v in (r.get("display_name"), r.get("short_name"), r.get("legal_name")):
+                shown |= {norm_org(v)} | {norm_org(x) for x in re.findall(r"\(([^)]*)\)", str(v or ""))}
+    shown -= {""}
+    names = {h for h in names if not any(q == h or q.startswith(h + " ") for q in shown)}
+
+    def named(v) -> bool:                    # the text (or its bracketed part: "HII (Huntington Ingalls Industries)") is or starts with a hidden name
+        parts = [norm_org(v)] + [norm_org(x) for x in re.findall(r"\(([^)]*)\)", str(v or ""))]
+        return any(n and (n == h or n.startswith(h + " ")) for n in parts for h in names if len(h) >= 3)
+
+    key_of = lambda t: ALT_KEY.get(t) or (GRAPH.get(t) or (None,))[0]  # noqa: E731
+    gone: dict = {"competitive_competitor": set(hidden)}
+    NAME_ROWS = {"market_tender_competitor_fit": "competitor_name", "market_opportunity_fit_assessment": "rival_name"}
+    tech_hidden = {text(r.get("company_id")) for r in serving.get("technology_company", []) if named(r.get("display_name"))}
+    gone["technology_company"] = tech_hidden
+
+    def direct(t, r) -> bool:
+        return (text(r.get("competitor_id")) in hidden
+                or (t == "competitive_signal" and text(r.get("company_id")) in hidden)
+                or (t in NAME_ROWS and named(r.get(NAME_ROWS[t])))
+                or (t in ("technology_overview_company", "technology_innovation_company") and text(r.get("company_id")) in tech_hidden)
+                or (t == "technology_overview_article" and text(r.get("primary_company_id")) in tech_hidden))
+
+    out = {t: list(rows) for t, rows in serving.items()}
+    changed = True
+    while changed:                           # cascade until no table loses another row
+        changed = False
+        for t, rows in out.items():
+            parents = [(fk, p) for fk, p in (GRAPH.get(t) or (None, None, []))[2] if gone.get(p)]
+            keep, drop = [], []
+            for r in rows:
+                (drop if direct(t, r) or any(text(r.get(fk)) in gone[p] for fk, p in parents) else keep).append(r)
+            if drop:
+                k = key_of(t)
+                if k:
+                    gone.setdefault(t, set()).update(text(r.get(k)) for r in drop)
+                out[t] = keep
+                changed = True
+    for t in ("market_top_opportunity_tender", "market_top_opportunity_project"):
+        out[t] = [{**r, "rival_to_beat": None} if named(r.get("rival_to_beat")) else r for r in out.get(t, [])]
+    ui_out = {}
+    for t, rows in ui.items():
+        rows = [r for r in rows if text(r.get("competitor_id")) not in hidden]
+        ui_out[t] = [{**r, **{c: None for c in ("rival_display",) if named(r.get(c))},
+                      **{c: None for c in ("selected_competitor_id",) if text(r.get(c)) in hidden}} for r in rows]
+    return {**database, "serving": out, "ui": ui_out}
+
+
+def client_of(database) -> str | None:
+    """client_account.client_name of the (single) client row; None when the table is empty."""
+    rows = table(database, "serving", "client_account")
+    return rows[0].get("client_name") if rows else None
 
 
 def signal_v2(database, row, det, labels, steps_by, stories, news_by, products):
@@ -236,11 +322,14 @@ def signal_v2(database, row, det, labels, steps_by, stories, news_by, products):
     if row.get("probability") is None:
         return {}
     lab = lambda col, code, t="competitive_signal": labels.get((t, col, text(code))) or code  # noqa: E731
+    client = client_of(database)
     story_id = text(row.get("story_id"))
     story = stories.get(story_id) or {}
     return {
         "v2": True,
-        "glance": [[name, det.get(col)] for col, name in GLANCE if det and det.get(col)],
+        # the client is named from client_account, never typed (no client row: the label carries no name)
+        "glance": [[name.format(client=client) if client else name.replace(" on {client}", ""), det.get(col)]
+                   for col, name in GLANCE if det and det.get(col)],
         "story": {
             "title": story.get("title"),
             "label": lab("label_after", story.get("current_label"), "story_step"),
@@ -285,6 +374,8 @@ def build_signals(database, competitors, details):
         company_id = text(row.get("company_id"))
         company = (competitors.get(company_id) or {}).get("name")
         classification = row.get("classification")
+        if lower(classification) == "none":     # rule s2: happened already, low impact -- stored (stories, Trace), not on the overview
+            continue
         det = detail_rows.get(sid)
         facts, points, extra = evidence_parts(evidence.get(sid, []))
         url = det.get("source_url") if det else None
@@ -306,7 +397,7 @@ def build_signals(database, competitors, details):
             "url": url,
             "image": row.get("thumbnail_url"),
             # ponytail: risk = probability x impact (1-25), the threat sort key
-            "risk": (row.get("probability") or 0) * (row.get("impact") or 0) or None,
+            "risk": row["probability"] * row["impact"] if row.get("probability") is not None and row.get("impact") is not None else None,
             # the threat tie-breaks after risk: sooner effect, then in a client market (the matrix itself is backend-only)
             "timeToEffect": row.get("time_to_effect"),
             "inClientMarket": row.get("in_client_market"),

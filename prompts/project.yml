@@ -1,10 +1,12 @@
 id: project
 title: Defence projects of one competitor (each programme as a dated, sourced timeline)
-version: 2
+version: 3
 fills: [competitive_project, competitive_project_source, competitive_project_specification, competitive_project_stage, competitive_project_timeline]
 shows_on: "Projects page (feed; drawer with facts, stage stepper, specs, timeline of dated sourced steps, strategic assessment, KSSL option, sources)"
 cadence: quarterly
 web_search: true                 # programme facts are rarely in the news rows
+# v3 (2026-10-18, competitive audit; user rule s2 "threat / watch only"): assessment_stance is threat | watch (no fav); only competitors that
+#    qualify (competitive_competitor.qualifies, the only ones the UI shows) are subjects.
 # v2 (prompt rebuild, docs/audit_v2/PROMPT_LOGIC_FABLE_REVIEW.md A.1.8, C "project.yml (v2)"; user brief section 7):
 #  - a project is a story: derive.project_story writes staging.story + story_step from the timeline events (date, what changed, source,
 #    stage after the step), so a later article can add a step instead of a new card
@@ -22,6 +24,7 @@ subject:
            (SELECT string_agg(f.filter_code || ' = ' || f.filter_label, '; ' ORDER BY f.display_order)
               FROM staging_ui.ui_project_filter f) AS region_filters
     FROM staging.competitive_competitor c
+    WHERE c.qualifies IS TRUE        -- the UI shows only qualifying competitors (backend/areas/a_competitive.visible_database)
     ORDER BY (SELECT count(*) FROM staging.source_document d WHERE c.competitor_id = ANY(d.competitor_ids)
                 AND (coalesce((d.triage->'info'->>'deal')::numeric, 0) >= 0.6 OR d.triage->'route' ? 'project')) DESC,
              c.display_name
@@ -50,7 +53,7 @@ subject:
         JOIN staging.client_product_specification s ON s.client_product_id = p.client_product_id
         ORDER BY p.product_name, s.display_order
 
-context: [client, client_portfolio, client_markets, client_partners]
+context: [client, client_products, client_portfolio, client_markets, client_partners]
 
 task: |
   TASK project — list the defence projects of {{subject.display_name}} ({{subject.origin_country}}) as programmes with a dated,
@@ -63,7 +66,7 @@ task: |
 
   Per project, one record, table competitive_project:
    - project_title: the programme or contract name as written in the main source (max 200)
-   - kind: short type as the source describes it (e.g. development, production contract, upgrade), max 64 characters
+   - kind: short type as the source describes it (e.g. development, production contract, upgrade), at most 60 characters
    - customer: the customer or end user as written
    - location: where the work is done or delivered (plant, city, country), as stated
    - region: JUDGEMENT. One filter_code from REGION FILTERS (left of the "="), chosen by its label; null if none fits
@@ -72,8 +75,7 @@ task: |
    - card_summary: one plain sentence, max 200 characters, what the project is
    - what_the_project_is: 2-4 plain sentences: objective, system, quantity, customer, as stated
    - assessment_stance: JUDGEMENT. threat if the project directly strengthens the competitor with customers {{client.name}} sells to
-     (CLIENT MARKETS) in a sub-type where {{client.name}} has a product (CLIENT PORTFOLIO); fav if it weakens the competitor or opens
-     ground for {{client.name}}; watch otherwise. Allowed: threat | watch | fav
+     (CLIENT MARKETS) in a sub-type where {{client.name}} has a product (CLIENT PORTFOLIO); watch otherwise. Allowed: threat | watch
    - assessment_read: JUDGEMENT. 2-4 plain sentences: what the project means for {{client.name}}, naming the {{client.name}} product,
      market or partner it touches. If none is touched, write exactly: "No KSSL product, market or partner is touched by this project."
    - kssl_option: JUDGEMENT. What {{client.name}} can do about this project: compete (a {{client.name}} product could bid for the same
@@ -109,6 +111,8 @@ task: |
   STAGE STEPS: {{subject.stage_steps}}
   REGION FILTERS: {{subject.region_filters}}
   CLIENT: {{context.client}}
+  CLIENT PRODUCTS (names, for ref_client_product):
+  {{context.client_products}}
   CLIENT PORTFOLIO ("category > sub_type: product (calibre; weight class; key specs)"):
   {{context.client_portfolio}}
   CLIENT MARKETS (countries where {{client.name}} sells, makes, has offered, or has a partner or customer):
@@ -125,15 +129,15 @@ output:
     key: [prompt_id, subject, project_title]
     columns:
       project_title: {required: true, max: 200}
-      kind: {max: 64}
+      kind: {max: 64, trim: true}
       customer: {}
       location: {}
       region: {judgement: true, enum_from: ui.ui_project_filter.filter_code}     # coupling: filter_code must equal region
       stage: {required: true, judgement: true, enum_from: ui.ui_project_stage_step.stage_name}
       stage_note: {plain: warn}
-      card_summary: {max: 200, plain: warn}
+      card_summary: {max: 200, plain: warn, trim: true}
       what_the_project_is: {required: true, plain: strict}
-      assessment_stance: {required: true, judgement: true, enum: [threat, watch, fav]}
+      assessment_stance: {required: true, judgement: true, enum: [threat, watch]}     # threat / watch only (rule s2)
       assessment_read: {judgement: true, plain: strict}
       kssl_option: {judgement: true, enum: [compete, partner, supply, none, unknown]}
       kssl_platform: {from_ref: ref_client_product, judgement: true}   # product_name text of the referenced client product
@@ -175,4 +179,5 @@ output:
           is_current: stage_name_equals_project_stage
 
 derive:
+  - sources_filter          # drop what rests on a blocked source (wiki, blog, forum, social media, wire, aggregator)
   - project_story            # story + dated sourced steps from the timeline events

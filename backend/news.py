@@ -645,8 +645,9 @@ def parse_page(html_text: str, base: str) -> PageInfo:
         types = t if isinstance(t, list) else [t]
         if any(isinstance(x, str) and ("Article" in x or x == "BlogPosting") for x in types):
             cands += [[u, w] for u, w in _ld_images(o.get("image"))]
-            if not info.published and isinstance(o.get("datePublished"), str):
-                info.published = o["datePublished"]
+            for key in ("datePublished", "dateCreated"):     # dateCreated: Joomla sites (armyrecognition) write no datePublished
+                if not info.published and isinstance(o.get(key), str):
+                    info.published = o[key]
             if not info.site_name and isinstance(o.get("publisher"), dict):
                 info.site_name = o["publisher"].get("name") or ""
     cands += [[h, 0] for r, h in p.links if "image_src" in r]
@@ -1718,6 +1719,9 @@ def _selftest():
     assert R.search == "Raytheon" and R.hit("Raytheon wins Patriot order") and not R.hit("Collins Aerospace wins seats contract") \
         and not R.hit("Pratt & Whitney GTF engine issue") and not R.hit("RTX GeForce launch")                                  # 7
     assert "hanwha.com" in H.domains and "larsentoubro.com" in L.domains and "adanidefence.com" in A.domains
+    # JSON-LD dateCreated when there is no datePublished (armyrecognition)
+    assert parse_page('<script type="application/ld+json">{"@type":"NewsArticle","dateCreated":"2026-08-09T10:00:00Z"}</script>',
+                      "https://z.test/a").published.startswith("2026-08-09")
     print("selftest ok")
 
 
