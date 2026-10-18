@@ -8,7 +8,7 @@
     "dev:review": "vite --mode review",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test test_*.mjs src/lib/*.test.mjs"
+    "test": "node --test tests/unit/*.mjs src/lib/*.test.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

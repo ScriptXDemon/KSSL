@@ -7,6 +7,19 @@ blob. Everything downstream of the fetch — the 35-global wiring in
 `src/lib/dataset.js`, hash routing (`#p=...&v=...`), localStorage route restore,
 and the ErrorBoundary around the app and the detail panel — is unchanged.
 
+## Layout
+
+    src/              React UI (pages, components, lib)          index.html, vite.config.js
+    backend/          FastAPI app (app.py, areas/), harvesters, routine.py (the scheduled flow), loaders
+    prompts/          one <id>.yml per prompt + its handler .py; run.py / render.py / loader.py run them
+    db/               make_*.sh, setup/ (numbered DDL), migrations/, schema/ (base schema), test seeds, sync + publish scripts
+    deploy/           Dockerfiles, docker-compose.yml, deploy_vps.sh
+    scripts/          one-off tools (fx rates, flood runner, build_html, ui_audit); scripts/checks/ = static checks
+    tests/            unit/ (node --test, hermetic) and e2e/ (Playwright)
+    fixtures/         kssl_dataset.json, the test dataset
+    docs/             design notes, prompt docs, schema/ (the source schema .docx)
+    routines/         Windows scheduled-task setup (DB tunnel, news and research sets)
+
 ## Dev
 
     npm install
@@ -49,17 +62,17 @@ Audits, rules, plan and answers: `docs/audit_v2/`.
 
 Everything runs from the repo root. The unit tests are hermetic; the browser tests need the throwaway test pair.
 
-    npm test                                   # node --test test_*.mjs src/lib/*.test.mjs (hermetic, reads fixtures/kssl_dataset.json)
+    npm test                                   # node --test tests/unit/*.mjs src/lib/*.test.mjs (hermetic, reads fixtures/kssl_dataset.json)
 
 Static checks (each exits 0 when clean):
 
-    node check_contract.mjs fixtures/kssl_dataset.json   # the dataset carries every global of docs/ui_port/MAPPING.md A with its container type
-    node check_data.mjs fixtures/kssl_dataset.json       # market and profile self-checks over the wired dataset
-    node check_no_genset.mjs                             # no genset-specific code or words, and no reference-client name, in src/ index.html public/
-    npm run build && node check_no_fabrication.mjs       # no browser-invented values in dist/ (run AFTER the build)
-    node check_no_undefined_names.mjs                    # no reference to an undefined name
-    node check_no_control_bytes.mjs                      # no stray control bytes (a "\b" eaten into 0x08)
-    node check_no_emoji.mjs
+    node scripts/checks/check_contract.mjs fixtures/kssl_dataset.json   # the dataset carries every global of docs/ui_port/MAPPING.md A with its container type
+    node scripts/checks/check_data.mjs fixtures/kssl_dataset.json       # market and profile self-checks over the wired dataset
+    node scripts/checks/check_no_genset.mjs                             # no genset-specific code or words, and no reference-client name, in src/ index.html public/
+    npm run build && node scripts/checks/check_no_fabrication.mjs       # no browser-invented values in dist/ (run AFTER the build)
+    node scripts/checks/check_no_undefined_names.mjs                    # no reference to an undefined name
+    node scripts/checks/check_no_control_bytes.mjs                      # no stray control bytes (a "\b" eaten into 0x08)
+    node scripts/checks/check_no_emoji.mjs
 
 ### The test pair and the two Playwright configs
 

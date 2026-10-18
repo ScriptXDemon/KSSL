@@ -18,7 +18,7 @@ build() {  # build <db> <setup sql>
     else
         echo "creating $1"
         "${PSQL[@]}" -d postgres -c "CREATE DATABASE $1"
-        "${PSQL[@]}" -d "$1" < kssl_schema_from_docx.sql
+        "${PSQL[@]}" -d "$1" < db/schema/kssl_schema_from_docx.sql
         "${PSQL[@]}" -d "$1" < db/setup/02_fix_id_types.sql
     fi
     "${PSQL[@]}" -d "$1" < "$2"
