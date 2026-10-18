@@ -424,7 +424,7 @@ export function buildProfile(d, cid) {
    builder that only ever ran on the first company would pass every one of them. */
 export function profileSelfCheck(d) {
   const roster = rosterOf(d);
-  if (!roster.length) throw new Error("profile: empty roster");
+  if (!roster.length) return; // an empty database is a valid state (nothing approved yet), not a broken roster
   const clientCid = (d.client && d.client.id);
   if (roster.some((r) => r.cid === clientCid))
     throw new Error("profile: the client is listed as its own competitor");
