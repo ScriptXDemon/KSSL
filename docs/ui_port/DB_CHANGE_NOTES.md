@@ -155,13 +155,17 @@ Done:
    or date-classed element, URL date; future / pre-2000 dates ignored; only NULLs written). Now 338 of 474 dated.
 3. **Backend** (`backend/areas/a_competitive.py`): card `ago` = `published_date`; the event date ships as `eventDate`.
 
-Still undated (136), left NULL on purpose ("date not known", nothing guessed):
-- 51 signals whose `source_url` is a brahmos.com "BrahMos in media" listing page, not the article -> the signal prompt
-  should store the article URL;
-- 38 knds.com releases (the page carries no per-article date; its page-data `publishedAt` is the site settings' date);
-- the rest: pages that state no date or could not be fetched.
+Follow-up done by the prompts lane (kssl-52, 2026-10-18): the loader writes `published_date` (loader token
+`article_published_date`: `source_document.published_at` for the article URL, else the subject's own date; future dates
+dropped; else NULL) and `signal.yml` maps it; the harvester reads date-classed elements and labelled dates
+(`<b>Date:</b> 27 Apr, 2022`), and `backend/news.py` falls back to JSON-LD `dateCreated`. brahmos.com
+`brahmos-in-media/N` pages are the articles' own reprint pages (not listings): 53 brahmos + 1 geaerospace dated from their
+`Date:` label. **Now 392 of 474 dated.**
 
-Still to do (other lane): the loader (`prompts/loader.py`) should set `published_date` from `source_document.published_at`
-when it writes a signal, and the harvester should read the date markers above when it stores a page (hanwha.com's
-`<span class="date">`, JSON-LD `dateCreated`), so new signals arrive dated. Already-approved live cards show as
-"changed" in review until re-approved with the new column.
+Still undated (82), left NULL on purpose ("date not known", nothing guessed): 38 knds.com releases (no per-article date
+on the page; its page-data `publishedAt` is the site settings' date), 11 signals with no source URL, and pages that state
+no date or could not be fetched.
+
+Open question: 60 dated cards are older than a year (all 53 brahmos pieces date 2006-2025: archive reprints). With the
+card date now the publication date they read as years old; an age cut on the overview (or a lower sequence) is a
+product decision, not made here.
