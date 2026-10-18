@@ -11,7 +11,9 @@ backfill; this script handles the signals whose article record has no date. It r
      date, dc.date.issued, citation_publication_date, parsely-pub-date, sailthru.date, itemprop=datePublished)
   3. a <time datetime> marked as the publication time, or an element whose class/itemprop names a date
      ("date", "publish", "posted") -- never one named "modified"/"updated" -- whose text is a full date
-  4. a /YYYY/MM/DD/ (or YYYY-MM-DD) date in the URL
+  4. an element holding nothing but a date, within 1500 characters after the page's first title heading (MBDA)
+  5. a press-release dateline, "Lucknow, June 03, 2022:" (place, comma, full date, colon)
+  6. a /YYYY/MM/DD/ (or YYYY-MM-DD, or an ANI-style YYYYMMDDhhmmss timestamp) date in the URL
 A page with none of these keeps NULL ("date not known"): nothing is guessed. A date in the future or before 2000 is
 ignored. Only NULL values are ever written.
 """
@@ -86,28 +88,56 @@ def from_markup(html):
                 return parse_date(dt.group(1))
     for m in re.finditer(r'<(\w+)\b[^>]*(?:class|itemprop)\s*=\s*["\']([^"\']*)["\'][^>]*>([^<]{4,60})</\1>', html, re.I):
         name, text = m.group(2).lower(), m.group(3)
-        if re.search(r"\b(date|publish\w*|posted|pubdate|datepublished)\b", name) and not re.search(r"modif|updat", name):
-            if parse_date(text):
+        whole = re.fullmatch(r"\s*%s\s*" % FULL_DATE, text)   # "meta_date" holding only a date; not "(Dated: ...)" boxes
+        if (re.search(r"\b(date|publish\w*|posted|pubdate|datepublished)\b", name)
+                or (whole and re.search(r"_(date|published|posted)$", name))) and not re.search(r"modif|updat", name):
+            if parse_date(text) and parse_date(text) != date.today():   # today = the site header's clock, not the article
                 return parse_date(text)
     return None
 
 
+FULL_DATE = r"(?:[A-Za-z]{3,9}\.? \d{1,2},? \d{4}|\d{1,2} [A-Za-z]{3,9},? \d{4}|\d{4}-\d{2}-\d{2})"
+
+
+def from_header(html):
+    """An element holding nothing but a date, right under the page's first title heading (MBDA's date pill)."""
+    m = re.search(r"<(h[12])\b[^>]*>([^<]{20,300})</\1>", html, re.I)
+    if not m:
+        return None
+    d = re.search(r">\s*(%s)\s*<" % FULL_DATE, html[m.end():m.end() + 1500])
+    return parse_date(d.group(1)) if d else None
+
+
+def from_dateline(html):
+    """A paragraph that opens with a press-release dateline: "Lucknow, June 03, 2022: ..."."""
+    m = re.search(r"<p\b[^>]*>(?:\s|<[^>]+>)*[A-Z][A-Za-z .]{2,30}, (%s)\s*:" % FULL_DATE, html)
+    return parse_date(m.group(1)) if m else None
+
+
 def from_url(url):
-    m = re.search(r"/(20\d{2})/(\d{1,2})/(\d{1,2})(?:/|$|[-_])", url) or re.search(r"(20\d{2})-(\d{2})-(\d{2})", url)
+    m = (re.search(r"/(20\d{2})/(\d{1,2})/(\d{1,2})(?:/|$|[-_])", url) or re.search(r"(20\d{2})-(\d{2})-(\d{2})", url)
+         or re.search(r"(20\d{2})(\d{2})(\d{2})\d{6}(?:$|[/?#])", url) or re.search(r"/(20\d{2})(\d{2})(\d{2})-", url))
     if not m:
         return None
     return parse_date("-".join(m.groups()))
 
 
+PAGES = {}   # url -> html fetched by a real browser (--pages), for sites that refuse a plain request
+
+
 def find_date(url):
     """(date, how) or (None, reason)."""
-    try:
+    if PAGES.get(url):
+        html = PAGES[url]
+    else:
+      try:
         with urlopen(Request(url, headers={"User-Agent": UA, "Accept-Language": "en"}), timeout=25) as r:
             html = r.read(1_500_000).decode(r.headers.get_content_charset() or "utf-8", "replace")
-    except Exception as exc:  # noqa: BLE001
+      except Exception as exc:  # noqa: BLE001
         v = from_url(url)
         return (v, "url") if v else (None, f"fetch failed: {type(exc).__name__}")
-    for how, fn in (("json-ld", from_jsonld), ("meta", from_meta), ("markup", from_markup)):
+    for how, fn in (("json-ld", from_jsonld), ("meta", from_meta), ("markup", from_markup),
+                    ("header", from_header), ("dateline", from_dateline)):
         v = fn(html)
         if v:
             return v, how
@@ -118,7 +148,10 @@ def find_date(url):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true")
+    ap.add_argument("--pages", help="JSON {url: {html}} from scripts/browser_pages.mjs, for sites that block plain requests")
     args = ap.parse_args()
+    if args.pages:
+        PAGES.update({u: v.get("html") for u, v in json.load(open(args.pages, encoding="utf-8")).items() if v.get("status") == 200})
     dsn = os.environ.get("KSSL_STAGING_DSN")
     if not dsn:
         sys.exit("KSSL_STAGING_DSN is not set")

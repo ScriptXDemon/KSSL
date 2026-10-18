@@ -191,3 +191,31 @@ Prompt/DB side, handed to the prompts lane (**not implemented here**):
 4. Competitor qualification (same product line AND same market) is not tested per company; competitors are the fixed list.
    A stored per-competitor qualification (e.g. `competitive_competitor.qualifies` + reason) and a new-entrant candidate
    list would cover the spec.
+
+## Card dates, second pass (2026-10-18)
+
+`scripts/backfill_published_dates.py` reads three more date places, each checked against the 416 already-dated
+articles before it was trusted:
+- an element holding only a date right under the page's title heading (MBDA's date pill): 97 of 99 agree;
+- a press-release dateline opening a paragraph ("Lucknow, June 03, 2022:"; Adani Defence);
+- URL timestamps `...20260511140100` (ANI) and `/20260615-` (France 24);
+- a `meta_date`-style class holding only a date (chakranewz byline); a date equal to today is ignored (site header
+  clocks gave 2026-10-18 on bharatshakti / globaldefensecorp).
+Sites that refuse a plain request are read in a real browser: `node scripts/browser_pages.mjs urls.txt pages.json`, then
+`--pages pages.json` (aviationweek dated this way; ndtv, naval-technology, airforce-technology, militaryembedded refuse
+the browser too). **20 more dated, now 438 of 474** (NULLs only, local staging).
+
+Left undated on purpose: spslandforces.com prints only "Issue 2 - 2019" (no day or month; the issue page has none either),
+defence-ua.com pages state no date, 2 knds.com news posts, 11 signals with no source URL, the 4 bot-walled sites.
+DB idea, not implemented: a `published_precision` ('day' / 'year') column would let the card show "2019 (Issue 2)".
+
+Note for the prompts lane: the older markup rule disagrees with the stored date on 15 of 66 dated articles (mostly
+today's-date header clocks, fixed above; israeldefense.co.il picks a related item's date). Dates written earlier by that
+rule should be re-checked.
+
+## Tenders: client fit first (2026-10-18)
+
+Frontend only. The Tenders list puts tenders with a stored client fit first (the stored match % else the grade:
+strong > partial > weak), then the nearest deadline (`compareTenders` in `src/lib/tenderRow.js`, test
+`test_tender_order.mjs`). The sort note reads "<client> fit first, then deadline". `ui.market_tenders_view.sort_label`
+is empty in both DBs and the page never read it; if it is ever filled it should carry this wording.

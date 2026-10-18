@@ -249,6 +249,12 @@ export function tenderCardCells(t) {
 const GRADE_CLASS = { strong: "high", partial: "mid", weak: "low" };
 const GRADE_WIDTH = { high: 85, mid: 55, low: 25 };
 const pctClass = (n) => (n >= 75 ? "high" : n >= 50 ? "mid" : "low");
+/* list order: tenders with a stored client fit first (the stored %, else the grade's bar width), then by deadline */
+export function fitRank(t) {
+  const f = tenderFitBar(t);
+  return f.cls ? parseFloat(f.width) : -1;
+}
+export const compareTenders = (a, b) => fitRank(b) - fitRank(a) || (Number(a.dl) || 999) - (Number(b.dl) || 999);
 export function tenderFitBar(t) {
   const m0 = t && Array.isArray(t.matches) ? t.matches[0] : null;
   const pct = m0 && /%/.test(m0.pct || "") ? parseFloat(String(m0.pct).replace(/[^\d.]/g, "")) : NaN;

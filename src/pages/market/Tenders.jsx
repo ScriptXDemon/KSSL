@@ -10,7 +10,7 @@ import { productOwner } from "../../lib/productLink";
 import { srcChips, cssWord } from "../../lib/html";
 import { formatLabel, smartTitleCase } from "../../lib/profile";
 import { facetOptions } from "../../lib/countryFacet";
-import { NOT_ON_RECORD, reqLabel, resolveTenderRow, tenderCardCells, tenderFactRows, tenderFitBar } from "../../lib/tenderRow";
+import { NOT_ON_RECORD, reqLabel, resolveTenderRow, tenderCardCells, tenderFactRows, tenderFitBar, compareTenders } from "../../lib/tenderRow";
 import { Review } from "../../components/review/Review";
 
 const fitClass = (p) => {
@@ -198,9 +198,7 @@ export default function Tenders({ mode = "tender" }) {
 
   const list = useMemo(
     () =>
-      applyFacets(scope, null).sort(
-        (a, b) => (Number(a.dl) || 999) - (Number(b.dl) || 999),
-      ),
+      applyFacets(scope, null).sort(compareTenders),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scope, country, cat, productType],
   );
@@ -385,7 +383,7 @@ export default function Tenders({ mode = "tender" }) {
               "no fit assessment" note below it are cut as redundant noise. Fit is now
               shown per card WHEN a tender carries it, and silent when it does not --
               no list-level placeholder. */}
-          <span className="sortnote">sorted by deadline</span>
+          <span className="sortnote">{clientName} fit first, then deadline</span>
         </div>
         <div id="tp-cards">
           {list.length ? (
