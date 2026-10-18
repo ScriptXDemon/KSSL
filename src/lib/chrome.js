@@ -14,6 +14,8 @@
 /* ---- stances ------------------------------------------------------------------------------------------------ */
 export const STANCES = ["threat", "watch"];
 export const STANCE_WORD = { threat: "Threat", watch: "Watch" };
+/* the competitive overview shows at most this many threats, the riskiest (probability x impact) first */
+export const THREAT_CAP = 10;
 /* the stance filter options, in menu order: [{code, label}] */
 export const STANCE_OPTIONS = STANCES.map((code) => ({ code, label: STANCE_WORD[code] }));
 /* A card's stance, or "": only threat or watch count. Anything else has no stance. */

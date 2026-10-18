@@ -5,6 +5,7 @@ import SignalCard from "../../components/signalCard/SignalCard";
 import DetailPanel from "../../components/detailPanel/DetailPanel";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import TenderCockpit from "../../components/tenderCockpit/TenderCockpit";
+import RiskMatrix from "../../components/riskMatrix/RiskMatrix";
 import FeedFilters from "../../components/subHead/FeedFilters";
 import { useAppState, useHeaderReport, PILLAR_LABEL } from "../../state/AppState";
 import { useData } from "../../state/DataProvider";
@@ -361,6 +362,11 @@ export default function Overview({
           {/* the ranked tenders and the projects to win before they tender, above the evidence feed;
               hidden while filtering or searching and past page 1, so it never pushes results down */}
           {pillarKey === "market" && part !== "feed" && (part === "cockpit" || (!isFiltered && !feedSearchQuery && pageView.page === 1)) ? <TenderCockpit onOpen={openTender} /> : null}
+          {/* the threats on a probability-impact grid, above the list they are numbered in; like the market cockpit it
+              steps aside while filtering or searching and past page 1 */}
+          {pillarKey === "competitive" && !isFiltered && !feedSearchQuery && pageView.page === 1 ? (
+            <RiskMatrix cards={cfg.cards} onSelect={select} />
+          ) : null}
           {part === "cockpit" ? null : (<>
           {isFiltered ? (
             <div className="feed-grp">

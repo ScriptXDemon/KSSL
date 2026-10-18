@@ -174,3 +174,21 @@ source URL, and pages that state no date or could not be fetched.
 Open question: 60 dated cards are older than a year (all 53 brahmos pieces date 2006-2025: archive reprints). With the
 card date now the publication date they read as years old; an age cut on the overview (or a lower sequence) is a
 product decision, not made here.
+
+## 2026-10-18 · Competitive pillar spec: 10-threat cap, risk order, probability-impact matrix; Products revenue filter
+
+Frontend/backend (no table change): the competitive card ships its stored `probability`, `impact`, `time_to_effect`,
+`in_client_market` (`backend/areas/a_competitive.py`); threats are ordered probability x impact, then sooner effect, then in
+a client market (`compareRisk`, `src/lib/overview.js`); at most `THREAT_CAP` = 10 threats are offered on the overview
+(`capThreats`); a 5 x 5 probability-impact matrix sits above the feed, dots numbered as the list
+(`src/components/riskMatrix/RiskMatrix.jsx`). Products always shows the revenue-tier filter (empty -> "No revenue tier on
+record yet").
+
+Prompt/DB side, handed to the prompts lane (**not implemented here**):
+1. Watch is everything not a threat (460); the spec's watch is "not yet materialised, not immediate, may become
+   significant". `derive.signal_label` needs a rule that drops (or does not store) materialised low-impact events.
+2. `signal_label` still emits `fav` (3 rows); the spec has threat and watch only.
+3. No funding indicator (spec: "increase in funding"); the six impact dimensions have none.
+4. Competitor qualification (same product line AND same market) is not tested per company; competitors are the fixed list.
+   A stored per-competitor qualification (e.g. `competitive_competitor.qualifies` + reason) and a new-entrant candidate
+   list would cover the spec.

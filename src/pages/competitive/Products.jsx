@@ -818,23 +818,25 @@ export default function Products() {
               ))}
             </select>
 
-            {/* 3. Revenue Filter -- only when the roster carries a tier to filter on */}
-            {sidebarRevenue.length ? (
-              <select
-                aria-label="Filter companies by revenue"
-                className="mu-fsel"
-                onChange={(e) => setSidebarRevenueFilter(e.target.value)}
-                style={{ width: "100%" }}
-                value={sidebarRevenueFilter}
-              >
-                <option value="all">All revenue tiers ({sidebarRevenue.length})</option>
-                {sidebarRevenue.map((o) => (
+            {/* 3. Revenue Filter -- always under the category filter; with no stored revenue tier it says so */}
+            <select
+              aria-label="Filter companies by revenue"
+              className="mu-fsel"
+              onChange={(e) => setSidebarRevenueFilter(e.target.value)}
+              style={{ width: "100%" }}
+              value={sidebarRevenueFilter}
+            >
+              <option value="all">All revenue tiers ({sidebarRevenue.length})</option>
+              {sidebarRevenue.length ? (
+                sidebarRevenue.map((o) => (
                   <option key={o.v} value={o.v}>
                     {o.l} ({o.n})
                   </option>
-                ))}
-              </select>
-            ) : null}
+                ))
+              ) : (
+                <option disabled value="none">No revenue tier on record yet</option>
+              )}
+            </select>
           </div>
 
           <div className="mu-search">

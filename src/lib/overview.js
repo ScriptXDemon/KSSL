@@ -121,14 +121,28 @@ const bySeq = (a, b) => {
   return x === y ? 0 : x === null ? 1 : y === null ? -1 : x - y;
 };
 
+/* THE RISK ORDER (competitive spec): probability x impact first (card.risk, from the stored scores); on a tie the one that
+   lands sooner (stored time_to_effect), then the one in a client market (stored in_client_market). */
+const TTE_RANK = { lt_1y: 0, "1_3y": 1, gt_3y: 2 };
+const tteOf = (c) => (c && c.timeToEffect in TTE_RANK ? TTE_RANK[c.timeToEffect] : 3);
+const inMarketOf = (c) => (c && String(c.inClientMarket || "").toLowerCase() === "yes" ? 0 : 1);
+export const compareRisk = (a, b) => (b.risk || 0) - (a.risk || 0) || tteOf(a) - tteOf(b) || inMarketOf(a) - inMarketOf(b);
+
+/* At most THREAT_CAP threats are shown (competitive spec): the riskiest by compareRisk; the cards behind them stay on
+   record but are not offered on the overview. Every other card passes through, in its order. */
+export function capThreats(cards, cap) {
+  const top = new Set((cards || []).filter((c) => c && c.dir === "threat").sort(compareRisk).slice(0, cap));
+  return (cards || []).filter((c) => !c || c.dir !== "threat" || top.has(c));
+}
+
 export function compareCards(data) {
   const when = (c) => dateVal(signalDate(c, data));
   return (a, b) =>
     (DIR_RANK[a.dir] === undefined ? 9 : DIR_RANK[a.dir]) -
       (DIR_RANK[b.dir] === undefined ? 9 : DIR_RANK[b.dir]) ||
-    /* card.risk is probability x impact, computed by the backend (a_competitive.signal risk);
-       a sort key only, never shown. Riskier first inside a stance band. */
-    (b.risk || 0) - (a.risk || 0) ||
+    /* card.risk is probability x impact, computed by the backend (a_competitive.signal risk), then sooner effect,
+       then in a client market (compareRisk). Riskier first inside a stance band. */
+    compareRisk(a, b) ||
     when(b) - when(a) ||
     bySeq(a, b);
 }
