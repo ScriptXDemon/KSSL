@@ -132,3 +132,10 @@ DB impact / gaps (**not implemented**):
    so the filter shows "No revenue tier on record yet" until the competitor prompt / Excel load fills it.
 4. `market_tender` / `market_award` stage codes (`need_stated`, `approved_funded`, `rfi`) are displayed as words; a
    stored label column would let the wording be edited without code.
+
+## 2026-10-18 · Competitive overview: story timeline drawn like the Projects timeline
+
+Frontend (`src/components/detailPanel/DetailPanel.jsx`): the signal panel's "Story timeline" uses the Projects timeline
+look (`.pj-time`: dot rail, formatted date, event line, change note in grey, source chip); steps whose stored type is
+"Label change" (a stance moving, not an event) are not listed; "planned" steps read "(expected)". **No table change.**
+Note: story steps with no date print "date not stated" (`story_step` rows without `step_date`); the prompt should date them.

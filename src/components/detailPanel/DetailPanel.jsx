@@ -5,6 +5,8 @@ import { isVisible } from "../../lib/visibility";
 import { articleBullets } from "../../lib/detail";
 import { tenderFactRows, NOT_ON_RECORD } from "../../lib/tenderRow";
 import { srcChips, attr } from "../../lib/html";
+import { formatDate } from "../../utils/formatDate";
+import "../../styles/projects.css";
 import { formatLabel } from "../../lib/profile";
 import { useData } from "../../state/DataProvider";
 import { useAppState } from "../../state/AppState";
@@ -16,6 +18,9 @@ import { STANCE_WORD as DIR_WORD, stanceOf, TENDER_WORD as tenderWord } from "..
    labels its rows by kind rather than by stance (Technology: ADOPTABLE, or nothing for a
    competitor advance) passes it so the panel says what the row says -- not "Watch". An
    empty word draws no pill. Without it, the stance pill as before. */
+/* a story step that only records a stance moving ("Label change" / label_change) is not an event of the story */
+const LABEL_CHANGE = /^\s*label[\s_-]*change\s*$/i;
+
 export default function DetailPanel({ detail, onClose, badge }) {
   const { data } = useData();
   const { jumpTo } = useAppState();
@@ -276,22 +281,27 @@ export default function DetailPanel({ detail, onClose, badge }) {
           </div>
         ) : null}
 
-        {v2 && detail.story && detail.story.steps.length ? (
+        {/* the story timeline, drawn like the Projects timeline: dated steps on a rail, the event, what changed in grey,
+            its source chip; a label change (a stance moving) is not an event of the story and is not listed */}
+        {v2 && detail.story && detail.story.steps.some((s) => !LABEL_CHANGE.test(String(s.type || ""))) ? (
           <div className="ctx-sec">
-            <span className="eyebrow">Story timeline{detail.story.label ? ` · now ${detail.story.label}` : ""}</span>
-            <ol className="cd-timeline">
-              {detail.story.steps.map((s, i) => (
-                <li key={`s-${i}`} className={s.current ? "cur" : ""}>
-                  <span className="tl-d">{s.date || "date not stated"}</span>
-                  <span className="tl-t">{s.type}</span>
-                  <span className="tl-l">
-                    {s.url ? <a href={s.url} rel="noreferrer" target="_blank">{s.line}</a> : s.line}
-                    {s.changed ? <span className="tl-c"> · {s.changed}</span> : null}
-                    {s.label ? <span className="tl-c"> · {s.label}</span> : null}
-                    {s.current ? <span className="tl-c"> · this article</span> : null}
-                  </span>
-                </li>
-              ))}
+            <span className="eyebrow">Timeline</span>
+            <ol className="pj-time">
+              {detail.story.steps.filter((s) => !LABEL_CHANGE.test(String(s.type || ""))).map((s, i) => {
+                const later = /^planned$/i.test(String(s.type || "")) || (/^\d{4}-\d{2}-\d{2}/.test(String(s.date || "")) && new Date(s.date) > new Date());
+                return (
+                  <li className={later ? "next" : ""} key={`s-${i}`}>
+                    <span className="pj-d">{/^\d/.test(String(s.date || "")) ? formatDate(s.date) : s.date || "date not stated"}</span>
+                    <span className="pj-e">
+                      {s.current ? <b>{s.line}</b> : s.line}
+                      {later ? " (expected)" : ""}
+                      {s.changed ? <span className="pj-note"> {s.changed}</span> : null}
+                      {s.current ? <span className="pj-note"> This article.</span> : null}
+                      {s.url ? <span dangerouslySetInnerHTML={{ __html: " " + srcChips([{ label: "Source", url: s.url }]) }} /> : null}
+                    </span>
+                  </li>
+                );
+              })}
             </ol>
           </div>
         ) : null}
