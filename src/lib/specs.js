@@ -68,21 +68,13 @@ function specRow(s, compName) {
   const axisMax = Math.max(cn, kn, 0.0001); // 100% baseline for highest value
   const cw = Math.max(4, Math.round((cn / axisMax) * 100));
   const kw = Math.max(4, Math.round((kn / axisMax) * 100));
-  // MAGNITUDE of the gap, relative to the larger value — this drives emphasis.
-  const hiVal = Math.max(cn, kn);
-  const loVal = Math.min(cn, kn);
-  const gapPct = hiVal > 0 ? Math.round(((hiVal - loVal) / hiVal) * 100) : 0;
-  // Who leads by direction — but a sub-5% difference is treated as PARITY, not a lead.
-  let lead = null;
-  if (s.hi !== null && cn !== kn && gapPct >= 5) {
-    lead = s.hi ? (cn > kn ? "comp" : "bf") : cn < kn ? "comp" : "bf";
-  }
+  // Who leads is the STORED better_side (s.win); the UI adds no parity band and no magnitude grade (red-team 2026-10-18)
+  const win = String(s.win || "").toLowerCase();
+  const lead = win === "competitor" ? "comp" : win === "client" ? "bf" : null;
   const compWin = lead === "comp";
   const bfWin = lead === "bf";
-  const parity = s.cn === s.kn || lead === null; // includes sub-5% near-ties
-  // emphasis tier scales with magnitude
-  const tier =
-    gapPct >= 35 ? "decisive" : gapPct >= 15 ? "clear" : gapPct >= 5 ? "marginal" : "parity";
+  const parity = win === "equal";
+  const tier = lead ? "clear" : "parity";
   const leadWord = tier === "decisive" || tier === "clear" ? "leads" : "";
   const badge = (w) => (w && leadWord ? `<span class="sb-lead ${tier}">${leadWord}</span>` : "");
   const parityTag = parity ? '<span class="sb-parity">parity</span>' : "";
@@ -339,7 +331,7 @@ export function specPanelHtml(m) {
   }
   const ce = computeSpecEdge(m);
   const specEdge = ce.edge;
-  const v = edgeVerdict(specEdge);
+  const v = edgeVerdict(m.decision);
   const gPos = specEdge == null ? 50 : specEdge;
   return (
     `<div class="edge-gauge ${v.cls}">` +

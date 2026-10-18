@@ -132,6 +132,7 @@ def build_matchups(database):
             "verdictH": row.get("verdict_headline"),
             "verdict": row.get("verdict"),
             "edge": row.get("edge_score"),
+            "decision": row.get("decision_level"),   # stored 1 behind / 2 near parity / 3 ahead (ui.code_label); the UI sets no cut-offs
             "specDims": row.get("comparable_spec_count"),
             "specDecided": row.get("sourced_spec_count"),
             "specs": specs.get(mid, []),

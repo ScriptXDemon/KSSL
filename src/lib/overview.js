@@ -446,7 +446,9 @@ export function isRivalCard(c) {
 }
 function withTag(card, tag) {
   const t = String((card && card.tags) || "").trim();
-  return { ...card, dir: "watch", kind: tag, tags: t ? `${t} ${tag}` : tag };
+  // a stored threat stays a threat (red-team 2026-10-18: forcing "watch" hid 52 stored threats); anything else reads
+  // as watch (the UI shows only the threat and watch stances)
+  return { ...card, dir: card && card.dir === "threat" ? "threat" : "watch", kind: tag, tags: t ? `${t} ${tag}` : tag };
 }
 export function technologyAttention(cards, isRival = isRivalCard, head = TECH_ATTENTION_HEAD) {
   const list = Array.isArray(cards) ? cards : [];
@@ -765,7 +767,7 @@ export function viewMetaFor(d) {
   const alertCount = (d.competitiveCards || []).length;
   const momentCount = Object.entries(d.competitorNews || {})
     .filter(([k]) => k !== ((d.client && d.client.id)))
-    .reduce((n, [, v]) => n + (v ? v.length : 0), 0);
+    .reduce((n, [, v]) => n + momentsOf(v).length, 0);   // the same count as the rail badge: rows that carry a level
   const meta = {
     overview: {
       title: COMPETITIVE_TITLE,

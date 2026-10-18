@@ -507,7 +507,7 @@ export default function Geo() {
       const presence = geo.clientFootprintKnown
         ? bf
           ? ` · ${clientName} present`
-          : ` · ${clientName} absent ⚠`
+          : ` · ${clientName} not on record here`   // no row for this country is not proof of absence
         : ` · ${clientName} presence not established - no footprint on file`;
       let sub = `${rivals} competitor${rivals !== 1 ? "s" : ""} active${presence}`;
       if (bf)

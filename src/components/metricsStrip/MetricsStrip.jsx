@@ -18,7 +18,8 @@ function CountUp({ text }) {
   const label = String(text);
   const target = parseFloat(label.replace(/,/g, ""));
   const hasComma = label.includes(",");
-  const isNum = !Number.isNaN(target);
+  // only a bare number animates; "12 Cr" or "3 of 5" is shown exactly as stored (parseFloat dropped the rest)
+  const isNum = /^\s*-?[\d,]+(\.\d+)?\s*$/.test(label) && !Number.isNaN(target);
   const final = isNum ? (hasComma ? target.toLocaleString("en-IN") : String(target)) : label;
   const [shown, setShown] = useState(final);
   const frame = useRef(0);

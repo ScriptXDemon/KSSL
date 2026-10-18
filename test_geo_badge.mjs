@@ -108,7 +108,7 @@ eq(
 
 // Absence is unchanged, and "contested" still needs a real rival row.
 eq(presenceBadge({ clientLabel: CLIENT, rows: [], rivalCount: 2, actLabel: ACT }).text,
-  "KSSL Absent · Contested Market ⚠", "absent, contested");
+  "KSSL not on record here · Contested market", "no client row, rivals active: not on record (not absent)");
 eq(presenceBadge({ clientLabel: CLIENT, rows: [], rivalCount: 0, actLabel: ACT }).text,
   "No activity on file", "absent, uncontested");
 

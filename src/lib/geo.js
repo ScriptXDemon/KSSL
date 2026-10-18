@@ -9,7 +9,6 @@
    =================================================================== */
 import { clientShort } from "./client.js";
 import { escAll } from "./html.js";
-import { edgeVerdict } from "./edge.js";
 
 /* the stored overlap words, mapped to the two badge styles the stylesheet has; any other word is no overlap */
 const OV_TIER = { confirmed: "spec", category: "cat" };
@@ -78,7 +77,7 @@ export function createGeo(d) {
 
   /* ---- stored product comparisons (data.matchups, the Product Evaluation pairs) ----
      A rival product's client counterpart is the stored matchup on that product (compProductId). Its verdict is the
-     stored edge score read through edgeVerdict (the thresholds Product Evaluation uses); each spec row's winner and
+     stored decision level (competitive_matchup.decision_level); each spec row's winner and
      gap are stored (win, gap). Nothing is paired, graded or classified here. */
   const matchups = Object.values(d.matchups || {});
   const competitors = d.competitors || {};
@@ -93,10 +92,7 @@ export function createGeo(d) {
   })[who];
   // the stored rival product name carries "Company · " in front; the company is already named beside it
   const stripCo = (v) => String(v || "").replace(/^[^·]*·\s*/, "");
-  const verdictOf = (x) =>
-    x && x.edge != null && x.edge !== ""
-      ? ({ behind: "rival", ahead: "koel", parity: "level" })[edgeVerdict(Number(x.edge)).cls] || "none"
-      : "none";
+  const verdictOf = (x) => (x && x.decision != null ? ({ 1: "rival", 2: "level", 3: "koel" })[Number(x.decision)] || "none" : "none");
 
   function geoPairCard(x, rivalName) {
     const who = verdictOf(x);

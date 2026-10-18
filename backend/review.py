@@ -458,6 +458,11 @@ def _diff(row: dict, live: dict | None) -> dict[str, Any] | None:
     return {k: live.get(k) for k in row if k not in VOLATILE and str(live.get(k)) != str(row.get(k))}
 
 
+def _lit(v) -> str:
+    """A value quoted for the DISPLAYED sql (operators paste it into DBeaver); the queries themselves are parameterised."""
+    return str(v).replace("'", "''")
+
+
 def _ident(table: str, row: dict) -> str:
     return _kv(table, row) or json.dumps(_clean(row), sort_keys=True, default=str)
 
@@ -488,12 +493,12 @@ def trace(st, sv, table: str, key: str) -> dict[str, Any]:
                 cv = [r for pk in sorted(pks) for r in V.by(child, fk, pk)]
                 if cs or cv:
                     shown = sorted(pks)[:8]
-                    vals = ", ".join(f"'{p}'" for p in shown) + (f", ... ({len(pks)} keys)" if len(pks) > 8 else "")
+                    vals = ", ".join(f"'{_lit(p)}'" for p in shown) + (f", ... ({len(pks)} keys)" if len(pks) > 8 else "")
                     n["children"].append(node(child, cs, cv, f"{fk}::text IN ({vals})", depth + 1))
         return n
 
     srow, vrow = S.card(table, key), V.card(table, key)
-    root = node(table, [srow] if srow else [], [vrow] if vrow else [], f"{_kc(table, srow) if srow else GRAPH[table][0]}::text = '{key}'", 0)
+    root = node(table, [srow] if srow else [], [vrow] if vrow else [], f"{_kc(table, srow) if srow else GRAPH[table][0]}::text = '{_lit(key)}'", 0)
     root["key"] = key
     root["parents"] = [{"table": f"staging.{p}", "key_column": GRAPH[p][0], "key": str(srow[fk])}
                        for fk, p in parents if srow and srow.get(fk) is not None]

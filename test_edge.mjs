@@ -38,10 +38,12 @@ assert.equal(E.computeSpecEdge({ specs: [S("Calibre", 155, 105, true), S("Crew",
 assert.equal(E.computeSpecEdge({ specs: [S("Fuel use", 100, 80, false), S("Fuel use at half load", 60, 40, false)] }).n, 2);
 
 // the words
-assert.equal(E.edgeVerdict(null, "Acme").cls, "parity");
-assert.equal(E.edgeVerdict(60, "Acme").word, "ACME AHEAD");
-assert.equal(E.edgeVerdict(50, "Acme").word, "NEAR PARITY");
-assert.equal(E.edgeVerdict(30, "Acme").word, "ACME BEHIND");
+// the stored decision level, never a cut-off on the score
+assert.equal(E.edgeVerdict(null, "Acme").word, "NO STORED VERDICT");
+assert.equal(E.edgeVerdict(3, "Acme").word, "ACME AHEAD");
+assert.equal(E.edgeVerdict(2, "Acme").word, "NEAR PARITY");
+assert.equal(E.edgeVerdict(1, "Acme").word, "ACME BEHIND");
+assert.equal(E.edgeVerdict(75, "Acme").word, "NO STORED VERDICT", "a score is not a level");
 
 // basis lists the fields that lead, only when there is a stored score
 assert.equal(E.edgeBasis(E.computeSpecEdge({ specs: [S("Range", 40, 48, true)] })), "");

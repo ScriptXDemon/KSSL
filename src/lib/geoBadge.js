@@ -100,7 +100,7 @@ export function presenceBadge({ clientLabel, rows, rivalCount, actLabel }) {
     return {
       text:
         rivalCount > 0
-          ? `${clientLabel} Absent · Contested Market ⚠`
+          ? `${clientLabel} not on record here · Contested market`   // no row is not proof of absence
           : "No activity on file",
       cls: "absent",
       estimated: false,

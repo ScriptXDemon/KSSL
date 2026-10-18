@@ -56,7 +56,7 @@ export default function MarketOutlook({ data, o }) {
         cols={["13%", "13%", "17%", "20%", "12%", "25%"]}
         note="activity counts new tenders, market news and contract awards, over the last 6 months against the 6 months before"
         rows={seg}
-        title="Where demand is heading"
+        title="Activity by segment"
         className="ovt-demand"
       >
         {seg.map((r) => (

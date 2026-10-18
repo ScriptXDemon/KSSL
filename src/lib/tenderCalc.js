@@ -65,7 +65,7 @@ export function computeTenderRealDays(tender, referenceDate = new Date()) {
     const diffMs = targetDay.getTime() - today.getTime();
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays <= 0) {
+    if (diffDays < 0) {   // the closing day itself is still open ("closes today")
       return {
         dl: 0,
         deadline: "Closed / Expired",
@@ -79,8 +79,8 @@ export function computeTenderRealDays(tender, referenceDate = new Date()) {
     const cls = diffDays <= 7 ? "urgent" : diffDays <= 14 ? "soon" : "normal";
     return {
       dl: diffDays,
-      deadline: `${diffDays} day${diffDays !== 1 ? "s" : ""} left`,
-      timing: `closes in ${diffDays} day${diffDays !== 1 ? "s" : ""}`,
+      deadline: diffDays === 0 ? "closes today" : `${diffDays} day${diffDays !== 1 ? "s" : ""} left`,
+      timing: diffDays === 0 ? "closes today" : `closes in ${diffDays} day${diffDays !== 1 ? "s" : ""}`,
       status: diffDays <= 3 ? "closing" : "open",
       class: cls,
       isLive: true,
@@ -111,9 +111,10 @@ export function computeTenderRealDays(tender, referenceDate = new Date()) {
     dl: 9999,
     deadline: desc || "no deadline on record",
     timing: desc || "no deadline on record",
-    status: "open",
+    /* no date: the STORED status decides (red-team 2026-10-18: it used to default to open and count as active) */
+    status: tender.status || "unknown",
     class: "normal",
-    isLive: true,
+    isLive: /^(open|active|live|published)/i.test(String(tender.status || "")),
   };
 }
 

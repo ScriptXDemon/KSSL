@@ -138,7 +138,7 @@ export const PROJECT_SEQ = [
 export const PROJECT_SEQ_DEFAULT = "recent";
 /* the stored kssl_option of a project (what the client can do about it), as a phrase */
 export const PROJECT_OPTION_WORD = {
-  compete: "bid against it with a KSSL product",
+  compete: "bid against it with one of its own products",
   partner: "partner with the competitor or its team",
   supply: "supply a component the project needs",
   none: "nothing in the portfolio fits",

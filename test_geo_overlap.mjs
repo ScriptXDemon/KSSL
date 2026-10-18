@@ -58,15 +58,15 @@ const src = readFileSync(new URL("./src/lib/geo.js", import.meta.url), "utf8");
 assert.ok(!/CAT_META|counterRules|kva|genset|BAND|GEO_NOTGEN/i.test(src));
 
 // the rival's products carry their STORED comparison: the counterpart is the stored matchup on that product, the
-// verdict is the stored edge (edgeVerdict), and the comparison prints the stored spec rows; nothing is paired here
+// verdict is the stored decision_level, and the comparison prints the stored spec rows; nothing is paired here
 {
   const x = Object.values(fx.matchups).find((m) => m.compProductId && m.edge != null);
   const list = geo.geoProductListHtml(x.compId, null);
   assert.match(list, /Products .* sells/);
   assert.ok(list.includes(`data-cmp-prod="${x.compProductId}"`), "the matched product is listed");
   assert.ok(list.includes(x.bf.replace(/&/g, "&amp;")), "its stored counterpart is named");
-  const want = x.edge < 42 ? "Competitor’s product is better" : x.edge >= 58 ? "has the superior product" : "Level: neither leads";
-  assert.ok(list.includes(want), `the stored edge ${x.edge} reads "${want}"`);
+  const want = ({ 1: "Competitor’s product is better", 2: "Level: neither leads", 3: "has the superior product" })[x.decision];
+  assert.ok(list.includes(want), `the stored decision level ${x.decision} reads "${want}"`);
   const cmp = geo.geoProductCompare(x.compId, x.compProductId);
   assert.ok(cmp && cmp.title.includes(x.bf));
   for (const sp of x.specs.slice(0, 3)) assert.ok(cmp.html.includes(String(sp.l).replace(/&/g, "&amp;")), `spec row ${sp.l} is printed`);

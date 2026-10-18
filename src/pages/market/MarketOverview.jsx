@@ -265,7 +265,7 @@ export default function MarketOverview() {
         title: "Market Intelligence: market outlook",
         subtitle: `${ol.segments.length} segments · ${ol.winners.named} named award winners`,
         sections: [
-          { h: "Where demand is heading", rows: ol.segments.map((r) => [r.segment, `${r.recent} in the last 6 months, ${r.before} before · ${r.open} open tenders fit · ${r.act}`]) },
+          { h: "Activity by segment", rows: ol.segments.map((r) => [r.segment, `${r.recent} in the last 6 months, ${r.before} before · ${r.open} open tenders fit · ${r.act}`]) },
           { h: "Who wins", rows: ol.winners.rows.slice(0, 10).map((r) => [r.winner, `${r.wins} wins · ${formatTotals(r.totals)}`]) },
         ],
         payload: { section, outlook: ol },

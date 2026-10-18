@@ -95,15 +95,17 @@ const yearOf = (v) => {
   const m = String(v == null ? "" : v).match(/(19|20)\d{2}/);
   return m ? Number(m[0]) : null;
 };
-const isPresent = (v) => v == null || v === "" || /present|current|now/i.test(String(v));
-// "2018 – Present · 8 yrs"
+// only a STORED "present" / "current" means still in role; no end date is not proof of that (red-team 2026-10-18)
+const isPresent = (v) => /present|current|now/i.test(String(v == null ? "" : v));
+// "2018 – Present · 8 yrs"; "From 2018" when no end is stored
 export function tenureText(from, to, now = new Date().getFullYear()) {
   const a = yearOf(from);
   const b = isPresent(to) ? now : yearOf(to);
   // a year the source did not state is left out, never shown as "?"
   if (!a) return isPresent(to) ? "Present" : b ? `Until ${b}` : "";
-  const span = `${a} – ${isPresent(to) ? "Present" : b || ""}`;
-  if (!b || b < a) return span;
+  if (!b) return `From ${a}`;
+  const span = `${a} – ${isPresent(to) ? "Present" : b}`;
+  if (b < a) return span;
   const n = b - a;
   return `${span} · ${n < 1 ? "under 1 yr" : `${n} yr${n === 1 ? "" : "s"}`}`;
 }

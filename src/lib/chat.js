@@ -51,7 +51,7 @@ export function scopedAnswer(d, ctx, question) {
       return (
         (m.edge == null
           ? `${clientName} spec undisclosed for this pairing - competitor data is real and sourced; no edge index computed.<br>`
-          : `Competitive edge index: <b>${m.edge}/100</b> - ${edgeVerdict(m.edge, clientName).phrase}.<br>`) +
+          : `Competitive edge index: <b>${m.edge}/100</b> - ${edgeVerdict(m.decision, clientName).phrase}.<br>`) +
         clean(m.verdict)
       );
     if (has("advantage", "strength", "kssl", "kssl"))

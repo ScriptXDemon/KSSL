@@ -6,7 +6,7 @@ import { computeSpecEdge, edgeVerdict } from "./edge.js";
 import { escAll, srcChips, attr, stripTags } from "./html.js";
 import { formatDate } from "../utils/formatDate.js";
 
-export function positioningReportHtml(m, tenders, today = formatDate()) {
+export function positioningReportHtml(m, tenders, today = formatDate(new Date())) {
   const edge = m.edge == null ? null : m.edge;
   if (edge == null) {
     return (
@@ -22,7 +22,7 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
       '</div>'
     );
   }
-  const v = edgeVerdict(edge);
+  const v = edgeVerdict(m.decision);
   const edgeWord = v.phrase.toUpperCase();
   /* Spec leads are the rows whose gap is beyond the dead-band; the edge score itself is the stored one.
      computeSpecEdge skips null-direction rows and sub-deadband deltas. */
@@ -82,7 +82,7 @@ export function positioningReportHtml(m, tenders, today = formatDate()) {
   );
 }
 
-export function techReportHtml(iv, d, techCatId, today = formatDate()) {
+export function techReportHtml(iv, d, techCatId, today = formatDate(new Date())) {
   const matLab = iv.matLabel || "—";
   const gapLab = iv.gapLabel || "";
   const catName = (() => {

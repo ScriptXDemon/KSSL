@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { fetchTrending } from "./src/lib/pulseFetch.js";
+import { publicImageUrl } from "./src/lib/imgGuard.js";
 
 const apiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8600";
 const reviewApiTarget = process.env.KSSL_API_TARGET || "http://127.0.0.1:8601";
@@ -19,13 +20,23 @@ async function apiMiddleware(req, res, next) {
        server-side with a browser UA and no referer bypasses that; the browser then
        loads it from our own origin. Mirrors the backend /api/img on staging/prod. */
     try {
-      const src = new URL(req.url, "http://localhost").searchParams.get("u") || "";
-      if (!/^https?:\/\//i.test(src)) { res.statusCode = 400; return res.end("bad url"); }
-      const upstream = await fetch(src, {
-        headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36", "accept": "image/*,*/*" },
-        redirect: "follow",
-        signal: AbortSignal.timeout(12000),
-      });
+      /* SSRF guard (red-team 2026-10-18): public http(s) hosts only, every redirect hop re-checked */
+      let src = new URL(req.url, "http://localhost").searchParams.get("u") || "";
+      let upstream = null;
+      for (let hop = 0; hop < 4; hop++) {
+        if (!(await publicImageUrl(src))) { res.statusCode = 400; return res.end("bad url"); }
+        upstream = await fetch(src, {
+          headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36", "accept": "image/*,*/*" },
+          redirect: "manual",
+          signal: AbortSignal.timeout(12000),
+        });
+        const loc = upstream.status >= 300 && upstream.status < 400 && upstream.headers.get("location");
+        if (!loc) break;
+        src = new URL(loc, src).href;
+        upstream = null;
+      }
+      if (!upstream) { res.statusCode = 404; return res.end("too many redirects"); }
+      if (Number(upstream.headers.get("content-length") || 0) > 8e6) { res.statusCode = 413; return res.end("too large"); }
       const ct = upstream.headers.get("content-type") || "";
       if (!upstream.ok || !/^image\//i.test(ct)) { res.statusCode = 404; return res.end("not an image"); }
       const buf = Buffer.from(await upstream.arrayBuffer());

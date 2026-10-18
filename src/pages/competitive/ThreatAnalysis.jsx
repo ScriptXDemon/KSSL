@@ -7,6 +7,7 @@ import { rosterOf } from "../../lib/profile";
 import { momentsOf } from "../../lib/moments";
 import { competitorFullName } from "../../lib/companyNames";
 import { formatDate } from "../../utils/formatDate";
+import { NO_DATE_LABEL } from "../../lib/overview";
 import Thumb from "../../components/thumb/Thumb.jsx";
 import { sourceHref } from "../../components/sourceLink/SourceLink.jsx";
 import { srcChips } from "../../lib/html";
@@ -187,7 +188,7 @@ export default function ThreatAnalysis() {
                 <div className="cm-left">
                   <Thumb src={m.image} alt="" className="cm-img" caption={m.source || "No image published"} />
                   <div className="cm-when">
-                    <b>{formatDate(m.date)}</b>
+                    <b>{formatDate(m.date) || NO_DATE_LABEL}</b>
                     {[m.category, m.country].filter(Boolean).join(" · ")}
                   </div>
                 </div>
@@ -231,7 +232,7 @@ export default function ThreatAnalysis() {
                   <button aria-label="Close" className="col-close" onClick={() => setSel(null)} title="Close" type="button">✕</button>
                 </div>
                 <div className="ct" style={{ paddingRight: "40px" }}>{open.title}</div>
-                <div className="sub" style={{ marginTop: "8px" }}>{open.company} · {formatDate(open.date)}</div>
+                <div className="sub" style={{ marginTop: "8px" }}>{[open.company, formatDate(open.date)].filter(Boolean).join(" · ")}</div>
                 <Review src={open._src} />
               </div>
               {sourceHref(open.image) || /^(product|news)-images\//.test(open.image || "") ? (
@@ -267,7 +268,7 @@ export default function ThreatAnalysis() {
                   <ol className="pj-time">
                     {open.steps.filter((t) => t.type !== "label_change").map((t, i) => (
                       <li key={i}>
-                        <span className="pj-d">{formatDate(t.date)}</span>
+                        <span className="pj-d">{formatDate(t.date) || NO_DATE_LABEL}</span>
                         <span className="pj-e">{t.line}{t.changed ? ` (${t.changed})` : ""}</span>
                       </li>
                     ))}

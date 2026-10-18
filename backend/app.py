@@ -41,6 +41,16 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def writes_need_header(request, call_next):
+    """CSRF guard: every write is a POST carrying X-KSSL-Write. A custom header forces a CORS preflight, which
+    allow_methods=["GET"] refuses, so another website cannot fire a write from an operator's browser (cached
+    basic auth on the review host, or 127.0.0.1)."""
+    if request.method not in ("GET", "HEAD", "OPTIONS") and request.headers.get("x-kssl-write") != "1":
+        return JSONResponse(status_code=403, content={"detail": "writes need the X-KSSL-Write: 1 header"})
+    return await call_next(request)
+
+
 # serving tables the frontend reads straight from data.database (grep src for "serving.<table>")
 UI_SERVING_TABLES = ("technology_metric", "market_segment_assessment")
 

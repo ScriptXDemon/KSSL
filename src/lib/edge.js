@@ -43,19 +43,15 @@ export function computeSpecEdge(m) {
   return { edge: stored, n: dims.length, decided: dims.filter((d) => d.a !== 0).length, dims };
 }
 
-/* One verdict per stored score. Symmetric band of +/-8 around parity (a presentation threshold). */
-export function edgeVerdict(e, clientLabel = clientShort()) {
+/* The verdict is the STORED decision level (competitive_matchup.decision_level: 1 behind, 2 near parity, 3 ahead).
+   Red-team 2026-10-18: it used to be cut from the edge score at 58 / 42 in code; the UI no longer sets a threshold. */
+export function edgeVerdict(level, clientLabel = clientShort()) {
   const short = clientLabel.toUpperCase();
-  const name = clientLabel;
-  if (e == null)
-    return {
-      cls: "parity",
-      word: "INSUFFICIENT MEASURED DATA",
-      phrase: "no measured basis",
-    };
-  if (e >= 58) return { cls: "ahead", word: `${short} AHEAD`, phrase: `${name} holds the edge` };
-  if (e >= 42) return { cls: "parity", word: "NEAR PARITY", phrase: "near parity" };
-  return { cls: "behind", word: `${short} BEHIND`, phrase: "competitor holds the edge" };
+  const lv = Number(level);
+  if (lv === 3) return { cls: "ahead", word: `${short} AHEAD`, phrase: `${clientLabel} holds the edge` };
+  if (lv === 2) return { cls: "parity", word: "NEAR PARITY", phrase: "near parity" };
+  if (lv === 1) return { cls: "behind", word: `${short} BEHIND`, phrase: "competitor holds the edge" };
+  return { cls: "parity", word: "NO STORED VERDICT", phrase: "no stored verdict" };
 }
 
 /* The fields that lead and by how much, beside the stored score. */

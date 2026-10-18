@@ -46,7 +46,7 @@ const data = () => ({
     adani: {
       name: "Adani Defence",
       partners: [
-        { id: "p1", label: "DRDO" },
+        { id: "p1", label: "DRDO", overlap: { kind: "same_partner_other_scope", clientPartner: "DRDO", clientPartnerId: "kp1" } },
         { id: "p2", label: "Elbit Systems" },
       ],
     },
@@ -78,8 +78,10 @@ ck("a company with no partners does not crash", !!out.competitors.nopartners);
 ck("the input is not mutated", data().competitors.adani.partners[0].shared === undefined);
 
 /* ---- the guards ---- */
-ck("no client roster, nothing is marked",
-   markOverlaps({ competitors: data().competitors }).competitors.adani.partners[0].shared === undefined);
+ck("a stored kind 'none' reads as checked, no badge",
+   overlapState(markOverlaps({ competitors: { x: { partners: [{ label: "DRDO", overlap: { kind: "none" } }] } } }).competitors.x.partners[0]) === "none");
+ck("no stored overlap: a NAME on the client roster is NOT marked (the browser no longer guesses)",
+   markOverlaps({ KSSL_PARTNERS, competitors: { x: { partners: [{ label: "DRDO" }] } } }).competitors.x.partners[0].shared === undefined);
 ck("no dataset, no crash", markOverlaps(null) === null && markOverlaps({}) !== undefined);
 ck("nothing matched means the dataset comes back as it was",
    markOverlaps({ KSSL_PARTNERS, competitors: { x: { partners: [{ label: "Nobody Ltd" }] } } }).competitors.x.partners[0].shared === undefined);

@@ -18,7 +18,10 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
    Only the day needs it here: the month is always a name, never a number. */
 const pad2 = (n) => String(n).padStart(2, "0");
 
-export function formatDate(value = new Date()) {
+/* No value -> "" (never today, never 1970): a record with no stored date shows no date. Callers that mean
+   "now" (a report's print date) pass new Date() themselves. */
+export function formatDate(value) {
+  if (value == null || value === "") return "";
   if (value instanceof Date) return fromDate(value);
   if (typeof value === "string") {
     const s = value.trim();

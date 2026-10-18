@@ -219,3 +219,47 @@ Frontend only. The Tenders list puts tenders with a stored client fit first (the
 strong > partial > weak), then the nearest deadline (`compareTenders` in `src/lib/tenderRow.js`, test
 `test_tender_order.mjs`). The sort note reads "<client> fit first, then deadline". `ui.market_tenders_view.sort_label`
 is empty in both DBs and the page never read it; if it is ever filled it should carry this wording.
+
+## Red-team audit, frontend + API half (kssl-40, 2026-10-18)
+
+Security:
+- **CSRF on review writes**: POST /api/review* and /api/news/refresh took query params only, so another website could fire
+  them from an operator's browser (127.0.0.1, or the review host once basic auth is cached). Every non-GET now needs
+  `X-KSSL-Write: 1` (backend/app.py middleware; Review.jsx sends it). A custom header forces a CORS preflight, which
+  allow_methods=["GET"] refuses.
+- **SSRF in /api/img** (vite.config.js, served by vite preview on the VPS too; found by kssl-52): it fetched any URL and
+  followed redirects. Now public http(s) hosts only, ports 80/443, no credentials, every redirect hop re-checked, 8 MB
+  cap (src/lib/imgGuard.js, test_img_guard.mjs). Ceiling: DNS rebinding between check and fetch.
+- Trace `sql` (display string) quoted the key raw; quotes are now doubled (the queries were already parameterised).
+- Checked and fine: bad tables / actions / schemas -> 400, live backend has no write routes (404), docs off,
+  /api/news params validated, review site behind Traefik basic auth.
+
+Invented or defaulted values removed from the UI:
+- formatDate() with no value printed TODAY: undated competitor moves showed today's date. Now "" -> "date not known".
+- Partner overlap was guessed in the browser by folding names; now read from the stored
+  `competitive_partnership.overlap_kind / overlap_client_partner_id` (served `overlap`).
+- Product verdicts (AHEAD / NEAR PARITY / BEHIND, Geo "superior product") were cut from edge_score at 58 / 42 in code;
+  now the stored `competitive_matchup.decision_level` (backend ships it as `decision`).
+- Spec bars graded leads "decisive / clear" with 5 / 15 / 35 % bands; now the stored `better_side` only.
+- Geo "KSSL Absent ⚠" when a country simply had no client row -> "KSSL not on record here".
+- Leaders with no end date read "– Present"; only a stored present / current does now ("From 2018" otherwise).
+- Technology feed forced every card to "watch", hiding 52 stored threats; stored threats now show.
+- Undated tenders defaulted to open and counted as active; the stored status decides.
+- A tender closing today read "Closed / Expired"; now "closes today".
+- Requirement cards put the (future) deadline in the card date; now the stored `stage_date`.
+- "Where demand is heading" (a count of collected records) renamed "Activity by segment".
+- Competitor Movement header counted every news row; now the same count as the rail (rows with a level).
+- Client name typed in code (partners brand check, project option wording) -> client_account.
+- Metric tiles: "12 Cr" animated as "12"; only bare numbers animate now.
+- Market chart: no-category ("—", 723 tenders) and the stored "Other" took hues and pushed
+  "Protected & Armoured Vehicles" into grey "Other"; they are grey by meaning now.
+
+Found, for the database lane:
+- Local `kssl_serving` is entirely `db/test_seed_full` (invented companies, img.example.com). The VPS serving DB is clean.
+  Reseeding local serving needs the user's go-ahead.
+- 723 of 1,626 tenders carry no category.
+- techCards still store a "fav" stance (176); the UI shows it as watch.
+
+Left as is (judged chrome or display): Positioning free compare marks the better stored number (EDGE_DEADBAND 'tie');
+the Technology rival / adoptable lanes split on the stored competitor field; partners' 2-year "last seen" note;
+companyShort acronyms.

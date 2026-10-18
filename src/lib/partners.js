@@ -9,7 +9,7 @@
    Built as a factory over the dataset so the shared index memo lives in a closure
    rather than on `window`.
    =================================================================== */
-import { clientShort } from "./client.js";
+import { clientName, clientShort } from "./client.js";
 import { isVisible } from "./visibility.js";
 import { esc, escAll, escAttr, escRich, joinParts, srcChips } from "./html.js";
 import { canonicalizeLabels } from "./orgident.js";
@@ -51,7 +51,9 @@ export function rosterIndex(partners) {
    as "absent from roster" (FE-PART-02). */
 export const rosterLookup = (ix, p) => {
   if (!p) return null;
-  const direct = ix[p.cid] || ix[p.id] || ix[rosterKey(p.label || p.name)];
+  // the stored overlap names the client partner (overlap_client_partner_id): "Thales" -> the client's "Thales Belgium"
+  const o = p.overlap || {};
+  const direct = ix[p.cid] || ix[p.id] || ix[o.clientPartnerId] || (o.clientPartner && ix[rosterKey(o.clientPartner)]) || ix[rosterKey(p.label || p.name)];
   if (direct) return direct;
   const base = String(p.label || p.name || "").replace(/\s*\(.*$/, "").trim();
   return (base && ix[rosterKey(base)]) || null;
@@ -636,7 +638,7 @@ export function createPartners(d) {
     const f = flat(r);
     if (!f) return "";
     if (flat(p.label).indexOf(f) >= 0) return ""; // repeats the partner's name
-    if ("kalyanistrategicsystemskssslbharatforge".indexOf(f) >= 0 || f === "kssl" || f === "kalyani") return ""; // only names the brand
+    if ([clientName(), clientShort()].some((n) => n && flat(n).indexOf(f) >= 0)) return ""; // only names the client (from client_account)
     return r;
   }
 

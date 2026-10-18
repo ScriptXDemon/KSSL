@@ -52,7 +52,7 @@ file above; company domains come from the file, from the RSS publisher when it i
 CLI:  python -m backend.news --competitor <uuid|all> [--products] [--date 2026-10-01 |
           --from 2026-09-01 --to 2026-09-30] [--limit N] [--dry-run]
       python -m backend.news --selftest
-API:  POST /api/news/refresh?competitor_id=<uuid|all>&products=true&date=... | &from=..&to=..&limit=..
+API:  POST /api/news/refresh (header X-KSSL-Write: 1)?competitor_id=<uuid|all>&products=true&date=... | &from=..&to=..&limit=..
       GET  /api/news?competitor_id=&from=&to=   (reads staging when KSSL_VIEW=review, else serving)
       python -m backend.news --regroup   (pre-group the existing 'new' candidates; one-off after a bulk move)
       python -m backend.news --renormalise   (https / desktop urls, headline suffixes, match_via of the 'new' candidates)

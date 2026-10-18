@@ -17,7 +17,7 @@
 
 .ti-simple .ti-stage .ti-title{max-width:300px;font-weight:400;color:var(--d-txt-2)}
 
-/* Where demand is heading: one fact per line, sans secondary text, room to breathe */
+/* Activity by segment: one fact per line, sans secondary text, room to breathe */
 .ovt-demand td{padding:16px 16px;vertical-align:top;line-height:1.4}
 .ovt-demand th{padding:12px 16px}
 .ovt-demand td.ovt-t{min-width:150px;font-size:13px;font-weight:600;color:var(--d-txt)}

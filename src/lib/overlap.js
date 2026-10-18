@@ -76,38 +76,27 @@ export function overlapMatch(partner, idx) {
   return (k && idx[k]) || "";
 }
 
-/* Stamps `shared` and `sharedWith` on every rival partner that matches the client's own
-   roster. Returns a new dataset; the input is not mutated. */
+/* Stamps `shared` / `sharedWith` / `overlapChecked` on every rival partner FROM THE STORED overlap
+   (competitive_partnership.overlap_kind + overlap_client_partner_id, served as `overlap`). 2026-10-18 red-team
+   audit: the browser used to decide overlaps by folding names (orgKey), which can join two different companies;
+   the database now states the overlap, so nothing is matched here. A tie with no stored overlap stays "unchecked".
+   Returns a new dataset; the input is not mutated. */
 export function markOverlaps(d) {
-  const idx = clientPartnerIndex(d && d.KSSL_PARTNERS);
-  if (!d || !d.competitors || !Object.keys(idx).length) return d;
-
-  let found = 0;
+  if (!d || !d.competitors) return d;
   const competitors = {};
   Object.keys(d.competitors).forEach((cid) => {
     const c = d.competitors[cid];
     const parts = c && Array.isArray(c.partners) ? c.partners : null;
-    if (!parts) {
-      competitors[cid] = c;
-      return;
-    }
-    competitors[cid] = {
+    competitors[cid] = !parts ? c : {
       ...c,
       partners: parts.map((p) => {
-        /* already flagged upstream: leave it exactly as served */
-        if (p && (p.koel || p.shared)) return p;
-        const with_ = overlapMatch(p, idx);
-        /* A name-comparison miss is NOT proof of no overlap -- the row stays "unchecked"
-           (test_partner_overlap). The clutter the user saw is handled at the badge layer
-           (overlapBadge no longer prints a badge for the unchecked norm), not by claiming
-           a match was ruled out here. */
-        if (!with_) return p;
-        found += 1;
-        return { ...p, shared: true, sharedWith: with_ };
+        const o = p && p.overlap;
+        if (!o || p.koel || p.shared) return p;
+        if (o.clientPartnerId) return { ...p, shared: true, sharedWith: o.clientPartner || "", overlapChecked: true };
+        return o.kind ? { ...p, overlapChecked: true } : p;
       }),
     };
   });
-  if (!found) return d;
   return { ...d, competitors };
 }
 

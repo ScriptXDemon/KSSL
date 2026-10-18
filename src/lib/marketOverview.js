@@ -107,12 +107,15 @@ export function categoryRank(tenders) {
    hue is the point at which a validated categorical palette stops being validated.
    The tail is one grey "Other" slice on the chart — but it stays fully enumerated in
    the filter, so a small category is still reachable, just not separately coloured. */
+/* no category on record ("—") and the stored category "Other" are grey by meaning: they take no hue */
+const GREY_CATS = new Set(["—", "Other"]);
 export function initCategoryPalette(tenders) {
-  const ranked = categoryRank(tenders).map((r) => r.label);
+  const all = categoryRank(tenders).map((r) => r.label);
+  const ranked = all.filter((l) => !GREY_CATS.has(l));
   if (ranked.length <= SERIES.length) {
     _otherLabel = "";
     assignCategoryColors(ranked);
-    return ranked;
+    return all;
   }
   const TOP = SERIES.length - 1;
   _otherLabel = `Other (${ranked.length - TOP} categories)`;
@@ -122,7 +125,7 @@ export function initCategoryPalette(tenders) {
      folded-in members render as (they fall through CATEGORY_COLOR to OTHER_COLOR). Pin
      the aggregate to OTHER_COLOR explicitly so the "Other" slice and its members match. */
   _catSlot.set(_otherLabel, OTHER_COLOR);
-  return ranked;
+  return all;
 }
 
 /* The chart label for one row's category: itself, or the shared "Other" slice. */
@@ -305,6 +308,7 @@ export function marketSelfCheck(tenders, marketCards) {
      slot map here would assert against an empty map on every load. */
   const folded = categoryRank(list)
     .map((r) => r.label)
+    .filter((l) => !GREY_CATS.has(l))
     .slice(SERIES.length);
   if (folded.length)
     throw new Error(

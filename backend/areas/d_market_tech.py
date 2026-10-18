@@ -210,6 +210,7 @@ def build_requirements(database):
             "value": row.get("value_text"),
             "dl": row.get("days_remaining"),
             "deadline": row.get("deadline"),
+            "stageDate": row.get("stage_date"),
             "status": row.get("status"),
             "desc": row.get("description"),
             "ksslFit": row.get("kssl_fit"),
@@ -241,7 +242,7 @@ def build_market_cards(database, requirements, details):
             "title": r["title"],
             "meta": _join([r["cat"], r["region"], r["deadline"]]),
             "sowhat": r["strategicAssessment"],
-            "ago": r["deadline"],
+            "ago": r["stageDate"],   # the card date is the stored date of the current stage; the deadline (future) stays in meta
             "url": srcs[0]["url"] if srcs else None,
             "_src": r["_src"],
         })
