@@ -299,9 +299,7 @@ def build_signals(database, competitors, details):
             "image": row.get("thumbnail_url"),
             # ponytail: risk = probability x impact (1-25), the threat sort key
             "risk": (row.get("probability") or 0) * (row.get("impact") or 0) or None,
-            # the stored scores behind the risk matrix and the threat tie-breaks (sooner effect, in a client market)
-            "probability": row.get("probability"),
-            "impact": row.get("impact"),
+            # the threat tie-breaks after risk: sooner effect, then in a client market (the matrix itself is backend-only)
             "timeToEffect": row.get("time_to_effect"),
             "inClientMarket": row.get("in_client_market"),
             "ksslImpact": det.get("why_it_matters") if det else None,

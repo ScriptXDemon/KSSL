@@ -177,11 +177,10 @@ product decision, not made here.
 
 ## 2026-10-18 · Competitive pillar spec: 10-threat cap, risk order, probability-impact matrix; Products revenue filter
 
-Frontend/backend (no table change): the competitive card ships its stored `probability`, `impact`, `time_to_effect`,
+Frontend/backend (no table change): the competitive card ships its stored `time_to_effect` and
 `in_client_market` (`backend/areas/a_competitive.py`); threats are ordered probability x impact, then sooner effect, then in
 a client market (`compareRisk`, `src/lib/overview.js`); at most `THREAT_CAP` = 10 threats are offered on the overview
-(`capThreats`); a 5 x 5 probability-impact matrix sits above the feed, dots numbered as the list
-(`src/components/riskMatrix/RiskMatrix.jsx`). Products always shows the revenue-tier filter (empty -> "No revenue tier on
+(`capThreats`). The probability-impact matrix is the backend classification (user, 2026-10-18): it is not drawn in the UI. Products always shows the revenue-tier filter (empty -> "No revenue tier on
 record yet").
 
 Prompt/DB side, handed to the prompts lane (**not implemented here**):
