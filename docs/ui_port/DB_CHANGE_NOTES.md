@@ -263,3 +263,17 @@ Found, for the database lane:
 Left as is (judged chrome or display): Positioning free compare marks the better stored number (EDGE_DEADBAND 'tie');
 the Technology rival / adoptable lanes split on the stored competitor field; partners' 2-year "last seen" note;
 companyShort acronyms.
+
+## Year-only card dates (2026-10-18, user: "take year")
+
+- `competitive_signal.published_precision` text ('year' / 'month', NULL = full date), staging + serving, CHECK constraint;
+  added to `db/setup/15_signal_published_date.sql` (idempotent; already run by make_databases.sh and deploy_vps.sh).
+  Applied to local kssl_staging and kssl_serving.
+- `scripts/backfill_published_dates.py`, last rule: a magazine issue line ">Issue 2 - 2019<" stores 2019-01-01 with
+  precision 'year' (SP's Land Forces). Written: 1 signal (its duplicate was removed by the dedupe).
+- Backend `published_text()` ships "2019" (year) / "2019-05" (month); `formatDate` keeps a bare year as the year.
+- For the prompts lane: the loader and harvester should write published_precision when only a year or month is known.
+
+Local kssl_serving reset (user: remove all test data): every row in the 174 serving tables is db/test_seed_full (0 keys
+shared with staging); the ui schema is already empty. The TRUNCATE was blocked by the session's safety classifier, so it
+waits for the user to run it or allow it.

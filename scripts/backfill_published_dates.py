@@ -14,6 +14,7 @@ backfill; this script handles the signals whose article record has no date. It r
   4. an element holding nothing but a date, within 1500 characters after the page's first title heading (MBDA)
   5. a press-release dateline, "Lucknow, June 03, 2022:" (place, comma, full date, colon)
   6. a /YYYY/MM/DD/ (or YYYY-MM-DD, or an ANI-style YYYYMMDDhhmmss timestamp) date in the URL
+  7. last: a magazine issue line "Issue 2 - 2019" -> the year only (published_precision = 'year')
 A page with none of these keeps NULL ("date not known"): nothing is guessed. A date in the future or before 2000 is
 ignored. Only NULL values are ever written.
 """
@@ -142,7 +143,17 @@ def find_date(url):
         if v:
             return v, how
     v = from_url(url)
-    return (v, "url") if v else (None, "no date marker on the page")
+    if v:
+        return v, "url"
+    y = from_issue(html)
+    return (y, "issue-year") if y else (None, "no date marker on the page")
+
+
+def from_issue(html):
+    """A magazine page that states only its issue, "Issue 2 - 2019" (SP's Land Forces): the YEAR, stored as 1 January
+    with published_precision = 'year' and shown as the year alone. Last resort, after every full-date rule."""
+    m = re.search(r">\s*Issue\s+\d{1,2}\s*[-–]\s*((?:19|20)\d{2})\s*<", html)
+    return parse_date(f"{m.group(1)}-01-01") if m else None
 
 
 def main():
@@ -163,15 +174,15 @@ def main():
     rows = cur.fetchall()
     with ThreadPoolExecutor(8) as pool:
         found = list(pool.map(lambda r: (r[0], r[1], *find_date(r[1])), rows))
-    hits = [(sid, v) for sid, _, v, _ in found if v]
+    hits = [(sid, v, "year" if how == "issue-year" else None) for sid, _, v, how in found if v]
     tally = {}
     for _, url, v, how in found:
         tally[how if v else how.split(":")[0]] = tally.get(how if v else how.split(":")[0], 0) + 1
         print(f"{str(v or '-'):<10} {how:<28} {url[:110]}")
     print(f"\n{len(rows)} signals without a published date; dated now: {len(hits)}; by source: {tally}")
     if args.write and hits:
-        cur.executemany("UPDATE staging.competitive_signal SET published_date = %s WHERE signal_id = %s AND published_date IS NULL",
-                        [(v, sid) for sid, v in hits])
+        cur.executemany("UPDATE staging.competitive_signal SET published_date = %s, published_precision = %s "
+                        "WHERE signal_id = %s AND published_date IS NULL", [(v, prec, sid) for sid, v, prec in hits])
         con.commit()
         print(f"written: {len(hits)}")
     con.close()

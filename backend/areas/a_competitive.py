@@ -259,6 +259,14 @@ def signal_v2(database, row, det, labels, steps_by, stories, news_by, products):
     }
 
 
+def published_text(row):
+    """The card date: published_date, cut to what the source states (published_precision 'year' -> "2019",
+    'month' -> "2019-05"; SP's Land Forces prints only "Issue 2 - 2019"). NULL precision = the full date."""
+    cut = {"year": 4, "month": 7}.get(row.get("published_precision"))
+    d = row.get("published_date")
+    return str(d)[:cut] if cut and d else d
+
+
 def build_signals(database, competitors, details):
     """competitive_signal -> competitive feed cards + drawers."""
     evidence = by_key(table(database, "serving", "competitive_signal_evidence"), "signal_id")
@@ -292,7 +300,7 @@ def build_signals(database, competitors, details):
             "tags": row.get("category"),
             # the card date is the article's publication date (db/setup/15_signal_published_date.sql); the date of the
             # event it reports is a different fact, shipped beside it. No publication date -> no card date.
-            "ago": row.get("published_date"),
+            "ago": published_text(row),
             "eventDate": row.get("event_date"),
             "sowhat": row.get("summary"),
             "url": url,
