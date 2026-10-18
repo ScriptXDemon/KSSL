@@ -142,7 +142,7 @@ ALT_KEY = {"competitive_patent_filing": "filing_id"}
 SERVING_TABLES = (
     "technology_pillar", "technology_category", "technology_category_ui_label", "technology_company",
     "technology_source", "technology_metric", "market_tender_portal", "market_category_summary",
-    "market_filter_option", "market_top_opportunity_metric",
+    "market_filter_option", "market_top_opportunity_metric", "fx_rate",
 )
 # Bookkeeping columns: a change here alone does not make a card "changed".
 VOLATILE = {"created_at", "updated_at", "fetched_at", "retrieved_at"}

@@ -277,3 +277,73 @@ companyShort acronyms.
 Local kssl_serving reset (user: remove all test data): every row in the 174 serving tables is db/test_seed_full (0 keys
 shared with staging); the ui schema is already empty. The TRUNCATE was blocked by the session's safety classifier, so it
 waits for the user to run it or allow it.
+
+## Duplicate tenders merged: one procurement = one tender (2026-10-18, user decision 3; kssl-52)
+
+Local staging only (backup of every touched table taken first). `python -m backend.harvest_tenders --merge [--dry-run]`.
+- Scope = the user's groups (same title + buyer + closing date), with the portal rule inside each group:
+  Prozorro / DECP (France) / Diavgeia records are never merged (each record IS its own procurement, contract or decision:
+  14 Prozorro groups and 1 DECP group stay separate); UK Find a Tender notices merge only when they share the OCDS `ocid`
+  (2 UK groups have different ocids: separate); a group whose notices name different winners is not merged (2 groups:
+  "Procurement of 40mm Grenades", "Carbine weapon scope and mounts" - separate lots / contracts).
+- Result: 84 groups, 110 duplicate tenders merged; tenders 1,626 -> 1,516; 0 notices lost: every notice stays a
+  `market_tender_source` row (1,626 rows) with its notice number in the new column `market_tender_source.notice_reference`
+  (db/setup/18_tender_notice_merge.sql, staging + serving; wired in make_databases.sh and deploy_vps.sh).
+- Kept tender = most assessment rows, then the latest notice; it takes the latest notice's status / closing fields, the
+  earliest published_date, and any value it lacked from the others. Children (fit, matches, competitor fit, eligibility,
+  requirements, closing windows, top-opportunity rows, next moves) move when the kept tender has none of that kind, else
+  the duplicate's copy is dropped (assessments 685 -> 645). Raw notices, opportunities, story steps and fact_source rows
+  are re-pointed. Awards rebuilt: 503 -> 461 (one award per tender).
+- Going forward: `stage()` attaches a re-publication / corrigendum (same ocid, or same title + buyer + deadline) to the
+  existing tender as a secondary source row instead of a new stub; award notices without a deadline are merged after
+  extraction by `market_rollups merge` (first step of the routine run; winner check included). The tender prompt runs once
+  per tender (its primary source; latest raw notice), not once per merged notice. Category summary counts distinct tenders.
+- Found, not caused by the merge: 331 raw notices point at tenders removed earlier (an older prune); they are status
+  'staged', so the harvester will not re-stage them. Open.
+
+## Only qualifying competitors reach the UI (2026-10-18, user decision 5; kssl-52)
+
+User: "on ui show only those competitor which qualifies in backend keep all and when some new news comes and it matches the
+qualify criteria put them on ui".
+- The database keeps every competitor and row. `backend/areas/a_competitive.visible_database()` (called first in
+  `app.build_dataset`) builds the dataset from a view without the competitors whose `qualifies` is not true (NULL = not
+  testable = hidden): rows naming one by id, every row hanging off a removed row (review.GRAPH, transitively: products,
+  specs, matchups, signals, partnerships, projects, patents, stories, movements ...), rival rows naming one by name (tender
+  competitor fit, opportunity rivals), technology companies of that name and the articles they lead; a rival_to_beat /
+  rival_display / selected_competitor_id naming one is emptied. Applies to :8600 and :8601 alike.
+- Leak check: `python -m scripts.check_hidden_competitors` (exit 1 on a leak). Now: 50 stored, 37 qualify, 37 shipped +
+  the client; 0 hidden ids in the dataset; hidden names remain only inside free text of other cards, and one product of
+  Kongsberg named after its teaming partner (Patria NEMO). Review :8601: 132 competitive cards (121 watch, 11 threat).
+- Re-test after EVERY load: prompts/run.py (every loaded run, handler prompts included), the Excel loads
+  (backend/excel_load.py), product-class runs (client_subtype, matchup_class), and the geo derive hook. A competitor that
+  starts to qualify appears on the next dataset.
+
+Year-only dates (for kssl-40): nothing to change in the loader or harvester today. The loader's published_date comes from
+`source_document.published_at` (a full date) or the news job's date, so its precision is a full date (NULL); the harvester
+never stores a year-only date (a bare year is not parsed as a date). A year-only date exists only through the backfill rule.
+If harvest-time year dates are wanted, `source_document` needs its own precision column first.
+
+Follow-up (same day, kssl-52), from kssl-40's on-screen check and the user's question "Anduril makes drones, why ...":
+- Bug fixed in `qualify_competitors`: country names were compared as written, so an origin stored as "US" / "UK" never
+  matched a market stored as "United States". Every country now goes through `staging.country_reference` (name, ISO code,
+  aliases). Anduril and AeroVironment now qualify (same line: loitering munitions / large multirotor UAS, as KSSL's Bayonet,
+  Cleaver and Bharat 150; same market: the United States, where KSSL's 155 mm Mobile Tactical Cannon bid with AM General is
+  on record as a planned export). 39 of 50 qualify.
+- Leak fixed: two tech cards carried company "HII" (stored as "Huntington Ingalls Industries"). The filter and the leak check
+  now use every name the news job knows (db/news_aliases.csv via `backend.news.subject_for`: search name, aliases, conditional
+  acronyms such as HII); an alias shared with a shown company ("KNDS" in "Nexter (KNDS France)") is not used.
+  Leak check: 0 hidden ids, no name-valued field holds a hidden company (the Kongsberg "Patria NEMO" product name stays).
+
+## Market amounts in INR (2026-10-18, user request)
+
+- New setup table `fx_rate` (currency_code PK, inr_per_unit, as_of_date, source_label, source_url) in staging + serving,
+  `db/setup/21_fx_rate.sql` (serving guarded by only_via_approve; wired in make_databases.sh and deploy_vps.sh; listed in
+  review.SERVING_TABLES so the review site approves it as a whole table).
+- `scripts/load_fx_rates.py --write`: 30 rates. ECB euro reference rates crossed via INR (EUR 1 = INR 106.864, 16 Oct
+  2026); UAH from the National Bank of Ukraine (UAH 1 = INR 2.1165), which the ECB does not quote. Re-run to refresh.
+- Backend ships `fxRates` (e_ui_port). The browser converts with these only: Tenders "Value disclosed", tender card
+  Value, award values, segment / winner totals. A currency with no stored rate keeps its own code.
+- Live: serving.fx_rate is empty until the fx_rate setup table is approved on the review site.
+- Not converted: amounts inside headlines / prose, and global requirement value_text (free text, the source's words).
+- Prompts lane: the Top opportunity "Tender value" tile is stored text from backend/market_rollups.py; asked to convert it
+  with fx_rate.

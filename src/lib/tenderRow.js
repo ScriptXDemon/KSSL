@@ -28,6 +28,7 @@
  */
 import { formatDate } from "../utils/formatDate.js";
 import { TENDER_CARD_CELLS, TENDER_EMPTY, TENDER_VALUE_EMPTY } from "./chrome.js";
+import { amountText } from "./tenderValue.js";
 import { fitOf } from "./tenderIntel.js";
 
 export const NOT_ON_RECORD = "not on record";
@@ -107,7 +108,9 @@ const RESOLVE = {
   buyer: (t) => (has(t.issuer) ? { value: str(t.issuer), from: "issuer" } : none()),
   country: (t) => (has(t.country) ? { value: str(t.country), from: "country" } : none()),
   category: (t) => (has(t.cat) ? { value: str(t.cat), from: "cat" } : none()),
-  value: (t) => (has(t.value) ? { value: str(t.value), from: "value" } : none()),
+  // the stated amount in rupees (stored fx_rate), else the stored value text as written
+  value: (t) => (amountText(t.valueAmount, t.valueCurrency) ? { value: amountText(t.valueAmount, t.valueCurrency), from: "valueAmount" }
+    : has(t.value) ? { value: str(t.value), from: "value" } : none()),
   quantity: (t) =>
     has(t.qty) ? { value: str(t.qty), from: "qty" }
     : first(reqRow(t, "quantity"), "req"),

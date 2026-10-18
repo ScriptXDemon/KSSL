@@ -46,6 +46,12 @@ const one = (n, unit, d) => `${(Math.round((n / unit) * 10 ** d) / 10 ** d).toLo
 export const rupees = (n) =>
   n >= 1e7 ? `₹ ${one(n, 1e7, n >= 1e9 ? 0 : 1)} Cr` : n >= 1e5 ? `₹ ${one(n, 1e5, 1)} L` : `₹ ${Math.round(n).toLocaleString("en-IN")}`;
 
+/* one stated amount in rupees ("₹ 12.4 Cr"), or in its own currency when no stored rate exists; null with no amount */
+export function amountText(amount, currency) {
+  const n = Number(amount), c = String(currency || "").trim();
+  return n > 0 && c ? formatTotals([{ currency: c, amount: n, n: 1 }]) : null;
+}
+
 /* "₹ 1,240 Cr" when every currency is INR or has a stored rate; otherwise the converted part in rupees and each
    unconverted currency in its own code ("₹ 12 Cr · UAH 34,516 m"); "—" when no record states an amount */
 export function formatTotals(totals) {

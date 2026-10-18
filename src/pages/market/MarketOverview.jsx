@@ -6,7 +6,7 @@ import { MARKET_SECTIONS as SECTIONS } from "../../lib/chrome";
 import { formatDate } from "../../utils/formatDate";
 import MarketOutlook from "../../components/marketOutlook/MarketOutlook";
 import { outlook } from "../../lib/marketOutlook";
-import { formatTotals } from "../../lib/tenderValue";
+import { amountText, formatTotals } from "../../lib/tenderValue";
 import {
   CATEGORY_COLOR,
   catOf,
@@ -671,7 +671,7 @@ export default function MarketOverview() {
                                 <span className="clamp3" title={a.winner || undefined}>{a.winner}</span>
                                 {a.brand ? <span className="ovt-buyer">{a.brand}</span> : null}
                               </td>
-                              <td className="num">{a.value_text || (a.value && a.currency ? `${a.currency} ${a.value.toLocaleString("en-US")}` : "—")}</td>
+                              <td className="num">{amountText(a.value, a.currency) || a.value_text || "—"}</td>
                               <td className="num">{a.bids || "—"}</td>
                               <td>
                                 {a.url ? (

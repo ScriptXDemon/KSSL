@@ -8,6 +8,10 @@ from backend.common import table, text
 
 
 def build(database, d):
+    # rupees per one unit, from the stored official rates (serving.fx_rate, scripts/load_fx_rates.py): the UI converts
+    # every stated amount to INR with these and only these (src/lib/tenderValue.js)
+    d["fxRates"] = {text(r.get("currency_code")).strip().upper(): float(r["inr_per_unit"])
+                    for r in table(database, "serving", "fx_rate") if r.get("currency_code") and r.get("inr_per_unit")}
     d["sectionVisibility"] = {
         text(r.get("section_key")): bool(r.get("visible"))
         for r in table(database, "ui", "section_visibility") if r.get("section_key")
